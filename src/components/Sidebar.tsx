@@ -2,42 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-
-// Define calculator categories
-const calculatorCategories = [
-  {
-    name: 'Construction Converters',
-    path: '/calculators/construction-converters',
-  },
-  {
-    name: 'Construction Materials Calculators',
-    path: '/calculators/construction-materials',
-  },
-  {
-    name: 'Cement and Concrete Calculators',
-    path: '/calculators/cement-concrete',
-  },
-  {
-    name: 'Home and Garden Calculators',
-    path: '/calculators/home-garden',
-  },
-  {
-    name: 'Roofing Calculators',
-    path: '/calculators/roofing',
-  },
-  {
-    name: 'Water Tank and Vessels Calculators',
-    path: '/calculators/water-tank-vessels',
-  },
-  {
-    name: 'Materials Specifications Calculators',
-    path: '/calculators/materials-specifications',
-  },
-  {
-    name: 'Other Calculators',
-    path: '/calculators/other',
-  },
-];
+import { CALCULATOR_CATEGORIES } from '@/constants';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -50,7 +15,7 @@ export default function Sidebar() {
       </div>
       <nav>
         <ul className="space-y-3">
-          {calculatorCategories.map((category) => (
+          {CALCULATOR_CATEGORIES.map((category) => (
             <li key={category.path}>
               <Link 
                 href={category.path}
@@ -62,7 +27,7 @@ export default function Sidebar() {
               >
                 <span className="flex items-center">
                   <span className="mr-2">
-                    {pathname.startsWith(category.path) ? '🔹' : '▫️'}
+                    {pathname.startsWith(category.path) ? '🔹' : category.icon}
                   </span>
                   {category.name}
                 </span>
