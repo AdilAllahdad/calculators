@@ -1,6 +1,12 @@
 
-export default function page() {
+export default function CalculatorsPage() {
   return (
-    <div>My Calculators Dashboard</div>
+    <div>
+      <h1 className="text-2xl font-bold mb-4">Calculators Dashboard</h1>
+      <p className="mb-6">
+        Select a calculator category from the sidebar to get started with our comprehensive
+        collection of specialized calculators.
+      </p>
+    </div>
   )
 }
