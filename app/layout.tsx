@@ -27,21 +27,22 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning={true}
       >
-        <header className="bg-white border-b border-gray-200 py-4 px-6">
+        <header className="bg-gradient-to-r from-blue-600 to-cyan-500 shadow-lg py-4 px-6">
           <div className="container mx-auto flex justify-between items-center">
-            <Link href="/" className="text-xl font-bold">
-              Construction Calculators
+            <Link href="/" className="text-2xl font-bold text-white hover:text-blue-100 transition-colors">
+              🏗️ Construction Calculators
             </Link>
             <nav>
               <ul className="flex space-x-6">
                 <li>
-                  <Link href="/" className="hover:text-blue-600">
+                  <Link href="/" className="text-white hover:text-blue-100 font-medium transition-colors">
                     Home
                   </Link>
                 </li>
                 <li>
-                  <Link href="/calculators" className="hover:text-blue-600">
+                  <Link href="/calculators" className="text-white hover:text-blue-100 font-medium transition-colors">
                     Calculators
                   </Link>
                 </li>
@@ -49,7 +50,7 @@ export default function RootLayout({
             </nav>
           </div>
         </header>
-        <main>{children}</main>
+        <main className="min-h-screen">{children}</main>
       </body>
     </html>
   );

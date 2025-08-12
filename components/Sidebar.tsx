@@ -43,23 +43,29 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="w-64 bg-gray-100 h-screen p-4">
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">Calculator Categories</h2>
+    <div className="w-64 bg-gradient-to-b from-slate-800 to-slate-900 h-screen p-6 shadow-xl">
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-2 text-white">🧮 Calculator Categories</h2>
+        <div className="h-1 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full"></div>
       </div>
       <nav>
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {calculatorCategories.map((category) => (
             <li key={category.path}>
               <Link 
                 href={category.path}
-                className={`block p-2 rounded ${
+                className={`block p-3 rounded-lg transition-all duration-200 font-medium ${
                   pathname.startsWith(category.path)
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'hover:bg-gray-200'
+                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg transform scale-105'
+                    : 'text-slate-300 hover:bg-slate-700 hover:text-white hover:transform hover:scale-105 hover:shadow-md'
                 }`}
               >
-                {category.name}
+                <span className="flex items-center">
+                  <span className="mr-2">
+                    {pathname.startsWith(category.path) ? '🔹' : '▫️'}
+                  </span>
+                  {category.name}
+                </span>
               </Link>
             </li>
           ))}
