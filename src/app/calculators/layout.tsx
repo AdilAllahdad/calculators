@@ -7,9 +7,11 @@ export default function CalculatorsLayout({
 }) {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <Sidebar />
-      <div className="flex-1 p-8 overflow-auto">
-        <div className="max-w-6xl mx-auto">
+      <div className="flex-shrink-0">
+        <Sidebar />
+      </div>
+      <div className="flex-1 p-6 overflow-y-auto content-area">
+        <div className="max-w-7xl mx-auto">
           {children}
         </div>
       </div>

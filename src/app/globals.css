@@ -106,3 +106,27 @@ input::placeholder {
   background-color: #ffffff !important;
   border: 1px solid #cbd5e1;
 }
+
+/* Sidebar specific styles */
+.sidebar-container {
+  background: linear-gradient(to bottom, #1e293b, #0f172a);
+  min-height: 100vh;
+  height: fit-content;
+}
+
+/* Ensure full height coverage and proper scrolling */
+html, body {
+  height: auto;
+  min-height: 100vh;
+}
+
+#__next {
+  min-height: 100vh;
+  height: auto;
+}
+
+/* Content area styling */
+.content-area {
+  min-height: 100vh;
+  height: auto;
+}

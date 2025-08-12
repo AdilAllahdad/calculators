@@ -8,7 +8,14 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="w-64 bg-gradient-to-b from-slate-800 to-slate-900 h-screen p-6 shadow-xl">
+    <div 
+      className="w-64 p-6 shadow-xl sidebar-container sticky top-0"
+      style={{
+        background: 'linear-gradient(to bottom, #1e293b, #0f172a)',
+        minHeight: '100vh',
+        height: 'fit-content'
+      }}
+    >
       <div className="mb-8">
         <h2 className="text-xl font-bold mb-2 text-white">🧮 Calculator Categories</h2>
         <div className="h-1 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full"></div>

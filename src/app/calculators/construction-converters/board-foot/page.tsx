@@ -71,7 +71,7 @@ export default function BoardFootCalculator() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent flex items-center">
           Board Foot Calculator 
@@ -82,7 +82,7 @@ export default function BoardFootCalculator() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* Calculator Form */}
         <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
           <h2 className="text-xl font-semibold mb-6 text-slate-800">Calculator</h2>
