@@ -159,63 +159,50 @@ export default function CubicYardCalculator() {
   };
 
   const getShapeImage = () => {
-    switch (shape) {
-      case 'Cube':
-        return (
-          <div className="w-full h-48 bg-gradient-to-br from-green-200 to-green-400 rounded-lg flex items-center justify-center relative overflow-hidden">
-            <div className="relative">
-              {/* Cube visualization */}
-              <div className="w-20 h-20 bg-orange-400 border-2 border-orange-600 relative">
-                <div className="absolute -top-3 -right-3 w-20 h-20 bg-orange-300 border-2 border-orange-500 transform rotate-12"></div>
-                <div className="absolute top-0 right-0 w-6 h-20 bg-orange-500 border border-orange-600 transform skew-y-45"></div>
-                <div className="absolute bottom-0 right-0 w-20 h-6 bg-orange-500 border border-orange-600 transform skew-x-45"></div>
-              </div>
-              {/* Labels */}
-              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-blue-600 font-semibold text-sm">length</div>
-              <div className="absolute top-1/2 -left-12 transform -translate-y-1/2 -rotate-90 text-blue-600 font-semibold text-sm">width</div>
-              <div className="absolute top-1/2 -right-8 transform -translate-y-1/2 rotate-90 text-blue-600 font-semibold text-sm">depth</div>
-            </div>
-          </div>
-        );
-      case 'Rectangular cuboid':
-        return (
-          <div className="w-full h-48 bg-gradient-to-br from-green-200 to-green-400 rounded-lg flex items-center justify-center relative overflow-hidden">
-            <div className="relative">
-              {/* Rectangular cuboid visualization */}
-              <div className="w-24 h-16 bg-orange-400 border-2 border-orange-600 relative">
-                <div className="absolute -top-2 -right-2 w-24 h-16 bg-orange-300 border-2 border-orange-500"></div>
-                <div className="absolute top-0 right-0 w-4 h-16 bg-orange-500 border border-orange-600 transform skew-y-45"></div>
-                <div className="absolute bottom-0 right-0 w-24 h-4 bg-orange-500 border border-orange-600 transform skew-x-45"></div>
-              </div>
-              {/* Labels */}
-              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-blue-600 font-semibold text-sm">length</div>
-              <div className="absolute top-1/2 -left-12 transform -translate-y-1/2 -rotate-90 text-blue-600 font-semibold text-sm">width</div>
-              <div className="absolute top-1/2 -right-8 transform -translate-y-1/2 rotate-90 text-blue-600 font-semibold text-sm">height</div>
-            </div>
-          </div>
-        );
-      case 'Cylinder':
-        return (
-          <div className="w-full h-48 bg-gradient-to-br from-green-200 to-green-400 rounded-lg flex items-center justify-center relative overflow-hidden">
-            <div className="relative">
-              {/* Cylinder visualization */}
-              <div className="w-16 h-24 bg-orange-400 border-2 border-orange-600 rounded-t-full relative">
-                <div className="absolute top-0 w-16 h-4 bg-orange-300 border border-orange-500 rounded-full"></div>
-                <div className="absolute bottom-0 w-16 h-4 bg-orange-500 border border-orange-600 rounded-full"></div>
-              </div>
-              {/* Labels */}
-              <div className="absolute top-1/2 -right-12 transform -translate-y-1/2 rotate-90 text-blue-600 font-semibold text-sm">height</div>
-              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-blue-600 font-semibold text-sm">radius</div>
-            </div>
-          </div>
-        );
-      default:
-        return (
-          <div className="w-full h-48 bg-gradient-to-br from-green-200 to-green-400 rounded-lg flex items-center justify-center">
-            <div className="text-green-700 text-lg font-semibold">Select a shape</div>
-          </div>
-        );
+    const getImageSrc = () => {
+      switch (shape) {
+        case 'Cube':
+          return '/cube-removebg-preview.png';
+        case 'Rectangular cuboid':
+          return '/cuboid-removebg-preview.png';
+        case 'Cylinder':
+          return '/cylinder2-removebg-preview.png';
+        case 'Hollow cuboid / Rectangular tube':
+          return '/hollow_cuboid-removebg-preview.png';
+        case 'Hollow cylinder':
+          return '/hollow_cylinder-removebg-preview.png';
+        case 'Hemisphere':
+          return '/hemisphere-removebg-preview.png';
+        case 'Cone':
+          return '/cone-removebg-preview.png';
+        case 'Pyramid':
+          return '/pyramid-removebg-preview.png';
+        case 'Other shape':
+          return '/other2-removebg-preview.png';
+        default:
+          return null;
+      }
+    };
+
+    const imageSrc = getImageSrc();
+
+    if (!imageSrc) {
+      return (
+        <div className="w-full h-48 bg-gradient-to-br from-green-200 to-green-400 rounded-lg flex items-center justify-center">
+          <div className="text-green-700 text-lg font-semibold">Select a shape</div>
+        </div>
+      );
     }
+
+    return (
+      <div className="w-full h-48 bg-gradient-to-br from-green-200 to-green-400 rounded-lg flex items-center justify-center relative overflow-hidden">
+        <img 
+          src={imageSrc}
+          alt={shape}
+          className="max-h-full max-w-full object-contain rounded-lg"
+        />
+      </div>
+    );
   };
 
   const getRequiredFields = () => {
@@ -284,20 +271,17 @@ export default function CubicYardCalculator() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4 text-slate-800 flex items-center">
+    <div className="min-h-screen flex flex-col items-center justify-center py-8 px-4">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold mb-4 text-slate-800 flex items-center justify-center">
           Cubic Yard Calculator 
           <span className="ml-3 text-2xl">📦</span>
         </h1>
-        <p className="text-lg text-slate-700">
-          This cubic yard calculator, or yardage calculator, helps you find a volume in cubic yards. Calculate cubic yards for various shapes including cubes, rectangles, cylinders, and more. Perfect for construction, landscaping, and material estimation.
-        </p>
+       
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Calculator Form */}
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
+      {/* Calculator Form */}
+      <div className="w-full max-w-2xl bg-white rounded-xl p-6 shadow-lg border border-slate-200">
           <h2 className="text-xl font-semibold mb-6 text-slate-800">Calculator</h2>
           
           {/* Shape and dimensions section */}
@@ -501,107 +485,6 @@ export default function CubicYardCalculator() {
             </div>
           </div>
         </div>
-
-        {/* Information Panel */}
-        <div className="space-y-6">
-          {/* How much is a cubic yard */}
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
-            <h3 className="text-xl font-semibold mb-4 text-slate-800">How much is a cubic yard?</h3>
-            <p className="text-slate-600 mb-4">
-              A cubic yard is a unit of volume. One cubic yard is defined as the volume of a cube with 1 yd long edges. One cubic yard is denoted by 1 yd³ or 1 cu yd.
-            </p>
-            <p className="text-slate-600 mb-4">
-              The question "What is the yardage of this object?" means the same as "How many 1 yd³ cubes can fit inside this object?"
-            </p>
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <div className="text-center font-semibold text-blue-800">
-                1 cubic yard = 27 cubic feet = 46,656 cubic inches
-              </div>
-            </div>
-          </div>
-
-          {/* Conversion information */}
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
-            <h3 className="text-xl font-semibold mb-4 text-slate-800">Unit conversions</h3>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold text-slate-700 mb-2">Cubic feet to cubic yards:</h4>
-                <div className="bg-orange-50 p-3 rounded border border-orange-200">
-                  <div className="font-mono text-sm">
-                    1 yd³ = 1 yd × 1 yd × 1 yd<br/>
-                    1 yd³ = 3 ft × 3 ft × 3 ft<br/>
-                    1 yd³ = 27 ft³
-                  </div>
-                </div>
-                <p className="text-slate-600 text-sm mt-2">
-                  So the conversion factor from cubic yards to cubic feet is 27, and it is 1/27 if you're converting from cubic feet to cubic yards.
-                </p>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-slate-700 mb-2">Cubic inches to cubic yards:</h4>
-                <div className="bg-green-50 p-3 rounded border border-green-200">
-                  <div className="font-mono text-sm">
-                    1 yd³ = 36 in × 36 in × 36 in<br/>
-                    1 yd³ = 46,656 in³
-                  </div>
-                </div>
-                <p className="text-slate-600 text-sm mt-2">
-                  Hence, the conversion ratio from cubic yards to cubic inches is 46,656, while from cubic inches to cubic yards, it is 1/46,656.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Volume calculation methods */}
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
-            <h3 className="text-xl font-semibold mb-4 text-slate-800">Volume calculation methods</h3>
-            <div className="space-y-4 text-slate-600">
-              <div>
-                <h4 className="font-semibold text-slate-700 mb-2">Prism-like volumes:</h4>
-                <p className="text-sm mb-2">Volume = area × depth</p>
-                <p className="text-xs">It doesn't matter if we are dealing with triangular, rectangular, or any other type of prism; the formula is always the same.</p>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-slate-700 mb-2">Pyramid-like volumes:</h4>
-                <p className="text-sm mb-2">Volume = 1/3 × area × depth</p>
-                <p className="text-xs">It can also be a circle as well (making the pyramid). Unlike the previous case, we have to multiply the equation by a constant factor of 1/3.</p>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-slate-700 mb-2">Other shapes:</h4>
-                <p className="text-xs">Hemispheres, hollowed cubes, or not-well-defined shapes require their own individual formulas. Sometimes it's possible to divide the shape into smaller pieces with known volumes and then find the sum of them.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* FAQ */}
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
-            <h3 className="text-xl font-semibold mb-4 text-slate-800">Frequently Asked Questions</h3>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold text-slate-700 mb-2">How many cubic feet is 2 cubic yards?</h4>
-                <p className="text-slate-600 text-sm mb-2">
-                  The answer is 54 ft³. To derive this answer, you need to:
-                </p>
-                <ol className="text-slate-600 text-sm space-y-1 ml-4">
-                  <li>1. Recall the conversion factor: one cubic yard is 27 cubic feet.</li>
-                  <li>2. Multiply 2 cubic yards by the conversion factor: 2 × 27 = 54.</li>
-                  <li>3. Remember to include the unit: the answer is 54 cubic feet.</li>
-                </ol>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-slate-700 mb-2">Where do we use cubic yards?</h4>
-                <p className="text-slate-600 text-sm">
-                  Cubic yards are often used when we want to dig a hole in the ground and fill it with an amount of material, such as gravel, sand, or mulch, due to the scale of this operation being well-suited to cubic yards.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

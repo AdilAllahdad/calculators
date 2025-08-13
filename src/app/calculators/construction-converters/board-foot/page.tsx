@@ -120,9 +120,7 @@ export default function BoardFootCalculator() {
           Board Foot Calculator 
           <span className="ml-3 text-2xl">📏</span>
         </h1>
-        <p className="text-lg text-slate-700">
-          Calculate board feet for lumber purchases. Unlike square footage which measures area, board footage measures volume for purchasing lumber in various sizes.
-        </p>
+       
       </div>
 
       <div className="flex justify-center mb-8">
