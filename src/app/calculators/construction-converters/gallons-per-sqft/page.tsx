@@ -481,6 +481,5 @@ export default function GallonsPerSquareFootCalculator() {
           </div>
         </div>
       </div>
-   
   );
 }
