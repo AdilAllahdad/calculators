@@ -2,7 +2,127 @@
  * Utility functions for calculations
  */
 
-// Convert units to a common base
+import { UNIT_OPTIONS } from '@/constants';
+import { UnitOption } from '@/types/calculator';
+
+// Filter units by type
+export const getUnitsByType = (type: string | string[]): UnitOption[] => {
+  const types = Array.isArray(type) ? type : [type];
+  return UNIT_OPTIONS.filter(unit => types.includes(unit.type));
+};
+
+// Filter units by specific values
+export const getUnitsByValues = (values: string[]): UnitOption[] => {
+  return UNIT_OPTIONS.filter(unit => values.includes(unit.value));
+};
+
+// Conversion factors to base units (SI)
+const conversionFactors = {
+  // Length (base: meters)
+  length: {
+    'mm': 0.001,
+    'cm': 0.01,
+    'm': 1,
+    'km': 1000,
+    'in': 0.0254,
+    'ft': 0.3048,
+    'yd': 0.9144,
+    'mi': 1609.344
+  },
+  // Area (base: square meters)
+  area: {
+    'mm2': 0.000001,
+    'cm2': 0.0001,
+    'm2': 1,
+    'ha': 10000,
+    'km2': 1000000,
+    'in2': 0.00064516,
+    'ft2': 0.092903,
+    'yd2': 0.836127,
+    'ac': 4046.86,
+    'mi2': 2589988.11
+  },
+  // Volume (base: cubic meters)
+  volume: {
+    'mm3': 0.000000001,
+    'cm3': 0.000001,
+    'ml': 0.000001,
+    'l': 0.001,
+    'm3': 1,
+    'in3': 0.000016387,
+    'ft3': 0.028317,
+    'yd3': 0.764555,
+    'gal': 0.003785,
+    'gal-uk': 0.00454609,
+    'qt': 0.000946353,
+    'pt': 0.000473176,
+    'fl-oz': 0.0000295735
+  },
+  // Weight (base: kilograms)
+  weight: {
+    'mg': 0.000001,
+    'g': 0.001,
+    'kg': 1,
+    't': 1000,
+    'oz': 0.0283495,
+    'lb': 0.453592,
+    'st': 6.35029,
+    'ton': 907.185,
+    'ton-uk': 1016.05
+  }
+};
+
+// Convert value from one unit to another
+export const convertValue = (value: number, fromUnit: string, toUnit: string): number => {
+  // Find the unit type for the fromUnit
+  const fromUnitOption = UNIT_OPTIONS.find(unit => unit.value === fromUnit);
+  const toUnitOption = UNIT_OPTIONS.find(unit => unit.value === toUnit);
+  
+  if (!fromUnitOption || !toUnitOption) {
+    return value; // Can't convert if units are not found
+  }
+  
+  // Check if both units are of the same type
+  if (fromUnitOption.type !== toUnitOption.type) {
+    return value; // Can't convert between different unit types
+  }
+  
+  const unitType = fromUnitOption.type;
+  
+  // Special handling for compound units (e.g., ft-in)
+  if (fromUnit === 'ft-in' || fromUnit === 'm-cm' || toUnit === 'ft-in' || toUnit === 'm-cm') {
+    return value; // Not handling compound units in this basic conversion
+  }
+  
+  // Get conversion factors based on unit type
+  if (unitType === 'length' && fromUnit in conversionFactors.length && toUnit in conversionFactors.length) {
+    const fromFactor = conversionFactors.length[fromUnit as keyof typeof conversionFactors.length];
+    const toFactor = conversionFactors.length[toUnit as keyof typeof conversionFactors.length];
+    return (value * fromFactor) / toFactor;
+  }
+  
+  if (unitType === 'area' && fromUnit in conversionFactors.area && toUnit in conversionFactors.area) {
+    const fromFactor = conversionFactors.area[fromUnit as keyof typeof conversionFactors.area];
+    const toFactor = conversionFactors.area[toUnit as keyof typeof conversionFactors.area];
+    return (value * fromFactor) / toFactor;
+  }
+  
+  if (unitType === 'volume' && fromUnit in conversionFactors.volume && toUnit in conversionFactors.volume) {
+    const fromFactor = conversionFactors.volume[fromUnit as keyof typeof conversionFactors.volume];
+    const toFactor = conversionFactors.volume[toUnit as keyof typeof conversionFactors.volume];
+    return (value * fromFactor) / toFactor;
+  }
+  
+  if (unitType === 'weight' && fromUnit in conversionFactors.weight && toUnit in conversionFactors.weight) {
+    const fromFactor = conversionFactors.weight[fromUnit as keyof typeof conversionFactors.weight];
+    const toFactor = conversionFactors.weight[toUnit as keyof typeof conversionFactors.weight];
+    return (value * fromFactor) / toFactor;
+  }
+  
+  return value; // No conversion available
+};
+
+// Convert units to a common base (legacy version)
 export const convertUnit = (value: number, fromUnit: string, toUnit: string): number => {
   // Length conversions to feet
   const lengthConversions: { [key: string]: number } = {
@@ -11,25 +131,25 @@ export const convertUnit = (value: number, fromUnit: string, toUnit: string): nu
     'm': 3.28084,
     'in': 0.083333,
     'ft': 1,
-    'ft/in': 1
+    'ft-in': 1
   };
 
   // Area conversions to square feet
   const areaConversions: { [key: string]: number } = {
-    'mm²': 0.0000107639,
-    'cm²': 0.00107639,
-    'm²': 10.7639,
-    'in²': 0.00694444,
-    'ft²': 1
+    'mm2': 0.0000107639,
+    'cm2': 0.00107639,
+    'm2': 10.7639,
+    'in2': 0.00694444,
+    'ft2': 1
   };
 
   // Volume conversions to cubic feet
   const volumeConversions: { [key: string]: number } = {
-    'mm³': 0.0000000353147,
-    'cm³': 0.0000353147,
-    'm³': 35.3147,
-    'in³': 0.000578704,
-    'ft³': 1
+    'mm3': 0.0000000353147,
+    'cm3': 0.0000353147,
+    'm3': 35.3147,
+    'in3': 0.000578704,
+    'ft3': 1
   };
 
   // Determine conversion type and apply conversion
