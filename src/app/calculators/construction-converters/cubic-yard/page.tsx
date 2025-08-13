@@ -286,7 +286,7 @@ export default function CubicYardCalculator() {
   return (
     <div className="max-w-6xl mx-auto py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent flex items-center">
+        <h1 className="text-3xl font-bold mb-4 text-slate-800 flex items-center">
           Cubic Yard Calculator 
           <span className="ml-3 text-2xl">📦</span>
         </h1>

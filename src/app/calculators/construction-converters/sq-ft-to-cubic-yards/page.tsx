@@ -197,9 +197,9 @@ export default function GallonsPerSquareFootCalculator() {
   return (
     <div className="max-w-4xl mx-auto py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent flex items-center">
+        <h1 className="text-3xl font-bold mb-4 text-slate-800 flex items-center">
           Gallons per Square Foot Calculator 
-          <span className="ml-3 text-2xl">�</span>
+          <span className="ml-3 text-2xl">🧮</span>
         </h1>
         <p className="text-lg text-slate-700">
           Welcome to our gallons per square foot calculator, the perfect tool to convert square feet to gallons and gallons to square feet. If you're building a swimming pool or an aquarium and wish to calculate how many gallons of water per square foot you need, you've come to the right place!

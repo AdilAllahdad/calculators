@@ -49,7 +49,7 @@ export default function ConstructionConvertersPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent flex items-center">
+        <h1 className="text-3xl font-bold mb-4 text-slate-800 flex items-center">
           Construction Converters 
           <span className="ml-3 text-2xl">👷</span>
         </h1>

@@ -3,16 +3,16 @@
 import { useState, useEffect } from 'react';
 
 export default function BoardFootCalculator() {
-  const [numPieces, setNumPieces] = useState<number>(1);
-  const [thickness, setThickness] = useState<number>(1);
+  const [numPieces, setNumPieces] = useState<number>(0);
+  const [thickness, setThickness] = useState<number>(0);
   const [thicknessUnit, setThicknessUnit] = useState<string>('in');
-  const [width, setWidth] = useState<number>(10);
+  const [width, setWidth] = useState<number>(0);
   const [widthUnit, setWidthUnit] = useState<string>('in');
-  const [length, setLength] = useState<number>(8);
+  const [length, setLength] = useState<number>(0);
   const [lengthUnit, setLengthUnit] = useState<string>('ft');
-  const [lengthFeet, setLengthFeet] = useState<number>(2);
+  const [lengthFeet, setLengthFeet] = useState<number>(0);
   const [lengthInches, setLengthInches] = useState<number>(0);
-  const [price, setPrice] = useState<number>(4.15);
+  const [price, setPrice] = useState<number>(0);
   const [currency, setCurrency] = useState<string>('USD');
   
   const [totalBoardFeet, setTotalBoardFeet] = useState<number>(0);
@@ -40,6 +40,22 @@ export default function BoardFootCalculator() {
   useEffect(() => {
     calculateBoardFeet();
   }, [numPieces, thickness, thicknessUnit, width, widthUnit, length, lengthUnit, lengthFeet, lengthInches, price]);
+
+  const handleNumberInput = (value: string, setter: (val: number) => void) => {
+    if (value === '' || value === '0') {
+      setter(0);
+    } else {
+      // Remove leading zeros and convert to number
+      const cleanValue = value.replace(/^0+/, '') || '0';
+      setter(Number(cleanValue) || 0);
+    }
+  };
+
+  const handleFocus = (currentValue: number, e: React.FocusEvent<HTMLInputElement>) => {
+    if (currentValue === 0) {
+      e.target.select();
+    }
+  };
 
   const calculateBoardFeet = () => {
     // Convert all dimensions to proper units
@@ -99,8 +115,8 @@ export default function BoardFootCalculator() {
 
   return (
     <div className="max-w-4xl mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent flex items-center">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold mb-4 text-slate-800 flex items-center justify-center">
           Board Foot Calculator 
           <span className="ml-3 text-2xl">📏</span>
         </h1>
@@ -109,9 +125,9 @@ export default function BoardFootCalculator() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <div className="flex justify-center mb-8">
         {/* Calculator Form */}
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200 w-full max-w-lg">
           <h2 className="text-xl font-semibold mb-6 text-slate-800">Calculator</h2>
           
           {/* Number of pieces */}
@@ -122,10 +138,25 @@ export default function BoardFootCalculator() {
             <input
               type="number"
               value={numPieces}
-              onChange={(e) => setNumPieces(Number(e.target.value) || 1)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '' || value === '0') {
+                  setNumPieces(0);
+                } else {
+                  // Remove leading zeros and convert to number
+                  const cleanValue = value.replace(/^0+/, '') || '0';
+                  setNumPieces(Number(cleanValue) || 0);
+                }
+              }}
+              onFocus={(e) => {
+                // Clear the field if it's 0 when focused
+                if (numPieces === 0) {
+                  e.target.select();
+                }
+              }}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-              min="1"
+              min="0"
             />
           </div>
 
@@ -138,10 +169,12 @@ export default function BoardFootCalculator() {
               <input
                 type="number"
                 value={thickness}
-                onChange={(e) => setThickness(Number(e.target.value) || 0)}
+                onChange={(e) => handleNumberInput(e.target.value, setThickness)}
+                onFocus={(e) => handleFocus(thickness, e)}
                 className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                 step="0.01"
+                min="0"
               />
               <select
                 value={thicknessUnit}
@@ -167,10 +200,12 @@ export default function BoardFootCalculator() {
               <input
                 type="number"
                 value={width}
-                onChange={(e) => setWidth(Number(e.target.value) || 0)}
+                onChange={(e) => handleNumberInput(e.target.value, setWidth)}
+                onFocus={(e) => handleFocus(width, e)}
                 className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                 step="0.01"
+                min="0"
               />
               <select
                 value={widthUnit}
@@ -197,7 +232,8 @@ export default function BoardFootCalculator() {
                 <input
                   type="number"
                   value={lengthFeet}
-                  onChange={(e) => setLengthFeet(Number(e.target.value) || 0)}
+                  onChange={(e) => handleNumberInput(e.target.value, setLengthFeet)}
+                  onFocus={(e) => handleFocus(lengthFeet, e)}
                   className="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                   step="1"
@@ -210,7 +246,8 @@ export default function BoardFootCalculator() {
                 <input
                   type="number"
                   value={lengthInches}
-                  onChange={(e) => setLengthInches(Number(e.target.value) || 0)}
+                  onChange={(e) => handleNumberInput(e.target.value, setLengthInches)}
+                  onFocus={(e) => handleFocus(lengthInches, e)}
                   className="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                   step="0.01"
@@ -268,11 +305,13 @@ export default function BoardFootCalculator() {
                 <input
                   type="number"
                   value={price}
-                  onChange={(e) => setPrice(Number(e.target.value) || 0)}
+                  onChange={(e) => handleNumberInput(e.target.value, setPrice)}
+                  onFocus={(e) => handleFocus(price, e)}
                   className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                   step="0.01"
                   placeholder="Price per board foot"
+                  min="0"
                 />
               </div>
               <div className="text-xs text-slate-500 mt-1">/ board foot</div>
@@ -306,61 +345,7 @@ export default function BoardFootCalculator() {
           </div>
         </div>
 
-        {/* Information Panel */}
-        <div className="space-y-6">
-          {/* What is a board foot */}
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
-            <h3 className="text-xl font-semibold mb-4 text-slate-800">What is a board foot?</h3>
-            <p className="text-slate-600 mb-4">
-              Unlike square footage, which measures area, board footage measures volume. 
-              You use it when purchasing multiple boards of lumber in various sizes.
-            </p>
-            <p className="text-slate-600 mb-4">
-              By definition, one board foot of lumber is one square foot that is one-inch thick. 
-              If you would like to convert regular volume units into board feet, use the following relation:
-            </p>
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <div className="text-center font-semibold text-blue-800">
-                1 board foot = 144 cubic inches = 1/12 cubic foot
-              </div>
-            </div>
-          </div>
-
-          {/* How to calculate */}
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
-            <h3 className="text-xl font-semibold mb-4 text-slate-800">How to calculate board feet?</h3>
-            <p className="text-slate-600 mb-4">
-              Surprisingly, the calculations are extremely easy! All you need to do is use the board foot formula below:
-            </p>
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200 mb-4">
-              <div className="text-center font-semibold text-green-800">
-                board feet = length (ft) × width (in) × thickness (in) / 12
-              </div>
-            </div>
-            <p className="text-slate-600 text-sm">
-              Pay special attention to the units! The length of the wooden board should be expressed in feet, 
-              while the width and thickness – in inches.
-            </p>
-          </div>
-
-          {/* Example calculation */}
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
-            <h3 className="text-xl font-semibold mb-4 text-slate-800">Using the lumber calculator: an example</h3>
-            <div className="space-y-3 text-slate-600">
-              <p><strong>1.</strong> Decide on the number of pieces: 5 wooden boards</p>
-              <p><strong>2.</strong> Choose dimensions: 8 feet long, 10 inches wide, 1.25 inches thick</p>
-              <p><strong>3.</strong> Calculate board feet per piece:</p>
-              <div className="bg-orange-50 p-3 rounded border border-orange-200 ml-4">
-                <div className="font-mono text-sm">
-                  board feet = 8 × 10 × 1.25 / 12<br/>
-                  board feet = 8.33 BF
-                </div>
-              </div>
-              <p><strong>4.</strong> Total board footage: 5 × 8.33 = 41.67 BF</p>
-              <p><strong>5.</strong> Total cost: 41.67 × $4.15 = $172.92</p>
-            </div>
-          </div>
-        </div>
+       
       </div>
     </div>
   );

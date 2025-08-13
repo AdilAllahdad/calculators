@@ -33,28 +33,6 @@ body {
   line-height: 1.6;
 }
 
-/* Enhanced text visibility */
-h1, h2, h3, h4, h5, h6 {
-  color: var(--foreground) !important;
-  font-weight: 600;
-}
-
-/* Ensure headings are always visible with fallback */
-h1 {
-  color: #1e293b !important;
-  font-weight: 700;
-}
-
-h2 {
-  color: #334155 !important;
-  font-weight: 600;
-}
-
-h3 {
-  color: #475569 !important;
-  font-weight: 600;
-}
-
 /* Link styles */
 a {
   transition: all 0.2s ease;
@@ -84,32 +62,6 @@ a {
 .btn-primary:hover {
   background: var(--primary-dark);
   transform: translateY(-1px);
-}
-
-/* Gradient text with proper fallback */
-.gradient-text {
-  /* Fallback color first */
-  color: #1e293b;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  /* Support check for older browsers */
-  @supports not (-webkit-background-clip: text) {
-    color: #1e293b;
-  }
-}
-
-/* Better gradient text for headings */
-.heading-gradient {
-  color: #1e293b !important;
-  background: linear-gradient(135deg, #3b82f6, #06b6d4);
-  -webkit-background-clip: text;
-  background-clip: text;
-  /* Only make transparent if gradient is supported */
-  @supports (-webkit-background-clip: text) {
-    -webkit-text-fill-color: transparent;
-  }
 }
 
 /* Input field styles */
@@ -163,29 +115,4 @@ html, body {
 .content-area {
   min-height: 100vh;
   height: auto;
-}
-
-/* Fix specific gradient text issues without breaking other text */
-.bg-clip-text.text-transparent {
-  color: #1e293b !important;
-  background: linear-gradient(135deg, #3b82f6, #06b6d4);
-  -webkit-background-clip: text;
-  background-clip: text;
-  /* Only apply transparency if gradient is supported */
-  @supports (-webkit-background-clip: text) {
-    -webkit-text-fill-color: transparent;
-  }
-}
-
-/* Ensure slate text colors work properly */
-.text-slate-700 {
-  color: #334155 !important;
-}
-
-.text-slate-600 {
-  color: #475569 !important;
-}
-
-.text-slate-800 {
-  color: #1e293b !important;
 }
