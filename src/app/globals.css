@@ -45,12 +45,6 @@ body {
   line-height: 1.6;
 }
 
-/* Enhanced text visibility */
-h1, h2, h3, h4, h5, h6 {
-  color: var(--foreground);
-  font-weight: 600;
-}
-
 /* Link styles */
 a {
   transition: all 0.2s ease;
@@ -80,14 +74,6 @@ a {
 .btn-primary:hover {
   background: var(--primary-dark);
   transform: translateY(-1px);
-}
-
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 /* Input field styles */
