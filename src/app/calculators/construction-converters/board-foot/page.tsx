@@ -10,6 +10,8 @@ export default function BoardFootCalculator() {
   const [widthUnit, setWidthUnit] = useState<string>('in');
   const [length, setLength] = useState<number>(8);
   const [lengthUnit, setLengthUnit] = useState<string>('ft');
+  const [lengthFeet, setLengthFeet] = useState<number>(2);
+  const [lengthInches, setLengthInches] = useState<number>(0);
   const [price, setPrice] = useState<number>(4.15);
   const [currency, setCurrency] = useState<string>('USD');
   
@@ -37,11 +39,13 @@ export default function BoardFootCalculator() {
 
   useEffect(() => {
     calculateBoardFeet();
-  }, [numPieces, thickness, thicknessUnit, width, widthUnit, length, lengthUnit, price]);
+  }, [numPieces, thickness, thicknessUnit, width, widthUnit, length, lengthUnit, lengthFeet, lengthInches, price]);
 
   const calculateBoardFeet = () => {
     // Convert all dimensions to proper units
-    const lengthInFeet = length * (lengthConversions[lengthUnit as keyof typeof lengthConversions] || 1);
+    // Always use feet + inches for length calculation
+    const lengthInFeet = lengthFeet + (lengthInches / 12);
+    
     const widthInInches = width * (dimensionConversions[widthUnit as keyof typeof dimensionConversions] || 1);
     const thicknessInInches = thickness * (dimensionConversions[thicknessUnit as keyof typeof dimensionConversions] || 1);
 
@@ -63,17 +67,40 @@ export default function BoardFootCalculator() {
   ];
 
   const clearAll = () => {
-    setNumPieces(1);
-    setThickness(1);
-    setWidth(10);
-    setLength(8);
-    setPrice(4.15);
+    setNumPieces(0);
+    setThickness(0);
+    setThicknessUnit('in');
+    setWidth(0);
+    setWidthUnit('in');
+    setLength(0);
+    setLengthUnit('ft');
+    setLengthFeet(0);
+    setLengthInches(0);
+    setPrice(0);
+    setCurrency('USD');
+    // Reset totals
+    setTotalBoardFeet(0);
+    setTotalCost(0);
+  };
+
+  const reloadCalculator = () => {
+    // Clear everything first
+    setNumPieces(0);
+    setThickness(0);
+    setWidth(0);
+    setLength(0);
+    setLengthFeet(0);
+    setLengthInches(0);
+    setPrice(0);
+    // Reset totals
+    setTotalBoardFeet(0);
+    setTotalCost(0);
   };
 
   return (
     <div className="max-w-4xl mx-auto py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent flex items-center">
+        <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent flex items-center">
           Board Foot Calculator 
           <span className="ml-3 text-2xl">📏</span>
         </h1>
@@ -119,7 +146,7 @@ export default function BoardFootCalculator() {
               <select
                 value={thicknessUnit}
                 onChange={(e) => setThicknessUnit(e.target.value)}
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                 style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
               >
                 {unitOptions.map(option => (
@@ -148,7 +175,7 @@ export default function BoardFootCalculator() {
               <select
                 value={widthUnit}
                 onChange={(e) => setWidthUnit(e.target.value)}
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                 style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
               >
                 {unitOptions.map(option => (
@@ -165,27 +192,42 @@ export default function BoardFootCalculator() {
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Length
             </label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={length}
-                onChange={(e) => setLength(Number(e.target.value) || 0)}
-                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                step="0.01"
-              />
-              <select
-                value={lengthUnit}
-                onChange={(e) => setLengthUnit(e.target.value)}
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+            <div className="flex gap-2 items-center">
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={lengthFeet}
+                  onChange={(e) => setLengthFeet(Number(e.target.value) || 0)}
+                  className="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                  step="1"
+                  min="0"
+                  placeholder="2"
+                />
+                <span className="text-slate-600 text-sm font-medium">ft</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={lengthInches}
+                  onChange={(e) => setLengthInches(Number(e.target.value) || 0)}
+                  className="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                  step="0.01"
+                  min="0"
+                  placeholder="35"
+                />
+                <span className="text-slate-600 text-sm font-medium">in</span>
+              </div>
+              <button
+                onClick={() => setLengthUnit(lengthUnit === 'ft/in' ? 'ft' : 'ft/in')}
+                className="ml-2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Switch to single field"
               >
-                {unitOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -256,7 +298,7 @@ export default function BoardFootCalculator() {
               Clear all changes
             </button>
             <button
-              onClick={() => calculateBoardFeet()}
+              onClick={reloadCalculator}
               className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
               Reload calculator

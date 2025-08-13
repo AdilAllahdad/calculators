@@ -12,7 +12,7 @@ export default function ConstructionConvertersPage() {
       name: "Square Feet to Cubic Yards Calculator", 
       description: "Convert square footage to cubic yards",
       icon: "📐",
-      href: "/calculators/construction-converters/sqft-to-cubic-yards"
+      href: "/calculators/construction-converters/sq-ft-to-cubic-yards"
     },
     {
       name: "Cubic Yard Calculator",
