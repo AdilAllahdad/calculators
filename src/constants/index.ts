@@ -36,8 +36,11 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'l', label: 'liters (l)', type: 'volume' },
   { value: 'm3', label: 'cubic meters (m³)', type: 'volume' },
   { value: 'in3', label: 'cubic inches (in³)', type: 'volume' },
+  { value: 'cu in', label: 'cubic inches (cu in)', type: 'volume' },
   { value: 'ft3', label: 'cubic feet (ft³)', type: 'volume' },
+  { value: 'cu ft', label: 'cubic feet (cu ft)', type: 'volume' },
   { value: 'yd3', label: 'cubic yards (yd³)', type: 'volume' },
+  { value: 'cu yd', label: 'cubic yards (cu yd)', type: 'volume' },
   { value: 'gal', label: 'gallons (US) (gal)', type: 'volume' },
   { value: 'gal-uk', label: 'gallons (UK) (gal)', type: 'volume' },
   { value: 'qt', label: 'quarts (qt)', type: 'volume' },
@@ -53,7 +56,20 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'lb', label: 'pounds (lb)', type: 'weight' },
   { value: 'st', label: 'stone (st)', type: 'weight' },
   { value: 'ton', label: 'tons (US) (ton)', type: 'weight' },
-  { value: 'ton-uk', label: 'tons (UK) (ton)', type: 'weight' }
+  { value: 'ton-uk', label: 'tons (UK) (ton)', type: 'weight' },
+
+  // Time units
+  { value: 'sec', label: 'seconds (sec)', type: 'time' },
+  { value: 'min', label: 'minutes (min)', type: 'time' },
+  { value: 'hr', label: 'hours (hr)', type: 'time' },
+
+  //BTU Units
+  { value: 'BTU', label: 'BTU', type: 'BTU' },
+  { value: 'kW', label: 'kW', type: 'BTU' },
+  { value: 'watts', label: 'Watts', type: 'BTU' },
+  { value: 'hp(l)', label: 'hp(l)', type: 'BTU' },
+  { value: 'hp(E)', label: 'hp(E)', type: 'BTU' },
+  { value: 'tons', label: 'tons', type: 'BTU' }
 ];
 
 export const CURRENCY_OPTIONS = [
