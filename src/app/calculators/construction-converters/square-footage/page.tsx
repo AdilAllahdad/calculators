@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState } from "react";
 import UnitDropdown from "@/components/UnitDropdown";
@@ -20,7 +20,7 @@ export default function SquareFootageCalculator() {
   const [unitPriceUnit, setUnitPriceUnit] = useState("m2");
   // Currency is always PKR
   const currency = "PKR";
-  const [area, setArea] = useState();
+  const [area, setArea] = useState<number | undefined>(undefined);
   const [totalCost, setTotalCost] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   
@@ -97,7 +97,7 @@ export default function SquareFootageCalculator() {
   
   const handleAreaUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newUnit = e.target.value;
-    if (area > 0) {
+    if (area !== undefined && area > 0) {
       // Use the universal conversion function
       setArea(convertValue(area, areaUnit, newUnit));
     }
@@ -130,7 +130,7 @@ export default function SquareFootageCalculator() {
     setQuantity("");
     setUnitPrice("");
     setUnitPriceUnit("ft2");
-    setArea(0);
+    setArea(undefined);
     setTotalCost(null);
     setShowFeedback(false);
   };
@@ -139,14 +139,16 @@ export default function SquareFootageCalculator() {
     setLength("");
     setWidth("");
     setQuantity("");
-    setArea(0);
+    setArea(undefined);
     setTotalCost(null);
   };
 
   const shareResult = () => {
     // This would typically use the Web Share API or copy to clipboard
-    console.log(`Area: ${area.toFixed(2)} ${areaUnit}, Total Cost: ${currency} ${totalCost?.toFixed(2)}`);
-    alert("Result copied to clipboard!");
+    if (area !== undefined) {
+      console.log(`Area: ${area.toFixed(2)} ${areaUnit}, Total Cost: ${currency} ${totalCost?.toFixed(2)}`);
+      alert("Result copied to clipboard!");
+    }
   };
 
   return (
@@ -229,7 +231,7 @@ export default function SquareFootageCalculator() {
             <div className="flex">
               <input
                 type="text"
-                value={area ? area.toFixed(1) : ""}
+                value={area !== undefined ? area.toFixed(1) : ""}
                 readOnly
                 className="w-full border border-slate-300 rounded-l px-3 py-2 bg-slate-50"
               />
