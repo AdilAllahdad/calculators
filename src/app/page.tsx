@@ -5,7 +5,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-bold mb-6 text-slate-800">
             Construction Calculators
           </h1>
           <p className="text-xl text-slate-700 mb-8 max-w-2xl mx-auto leading-relaxed">

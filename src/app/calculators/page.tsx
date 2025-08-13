@@ -3,7 +3,7 @@ export default function CalculatorsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold mb-4 text-slate-800">
           Construction Calculators Dashboard
         </h1>
         <p className="text-lg text-slate-700">
