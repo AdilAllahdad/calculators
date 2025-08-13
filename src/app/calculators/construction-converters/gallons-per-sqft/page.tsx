@@ -3,20 +3,20 @@
 import { useState, useEffect } from 'react';
 
 export default function GallonsPerSquareFootCalculator() {
-  const [areaValue, setAreaValue] = useState<number>(0);
+  const [areaValue, setAreaValue] = useState<string>('0');
   const [areaUnit, setAreaUnit] = useState<string>('ft²');
-  const [heightValue, setHeightValue] = useState<number>(0);
+  const [heightValue, setHeightValue] = useState<string>('0');
   const [heightUnit, setHeightUnit] = useState<string>('ft');
-  const [volumeValue, setVolumeValue] = useState<number>(0);
+  const [volumeValue, setVolumeValue] = useState<string>('0');
   const [volumeUnit, setVolumeUnit] = useState<string>('US gal');
-  const [gallonsPerSqFtValue, setGallonsPerSqFtValue] = useState<number>(0);
+  const [gallonsPerSqFtValue, setGallonsPerSqFtValue] = useState<string>('0');
   const [gallonsPerSqFtUnit, setGallonsPerSqFtUnit] = useState<string>('US gal');
   
   // Area calculation states
   const [showAreaCalculator, setShowAreaCalculator] = useState<boolean>(false);
-  const [lengthValue, setLengthValue] = useState<number>(0);
+  const [lengthValue, setLengthValue] = useState<string>('0');
   const [lengthUnit, setLengthUnit] = useState<string>('ft');
-  const [widthValue, setWidthValue] = useState<number>(0);
+  const [widthValue, setWidthValue] = useState<string>('0');
   const [widthUnit, setWidthUnit] = useState<string>('ft');
 
   // Unit conversion factors to base units
@@ -64,23 +64,23 @@ export default function GallonsPerSquareFootCalculator() {
   };
 
   const convertToBaseSqFt = (value: number, unit: string): number => {
-    return value * (areaConversions[unit] || 1);
+    return value * (areaConversions[unit as keyof typeof areaConversions] || 1);
   };
 
   const convertToBaseFt = (value: number, unit: string): number => {
-    return value * (lengthConversions[unit] || 1);
+    return value * (lengthConversions[unit as keyof typeof lengthConversions] || 1);
   };
 
   const convertToBaseGallons = (value: number, unit: string): number => {
-    return value * (volumeConversions[unit] || 1);
+    return value * (volumeConversions[unit as keyof typeof volumeConversions] || 1);
   };
 
   const convertFromBaseSqFt = (value: number, unit: string): number => {
-    return value / (areaConversions[unit] || 1);
+    return value / (areaConversions[unit as keyof typeof areaConversions] || 1);
   };
 
   const convertFromBaseGallons = (value: number, unit: string): number => {
-    return value / (volumeConversions[unit] || 1);
+    return value / (volumeConversions[unit as keyof typeof volumeConversions] || 1);
   };
 
   const calculateArea = () => {
@@ -166,12 +166,12 @@ export default function GallonsPerSquareFootCalculator() {
   };
 
   const reloadCalculator = () => {
-    setAreaValue('');
-    setHeightValue('');
-    setVolumeValue('');
-    setGallonsPerSqFtValue('');
-    setLengthValue('');
-    setWidthValue('');
+    setAreaValue('0');
+    setHeightValue('0');
+    setVolumeValue('0');
+    setGallonsPerSqFtValue('0');
+    setLengthValue('0');
+    setWidthValue('0');
     setAreaUnit('ft²');
     setHeightUnit('ft');
     setVolumeUnit('US gal');
@@ -438,7 +438,6 @@ export default function GallonsPerSquareFootCalculator() {
             </div>
             <div className="mt-1 text-xs text-slate-500">per sq.ft</div>
           </div>
-          </div>
 
           {/* Action Buttons */}
           <div className="grid grid-cols-1 gap-4">
@@ -481,5 +480,6 @@ export default function GallonsPerSquareFootCalculator() {
           </div>
         </div>
       </div>
+    </div>
   );
 }
