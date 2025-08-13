@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import UnitDropdown from '@/components/UnitDropdown';
 import { convertValue } from '@/lib/utils';
 
-// Define the unit values needed for each dropdown
-const lengthUnitValues = ['m', 'ft', 'cm', 'ft-in'];
-const widthUnitValues = ['m', 'ft', 'cm', 'ft-in'];
+// Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
+const lengthUnitValues = ['m', 'ft', 'cm'];
+const widthUnitValues = ['m', 'ft', 'cm'];
 const floorAreaUnitValues = ['m2', 'ft2'];
-const ceilingHeightUnitValues = ['m', 'ft', 'cm', 'ft-in'];
+const ceilingHeightUnitValues = ['m', 'ft', 'cm'];
 const btuUnitValues = ['BTU', 'kW', 'watts', 'hp(l)', 'hp(E)', 'tons'];
 
 export default function AirConditionerBTUCalculator() {
@@ -32,22 +32,31 @@ export default function AirConditionerBTUCalculator() {
         // Convert length and width to meters first for consistent calculation
         const lengthInMeters = convertValue(length, lengthUnit, 'm');
         const widthInMeters = convertValue(width, widthUnit, 'm');
-        
+
         // Calculate floor area in square meters
         const floorAreaInSquareMeters = lengthInMeters * widthInMeters;
-        
-        // Convert to selected floor area unit
+
+        // Convert to selected floor area unit for display
         const floorAreaDisplay = convertValue(floorAreaInSquareMeters, 'm2', floorAreaUnit);
-        
-        // Base BTU calculation (20 BTU per square foot)
-        let btuValue = floorAreaDisplay * 20;
-        
-        // Adjust for ceiling height (add 10% for every foot above 8 feet)
+
+        // Convert floor area to square feet for BTU calculation (25 BTU per sq ft - Omni Calculator standard)
+        const floorAreaInSquareFeet = convertValue(floorAreaInSquareMeters, 'm2', 'ft2');
+
+        // Base BTU calculation (25 BTU per square foot - Omni Calculator methodology)
+        let btuValue = floorAreaInSquareFeet * 25;
+
+        // Adjust for ceiling height: add 1000 BTU for each WHOLE foot above 8 feet
         const ceilingHeightInFeet = convertValue(ceilingHeight, ceilingHeightUnit, 'ft');
         if (ceilingHeightInFeet > 8) {
-            btuValue *= (1 + 0.1 * (ceilingHeightInFeet - 8));
+            const extraWholeFeet = Math.max(0, Math.floor(ceilingHeightInFeet - 8));
+            btuValue += 1000 * extraWholeFeet;
         }
-        
+
+        // Adjust for room type (kitchen gets additional 4000 BTU)
+        if (roomSize === 'Kitchen') {
+            btuValue += 4000;
+        }
+
         // Adjust for sunlight exposure
         switch (sunlightExposure) {
             case 'Sunny':
@@ -57,20 +66,20 @@ export default function AirConditionerBTUCalculator() {
                 btuValue *= 0.9;  // Reduce 10% for shaded rooms
                 break;
         }
-        
-        // Adjust for number of people (add 600 BTU per person)
-        btuValue += numPeople * 600;
-        
+        if (numPeople > 2) {
+            btuValue += (numPeople - 2) * 600;
+        }
+
         // Convert to selected BTU unit
         const btuDisplay = convertValue(btuValue, 'BTU', btuUnit);
-        
+
         setFloorArea(floorAreaDisplay);
         setBTU(btuDisplay);
     };
 
     useEffect(() => {
         calculateBTU();
-    }, [length, lengthUnit, width, widthUnit, floorAreaUnit, ceilingHeight, ceilingHeightUnit, btuUnit]);
+    }, [length, lengthUnit, width, widthUnit, floorAreaUnit, ceilingHeight, ceilingHeightUnit, btuUnit, roomSize, sunlightExposure, numPeople]);
 
     const getExposureImage = () => {
     const getImageSrc = () => {
@@ -294,7 +303,7 @@ export default function AirConditionerBTUCalculator() {
             </div>
             <div className='mb-6'>
                 <label className='block text-sm font-medium text-slate-700 mb-2'>
-                    NUmber of People in Room
+                    Number of People in Room
                 </label>
                 <input
                     type="number"
@@ -363,13 +372,10 @@ export default function AirConditionerBTUCalculator() {
                 <div className="flex gap-2">
                   <input
                     type="number"
-                    value={floorArea}
-                    onChange={(e) => handleNumberInput(e.target.value, setFloorArea)}
-                    onFocus={(e) => handleFocus(floorArea, e)}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                    step="0.01"
-                    min="0"
+                    value={floorArea.toFixed(2)}
+                    readOnly
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-700"
+                    style={{ color: '#374151', backgroundColor: '#f8fafc' }}
                   />
                   <UnitDropdown
                     value={floorAreaUnit}
@@ -414,13 +420,10 @@ export default function AirConditionerBTUCalculator() {
                   <div className="flex gap-2">
                     <input
                       type="number"
-                      value={btu}
-                      onChange={(e) => handleNumberInput(e.target.value, setBTU)}
-                      onFocus={(e) => handleFocus(btu, e)}
-                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                      step="0.01"
-                      min="0"
+                      value={btu.toFixed(0)}
+                      readOnly
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-700"
+                      style={{ color: '#374151', backgroundColor: '#f8fafc' }}
                     />
                     <UnitDropdown
                       value={btuUnit}

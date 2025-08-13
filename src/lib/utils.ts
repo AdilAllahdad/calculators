@@ -76,11 +76,11 @@ const conversionFactors = {
   // BTU (base: BTU)
   BTU: {
     'BTU': 1,
-    'kW': 3.41214,
-    'watts': 0.293071,
-    'hp(l)': 2.68452,
-    'hp(E)': 2.68911,
-    'tons': 12000
+    'kW': 3412.14,        // 1 kW = 3412.14 BTU/hr
+    'watts': 3.41214,     // 1 watt = 3.41214 BTU/hr
+    'hp(l)': 2544.43,     // 1 hp (mechanical) = 2544.43 BTU/hr
+    'hp(E)': 2544.43,     // 1 hp (electrical) = 2544.43 BTU/hr
+    'tons': 12000         // 1 ton of refrigeration = 12000 BTU/hr
   }
 };
 
@@ -130,7 +130,13 @@ export const convertValue = (value: number, fromUnit: string, toUnit: string): n
     const toFactor = conversionFactors.weight[toUnit as keyof typeof conversionFactors.weight];
     return (value * fromFactor) / toFactor;
   }
-  
+
+  if (unitType === 'BTU' && fromUnit in conversionFactors.BTU && toUnit in conversionFactors.BTU) {
+    const fromFactor = conversionFactors.BTU[fromUnit as keyof typeof conversionFactors.BTU];
+    const toFactor = conversionFactors.BTU[toUnit as keyof typeof conversionFactors.BTU];
+    return (value * fromFactor) / toFactor;
+  }
+
   return value; // No conversion available
 };
 
