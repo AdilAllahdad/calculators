@@ -32,28 +32,43 @@ export const UNIT_OPTIONS: UnitOption[] = [
   // Volume units
   { value: 'mm3', label: 'cubic millimeters (mm³)', type: 'volume' },
   { value: 'cm3', label: 'cubic centimeters (cm³)', type: 'volume' },
-  { value: 'ml', label: 'milliliters (ml)', type: 'volume' },
+  { value: 'dm3', label: 'cubic decimeters (dm³)', type: 'volume' },
   { value: 'l', label: 'liters (l)', type: 'volume' },
   { value: 'm3', label: 'cubic meters (m³)', type: 'volume' },
-  { value: 'in3', label: 'cubic inches (in³)', type: 'volume' },
-  { value: 'ft3', label: 'cubic feet (ft³)', type: 'volume' },
-  { value: 'yd3', label: 'cubic yards (yd³)', type: 'volume' },
+  { value: 'in3', label: 'cubic inches (cu in)', type: 'volume' },
+  { value: 'ft3', label: 'cubic feet (cu ft)', type: 'volume' },
+  { value: 'yd3', label: 'cubic yards (cu yd)', type: 'volume' },
   { value: 'gal', label: 'gallons (US) (gal)', type: 'volume' },
   { value: 'gal-uk', label: 'gallons (UK) (gal)', type: 'volume' },
-  { value: 'qt', label: 'quarts (qt)', type: 'volume' },
-  { value: 'pt', label: 'pints (pt)', type: 'volume' },
-  { value: 'fl-oz', label: 'fluid ounces (fl oz)', type: 'volume' },
   
   // Weight units
+  { value: 'µg', label: 'micrograms (µg)', type: 'weight' },
   { value: 'mg', label: 'milligrams (mg)', type: 'weight' },
   { value: 'g', label: 'grams (g)', type: 'weight' },
+  { value: 'dag', label: 'decagrams (dag)', type: 'weight' },
   { value: 'kg', label: 'kilograms (kg)', type: 'weight' },
   { value: 't', label: 'metric tons (t)', type: 'weight' },
+  { value: 'gr', label: 'grains (gr)', type: 'weight' },
+  { value: 'dr', label: 'drachms (dr)', type: 'weight' },
   { value: 'oz', label: 'ounces (oz)', type: 'weight' },
   { value: 'lb', label: 'pounds (lb)', type: 'weight' },
-  { value: 'st', label: 'stone (st)', type: 'weight' },
-  { value: 'ton', label: 'tons (US) (ton)', type: 'weight' },
-  { value: 'ton-uk', label: 'tons (UK) (ton)', type: 'weight' }
+  { value: 'st', label: 'stones (st)', type: 'weight' },
+  { value: 'US ton', label: 'US short tons (US ton)', type: 'weight' },
+  { value: 'long ton', label: 'imperial tons (long ton)', type: 'weight' },
+  
+  // Density units
+  { value: 't/m3', label: 'tons per cubic meter (t/m³)', type: 'density' },
+  { value: 'kg/m3', label: 'kilograms per cubic meter (kg/m³)', type: 'density' },
+  { value: 'kg/L', label: 'kilograms per liter (kg/L)', type: 'density' },
+  { value: 'g/L', label: 'grams per liter (g/L)', type: 'density' },
+  { value: 'g/mL', label: 'grams per milliliter (g/mL)', type: 'density' },
+  { value: 'g/cm3', label: 'grams per cubic centimeter (g/cm³)', type: 'density' },
+  { value: 'oz/in3', label: 'ounces per cubic inch (oz/cu in)', type: 'density' },
+  { value: 'lb/in3', label: 'pounds per cubic inch (lb/cu in)', type: 'density' },
+  { value: 'lb/ft3', label: 'pounds per cubic feet (lb/cu ft)', type: 'density' },
+  { value: 'lb/yd3', label: 'pounds per cubic yard (lb/cu yd)', type: 'density' },
+  { value: 'lb/US gal', label: 'pounds per gallon (US) (lb/US gal)', type: 'density' },
+  { value: 'lb/UK gal', label: 'pounds per gallon (UK) (lb/UK gal)', type: 'density' }
 ];
 
 export const CURRENCY_OPTIONS = [

@@ -1,6 +1,7 @@
+
 "use client"
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import UnitDropdown from "@/components/UnitDropdown";
 import { convertValue } from "@/lib/utils";
 
@@ -23,6 +24,16 @@ export default function SquareFootageCalculator() {
   const [area, setArea] = useState<number | undefined>(undefined);
   const [totalCost, setTotalCost] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  
+  // State for validation errors
+  const [lengthError, setLengthError] = useState<string | null>(null);
+  const [widthError, setWidthError] = useState<string | null>(null);
+  const [quantityError, setQuantityError] = useState<string | null>(null);
+  const [unitPriceError, setUnitPriceError] = useState<string | null>(null);
+  
+  // State for collapsible sections
+  const [dimensionsExpanded, setDimensionsExpanded] = useState<boolean>(true);
+  const [costExpanded, setCostExpanded] = useState<boolean>(true);
   
   // Calculate area and cost in real-time
   const calculateRealTimeArea = () => {
@@ -62,17 +73,42 @@ export default function SquareFootageCalculator() {
     setTotalCost(cost);
   };
   
+  // Format number with commas for thousands separators
+  const formatNumberWithCommas = (num: number): string => {
+    return num.toLocaleString('en-US', { maximumFractionDigits: 4 });
+  };
+  
+  // Format currency values with 2 decimal places
+  const formatCurrency = (num: number): string => {
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  
+  // Validate all inputs
+  useEffect(() => {
+    setLengthError(length !== "" && Number(length) < 0 ? "Length cannot be negative." : null);
+    setWidthError(width !== "" && Number(width) < 0 ? "Width cannot be negative." : null);
+    setQuantityError(quantity !== "" && Number(quantity) < 0 ? "Quantity cannot be negative." : null);
+    setUnitPriceError(unitPrice !== "" && Number(unitPrice) < 0 ? "Unit price cannot be negative." : null);
+  }, [length, width, quantity, unitPrice]);
+  
   // Update area calculation whenever inputs change
   // Initial calculation and setup
-  React.useEffect(() => {
+  useEffect(() => {
     if (!length || !width) {
-      // setLength("500");
-      // setWidth("500");
       setQuantity("1");
       setUnitPrice("");
     }
     
-    calculateRealTimeArea();
+    // Only calculate when values are valid (not negative)
+    const hasNegativeValues = 
+      (length !== "" && Number(length) < 0) || 
+      (width !== "" && Number(width) < 0) || 
+      (quantity !== "" && Number(quantity) < 0) || 
+      (unitPrice !== "" && Number(unitPrice) < 0);
+      
+    if (!hasNegativeValues) {
+      calculateRealTimeArea();
+    }
   }, [length, width, quantity, lengthUnit, widthUnit, areaUnit, unitPrice, unitPriceUnit]);
 
   const handleLengthUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -146,174 +182,299 @@ export default function SquareFootageCalculator() {
   const shareResult = () => {
     // This would typically use the Web Share API or copy to clipboard
     if (area !== undefined) {
-      console.log(`Area: ${area.toFixed(2)} ${areaUnit}, Total Cost: ${currency} ${totalCost?.toFixed(2)}`);
+      console.log(`Area: ${formatNumberWithCommas(area)} ${areaUnit}, Total Cost: ${currency} ${totalCost !== null ? formatCurrency(totalCost) : ""}`);
       alert("Result copied to clipboard!");
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto p-6 bg-white rounded-xl shadow-md mt-8">
-        <h1 className="text-2xl font-bold mb-6 text-center">Square Footage Calculator</h1>
-        <form onSubmit={handleCalculate} className="space-y-4">
-        <div className="flex flex-col gap-4">
-          <div className="relative">
-            <label className="block text-slate-700 mb-1">Width</label>
-            <div className="flex">
-              <input
-                type="number"
-                min="0"
-                step="any"
-                value={width}
-                onChange={e => {
-                  const value = e.target.value === '' ? '' : Number(e.target.value);
-                  setWidth(value);
-                }}
-                className="w-full border border-slate-300 rounded-l px-3 py-2 focus:outline-none focus:border-blue-400"
-                required
-              />
-              <UnitDropdown 
-                value={widthUnit}
-                onChange={handleWidthUnitChange}
-                unitValues={lengthUnitValues}
-                className="rounded-l-none rounded-r"
-              />
-            </div>
-            <button type="button" className="absolute top-0 right-0 p-1 text-slate-400 hover:text-slate-600">
-              <span className="text-xl">&#8942;</span>
-            </button>
+    <div className="p-4 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Square Footage Calculator</h1>
+      
+      {/* Dimensions Section */}
+      <div className="bg-white rounded-lg shadow mb-4 overflow-hidden">
+        <button 
+          className="w-full flex items-center justify-between p-4 bg-blue-50 text-blue-600"
+          onClick={() => setDimensionsExpanded(!dimensionsExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              {dimensionsExpanded ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              )}
+            </svg>
+            <span className="font-semibold">Dimensions</span>
           </div>
-          <div className="relative">
-            <label className="block text-slate-700 mb-1">Length</label>
-            <div className="flex">
-              <input
-                type="number"
-                min="0"
-                step="any"
-                value={length}
-                onChange={e => {
-                  const value = e.target.value === '' ? '' : Number(e.target.value);
-                  setLength(value);
-                }}
-                className="w-full border border-slate-300 rounded-l px-3 py-2 focus:outline-none focus:border-blue-400"
-                required
-              />
-              <UnitDropdown 
-                value={lengthUnit}
-                onChange={handleLengthUnitChange}
-                unitValues={lengthUnitValues}
-                className="rounded-l-none rounded-r"
-              />
-            </div>
-            <button type="button" className="absolute top-0 right-0 p-1 text-slate-400 hover:text-slate-600">
-              <span className="text-xl">&#8942;</span>
-            </button>
-          </div>
-          <div className="relative">
-            <label className="block text-slate-700 mb-1">Quantity <span title="Number of identical areas" className="text-xs text-slate-400 cursor-help">&#9432;</span></label>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={quantity}
-              onChange={e => {
-                const value = e.target.value === '' ? '' : Number(e.target.value);
-                setQuantity(value);
-              }}
-              className="w-full border border-slate-300 rounded px-3 py-2 focus:outline-none focus:border-blue-400"
-              required
-            />
-            <button type="button" className="absolute top-0 right-0 p-1 text-slate-400 hover:text-slate-600">
-              <span className="text-xl">&#8942;</span>
-            </button>
-          </div>
-          <div className="relative">
-            <label className="block text-slate-700 mb-1">Area</label>
-            <div className="flex">
-              <input
-                type="text"
-                value={area !== undefined ? area.toFixed(1) : ""}
-                readOnly
-                className="w-full border border-slate-300 rounded-l px-3 py-2 bg-slate-50"
-              />
-              <UnitDropdown 
-                value={areaUnit}
-                onChange={handleAreaUnitChange}
-                unitValues={areaUnitValues}
-                className="rounded-l-none rounded-r"
-              />
-            </div>
-            <button type="button" className="absolute top-0 right-0 p-1 text-slate-400 hover:text-slate-600">
-              <span className="text-xl">&#8942;</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Cost of materials */}
-        <div className="mt-6 border rounded-xl p-4 bg-white">
-          <div className="flex items-center mb-4">
-            <span className="font-medium text-slate-800 flex-1">Cost of materials</span>
-            <button type="button" className="text-blue-500 hover:text-blue-700">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path fillRule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/>
-              </svg>
-            </button>
-          </div>
-          <div className="relative mb-4">
-            <label className="block text-slate-700 mb-1">Unit price</label>
-            <div className="flex">
-              <div className="flex items-center px-3 py-2 border border-slate-300 rounded-l bg-slate-50 text-slate-600">
-                PKR
+        </button>
+        
+        {dimensionsExpanded && (
+          <div className="p-4">
+            {/* Width */}
+            <div className="mb-3">
+              <div className="flex justify-between mb-1">
+                <label className="text-base font-medium text-gray-700">Width</label>
+                <button className="text-blue-500 text-xs">•••</button>
               </div>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                value={unitPrice}
-                onChange={e => {
-                  const value = e.target.value === '' ? '' : Number(e.target.value);
-                  setUnitPrice(value);
-                }}
-                className="w-full border-t border-b border-slate-300 px-3 py-2 focus:outline-none focus:border-blue-400"
-              />
-              <span className="flex items-center px-2 border-t border-b border-slate-300 bg-slate-50">/</span>
-              <UnitDropdown 
-                value={unitPriceUnit}
-                onChange={handleUnitPriceUnitChange}
-                unitValues={costAreaUnitValues}
-                className="rounded-l-none rounded-r"
-              />
-            </div>
-            <button type="button" className="absolute top-0 right-0 p-1 text-slate-400 hover:text-slate-600">
-              <span className="text-xl">&#8942;</span>
-            </button>
-          </div>
-          <div className="relative">
-            <label className="block text-slate-700 mb-1">Total cost</label>
-            <div className="flex">
-              <div className="flex items-center px-3 py-2 border border-slate-300 rounded-l bg-slate-50 text-slate-600">
-                PKR
+              <div className="flex">
+                <input 
+                  type="number" 
+                  className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${widthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                  value={width || ''}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? '' : Number(e.target.value);
+                    setWidth(value);
+                    setWidthError(value !== '' && Number(value) < 0 ? "Width cannot be negative." : null);
+                  }}
+                  placeholder="0"
+                />
+                <select 
+                  className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                  value={widthUnit}
+                  onChange={(e) => {
+                    const newUnit = e.target.value;
+                    const numWidth = typeof width === 'string' ? parseFloat(width) || 0 : width;
+                    if (numWidth) {
+                      // Use the universal conversion function
+                      setWidth(convertValue(numWidth, widthUnit, newUnit));
+                    }
+                    setWidthUnit(newUnit);
+                  }}
+                >
+                  {lengthUnitValues.map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
               </div>
-              <input
-                type="text"
-                value={totalCost !== null ? totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : ""}
-                readOnly
-                className="w-full border-t border-r border-b border-slate-300 rounded-r px-3 py-2 bg-slate-50 text-blue-500 font-medium"
-              />
+              {widthError && (
+                <div className="mt-1 flex items-center text-red-500 text-xs">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {widthError}
+                </div>
+              )}
             </div>
-            <button type="button" className="absolute top-0 right-0 p-1 text-slate-400 hover:text-slate-600">
-              <span className="text-xl">&#8942;</span>
-            </button>
+            
+            {/* Length */}
+            <div className="mb-3">
+              <div className="flex justify-between mb-1">
+                <label className="text-base font-medium text-gray-700">Length</label>
+                <button className="text-blue-500 text-xs">•••</button>
+              </div>
+              <div className="flex">
+                <input 
+                  type="number" 
+                  className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${lengthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                  value={length || ''}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? '' : Number(e.target.value);
+                    setLength(value);
+                    setLengthError(value !== '' && Number(value) < 0 ? "Length cannot be negative." : null);
+                  }}
+                  placeholder="0"
+                />
+                <select 
+                  className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                  value={lengthUnit}
+                  onChange={(e) => {
+                    const newUnit = e.target.value;
+                    const numLength = typeof length === 'string' ? parseFloat(length) || 0 : length;
+                    if (numLength) {
+                      // Use the universal conversion function
+                      setLength(convertValue(numLength, lengthUnit, newUnit));
+                    }
+                    setLengthUnit(newUnit);
+                  }}
+                >
+                  {lengthUnitValues.map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </div>
+              {lengthError && (
+                <div className="mt-1 flex items-center text-red-500 text-xs">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {lengthError}
+                </div>
+              )}
+            </div>
+            
+            {/* Quantity */}
+            <div className="mb-3">
+              <div className="flex justify-between mb-1">
+                <label className="text-base font-medium text-gray-700">Quantity <span title="Number of identical areas" className="text-xs text-slate-400 cursor-help">&#9432;</span></label>
+                <button className="text-blue-500 text-xs">•••</button>
+              </div>
+              <div className="flex">
+                <input 
+                  type="number" 
+                  className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 ${quantityError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                  value={quantity || ''}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? '' : Number(e.target.value);
+                    setQuantity(value);
+                    setQuantityError(value !== '' && Number(value) < 0 ? "Quantity cannot be negative." : null);
+                  }}
+                  placeholder="1"
+                />
+              </div>
+              {quantityError && (
+                <div className="mt-1 flex items-center text-red-500 text-xs">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {quantityError}
+                </div>
+              )}
+            </div>
+            
+            {/* Area */}
+            <div>
+              <div className="flex justify-between mb-1">
+                <label className="text-base font-medium text-gray-700">Area</label>
+                <button className="text-blue-500 text-xs">•••</button>
+              </div>
+              <div className="flex">
+                <input 
+                  type="text" 
+                  className="flex-1 px-3 py-2 border rounded-l-md bg-gray-50 focus:outline-none"
+                  value={area !== undefined ? formatNumberWithCommas(area) : ""}
+                  readOnly
+                />
+                <select 
+                  className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                  value={areaUnit}
+                  onChange={(e) => {
+                    const newUnit = e.target.value;
+                    if (area !== undefined && area > 0) {
+                      // Use the universal conversion function
+                      setArea(convertValue(area, areaUnit, newUnit));
+                    }
+                    setAreaUnit(newUnit);
+                  }}
+                >
+                  {areaUnitValues.map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
-        </div>
-
+        )}
+      </div>
+      
+      {/* Cost Section */}
+      <div className="bg-white rounded-lg shadow mb-4 overflow-hidden">
+        <button 
+          className="w-full flex items-center justify-between p-4 bg-blue-50 text-blue-600"
+          onClick={() => setCostExpanded(!costExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              {costExpanded ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              )}
+            </svg>
+            <span className="font-semibold">Cost of materials</span>
+          </div>
+        </button>
+        
+        {costExpanded && (
+          <div className="p-4">
+            {/* Unit price */}
+            <div className="mb-3">
+              <div className="flex justify-between mb-1">
+                <label className="text-base font-medium text-gray-700">Unit price</label>
+                <button className="text-blue-500 text-xs">•••</button>
+              </div>
+              <div className="flex">
+                <div className="flex items-center px-3 py-2 border border-slate-300 rounded-l bg-slate-50 text-slate-600">
+                  PKR
+                </div>
+                <input 
+                  type="number" 
+                  className={`flex-1 border-t border-b px-3 py-2 focus:outline-none focus:ring-1 ${unitPriceError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                  value={unitPrice || ''}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? '' : Number(e.target.value);
+                    setUnitPrice(value);
+                    setUnitPriceError(value !== '' && Number(value) < 0 ? "Unit price cannot be negative." : null);
+                  }}
+                  placeholder="0"
+                />
+                <div className="flex items-center px-2 border-t border-b border-slate-300 bg-slate-50">/</div>
+                <select 
+                  className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                  value={unitPriceUnit}
+                  onChange={(e) => {
+                    const newUnit = e.target.value;
+                    const numUnitPrice = typeof unitPrice === 'string' ? parseFloat(unitPrice) || 0 : unitPrice;
+                    if (numUnitPrice > 0) {
+                      // Use the universal conversion function
+                      setUnitPrice(convertValue(numUnitPrice, unitPriceUnit, newUnit));
+                    }
+                    setUnitPriceUnit(newUnit);
+                  }}
+                >
+                  {costAreaUnitValues.map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </div>
+              {unitPriceError && (
+                <div className="mt-1 flex items-center text-red-500 text-xs">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {unitPriceError}
+                </div>
+              )}
+            </div>
+            
+            {/* Total cost */}
+            <div>
+              <div className="flex justify-between mb-1">
+                <label className="text-base font-medium text-gray-700">Total cost</label>
+                <button className="text-blue-500 text-xs">•••</button>
+              </div>
+              <div className="flex">
+                <div className="flex items-center px-3 py-2 border border-slate-300 rounded-l bg-slate-50 text-slate-600">
+                  PKR
+                </div>
+                <input 
+                  type="text" 
+                  className="w-full border-t border-r border-b border-slate-300 rounded-r px-3 py-2 bg-slate-50 text-blue-500 font-medium"
+                  value={totalCost !== null ? formatCurrency(totalCost) : ""}
+                  readOnly
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <div className="flex gap-3 mt-4">
         <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-3 rounded font-medium hover:bg-blue-700 transition mt-2"
+          type="button"
+          onClick={resetCalculator}
+          className="flex-1 bg-gray-200 text-gray-800 py-3 rounded font-medium hover:bg-gray-300 transition"
+        >
+          Reset
+        </button>
+        <button
+          type="button"
+          onClick={calculateRealTimeArea}
+          className="flex-1 bg-blue-600 text-white py-3 rounded font-medium hover:bg-blue-700 transition"
         >
           Calculate
         </button>
-        
-      </form>
+      </div>
     </div>
   );
 }
