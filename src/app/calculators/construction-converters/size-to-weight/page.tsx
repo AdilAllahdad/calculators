@@ -1,526 +1,671 @@
-'use client';
 
-import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Share2, RefreshCcw } from '@/components/icons';
-import { formatNumber, validatePositiveNumber } from '@/lib/utils';
+"use client";
 
-// Simple utility to conditionally join classNames
-const cn = (...classes: (string | boolean | undefined)[]) => {
-  return classes.filter(Boolean).join(' ');
-};
+import { useState, useEffect, ChangeEvent } from "react";
+// import { FaArrowDown } from "react-icons/fa";
+// import { TbDimensions } from "react-icons/tb";
+// import { FaWeight } from "react-icons/fa6";
 
-// Define unit conversion factors
-const lengthUnits = [
-  { label: "millimeters (mm)", value: "mm", factor: 0.1 },
-  { label: "centimeters (cm)", value: "cm", factor: 1 },
-  { label: "meters (m)", value: "m", factor: 100 },
-  { label: "inches (in)", value: "in", factor: 2.54 },
-  { label: "feet (ft)", value: "ft", factor: 30.48 },
-  { label: "yards (yd)", value: "yd", factor: 91.44 },
-  { label: "feet / inches (ft / in)", value: "ft/in", factor: 30.48 },
-  { label: "meters / centimeters (m / cm)", value: "m/cm", factor: 100 }
-];
+export default function SizeToWeightPage() {
+  // State for dimensions
+  const [length, setLength] = useState<number>(0);
+  const [width, setWidth] = useState<number>(0);
+  const [height, setHeight] = useState<number>(0);
+  const [volume, setVolume] = useState<number>(0);
+  
+  // State for validation errors
+  const [lengthError, setLengthError] = useState<string | null>(null);
+  const [widthError, setWidthError] = useState<string | null>(null);
+  const [heightError, setHeightError] = useState<string | null>(null);
 
-const volumeUnits = [
-  { label: "cubic millimeters (mm³)", value: "mm³", factor: 0.001 },
-  { label: "cubic centimeters (cm³)", value: "cm³", factor: 1 },
-  { label: "cubic decimeters (dm³)", value: "dm³", factor: 1000 },
-  { label: "cubic meters (m³)", value: "m³", factor: 1000000 },
-  { label: "cubic inches (cu in)", value: "cu in", factor: 16.387 },
-  { label: "cubic feet (cu ft)", value: "cu ft", factor: 28316.846 },
-  { label: "cubic yards (cu yd)", value: "cu yd", factor: 764554.858 },
-  { label: "liters (l)", value: "l", factor: 1000 }
-];
+  // State for units
+  const [lengthUnit, setLengthUnit] = useState<string>("in");
+  const [widthUnit, setWidthUnit] = useState<string>("cm");
+  const [heightUnit, setHeightUnit] = useState<string>("m");
+  const [volumeUnit, setVolumeUnit] = useState<string>("cm³");
 
-const densityUnits = [
-  { label: "tons per cubic meter (t/m³)", value: "t/m³", factor: 1000 },
-  { label: "kilograms per cubic meter (kg/m³)", value: "kg/m³", factor: 1 },
-  { label: "kilograms per liter (kg/L)", value: "kg/L", factor: 1000 },
-  { label: "grams per liter (g/L)", value: "g/L", factor: 1 },
-  { label: "grams per milliliter (g/mL)", value: "g/mL", factor: 1000 },
-  { label: "grams per cubic centimeter (g/cm³)", value: "g/cm³", factor: 1000 },
-  { label: "ounces per cubic inch (oz/cu in)", value: "oz/cu in", factor: 1729.994 },
-  { label: "pounds per cubic inch (lb/cu in)", value: "lb/cu in", factor: 27679.904 },
-  { label: "pounds per cubic feet (lb/cu ft)", value: "lb/cu ft", factor: 16.018 },
-  { label: "pounds per cubic yard (lb/cu yd)", value: "lb/cu yd", factor: 0.593 },
-  { label: "pounds per gallon (US) (lb/US gal)", value: "lb/US gal", factor: 119.826 },
-  { label: "pounds per gallon (UK) (lb/UK gal)", value: "lb/UK gal", factor: 99.776 }
-];
+  // State for density and material
+  const [density, setDensity] = useState<number | undefined>(undefined); // No default value
+  const [densityUnit, setDensityUnit] = useState<string>("g/L");
+  const [densityError, setDensityError] = useState<string | null>(null);
 
-const weightUnits = [
-  { label: "micrograms (μg)", value: "μg", factor: 0.000001 },
-  { label: "milligrams (mg)", value: "mg", factor: 0.001 },
-  { label: "grams (g)", value: "g", factor: 1 },
-  { label: "decagrams (dag)", value: "dag", factor: 10 },
-  { label: "kilograms (kg)", value: "kg", factor: 1000 },
-  { label: "metric tons (t)", value: "t", factor: 1000000 },
-  { label: "grains (gr)", value: "gr", factor: 0.0648 },
-  { label: "drachms (dr)", value: "dr", factor: 1.772 },
-  { label: "ounces (oz)", value: "oz", factor: 28.35 },
-  { label: "pounds (lb)", value: "lb", factor: 453.592 },
-  { label: "stones (st)", value: "st", factor: 6350.29 },
-  { label: "US short tons (US ton)", value: "US ton", factor: 907184.74 },
-  { label: "imperial tons (long ton)", value: "long ton", factor: 1016046.91 }
-];
+  // State for weight
+  const [weight, setWeight] = useState<number>(0);
+  const [weightUnit, setWeightUnit] = useState<string>("mg");
+  
+  // State for collapsible sections
+  const [sizeExpanded, setSizeExpanded] = useState<boolean>(true);
 
-export default function SizeToWeightCalculator() {
-  // State for form values
-  const [expanded, setExpanded] = useState({
-    size: true,
-    weight: true
-  });
-  
-  const [length, setLength] = useState<string>('');
-  const [width, setWidth] = useState<string>('');
-  const [height, setHeight] = useState<string>('');
-  const [density, setDensity] = useState<string>('');
-  
-  const [lengthUnit, setLengthUnit] = useState<string>('cm');
-  const [widthUnit, setWidthUnit] = useState<string>('cm');
-  const [heightUnit, setHeightUnit] = useState<string>('cm');
-  const [volumeUnit, setVolumeUnit] = useState<string>('cm³');
-  const [densityUnit, setDensityUnit] = useState<string>('kg/m³');
-  const [weightUnit, setWeightUnit] = useState<string>('kg');
-  
-  const [volume, setVolume] = useState<number | null>(null);
-  const [weight, setWeight] = useState<number | null>(null);
-  const [problemSolved, setProblemSolved] = useState<boolean | null>(null);
-  
-  // Helper function to convert length to cm
-  const convertToCm = (value: string, unit: string) => {
-    if (!value) return 0;
-    const numValue = parseFloat(value);
-    if (isNaN(numValue)) return 0;
-    
-    const selectedUnit = lengthUnits.find(u => u.value === unit);
-    return numValue * (selectedUnit?.factor || 1);
-  };
-  
-  // Helper function to convert between length units
-  const convertLength = (value: string, fromUnit: string, toUnit: string): string => {
-    if (!value) return '';
-    const numValue = parseFloat(value);
-    if (isNaN(numValue)) return '';
-    
-    const fromUnitObj = lengthUnits.find(u => u.value === fromUnit);
-    const toUnitObj = lengthUnits.find(u => u.value === toUnit);
-    
-    if (!fromUnitObj || !toUnitObj) return value;
-    
-    // Convert to cm then to target unit
-    const valueInCm = numValue * (fromUnitObj.factor || 1);
-    const convertedValue = valueInCm / (toUnitObj.factor || 1);
-    
-    return convertedValue.toFixed(4).replace(/\.?0+$/, '');
-  };
-  
-  // Helper function to convert between density units
-  const convertDensity = (value: string, fromUnit: string, toUnit: string): string => {
-    if (!value) return '';
-    const numValue = parseFloat(value);
-    if (isNaN(numValue)) return '';
-    
-    const fromUnitObj = densityUnits.find(u => u.value === fromUnit);
-    const toUnitObj = densityUnits.find(u => u.value === toUnit);
-    
-    if (!fromUnitObj || !toUnitObj) return value;
-    
-    // Convert to kg/m³ then to target unit
-    const valueInKgM3 = numValue * (fromUnitObj.factor || 1);
-    const convertedValue = valueInKgM3 / (toUnitObj.factor || 1);
-    
-    return convertedValue.toFixed(4).replace(/\.?0+$/, '');
-  };
-  
-  // Calculate volume when dimensions or units change
-  useEffect(() => {
-    if (length && width && height) {
-      // Convert all dimensions to cm
-      const lengthInCm = convertToCm(length, lengthUnit);
-      const widthInCm = convertToCm(width, widthUnit);
-      const heightInCm = convertToCm(height, heightUnit);
-      
-      // Calculate volume in cubic cm
-      const volumeInCm3 = lengthInCm * widthInCm * heightInCm;
-      
-      // Convert to selected volume unit
-      const selectedVolumeUnit = volumeUnits.find(u => u.value === volumeUnit);
-      const convertedVolume = volumeInCm3 / (selectedVolumeUnit?.factor || 1);
-      
-      setVolume(convertedVolume);
-    } else {
-      setVolume(null);
+
+
+  // Length unit options
+  const lengthUnits = [
+    { value: "mm", label: "millimeters (mm)" },
+    { value: "cm", label: "centimeters (cm)" },
+    { value: "m", label: "meters (m)" },
+    { value: "in", label: "inches (in)" },
+    { value: "ft", label: "feet (ft)" },
+    { value: "yd", label: "yards (yd)" },
+    { value: "ft / in", label: "feet / inches (ft / in)" },
+    { value: "m / cm", label: "meters / centimeters (m / cm)" }
+  ];
+
+  // Volume unit options
+  const volumeUnits = [
+    { value: "mm³", label: "cubic millimeters (mm³)" },
+    { value: "cm³", label: "cubic centimeters (cm³)" },
+    { value: "dm³", label: "cubic decimeters (dm³)" },
+    { value: "m³", label: "cubic meters (m³)" },
+    { value: "cu in", label: "cubic inches (cu in)" },
+    { value: "cu ft", label: "cubic feet (cu ft)" },
+    { value: "cu yd", label: "cubic yards (cu yd)" },
+    { value: "l", label: "liters (l)" }
+  ];
+
+  // Density unit options
+  const densityUnits = [
+    { value: "t/m³", label: "tons per cubic meter (t/m³)" },
+    { value: "kg/m³", label: "kilograms per cubic meter (kg/m³)" },
+    { value: "kg/L", label: "kilograms per liter (kg/L)" },
+    { value: "g/L", label: "grams per liter (g/L)" },
+    { value: "g/mL", label: "grams per milliliter (g/mL)" },
+    { value: "g/cm³", label: "grams per cubic centimeter (g/cm³)" },
+    { value: "oz/cu in", label: "ounces per cubic inch (oz/cu in)" },
+    { value: "lb/cu in", label: "pounds per cubic inch (lb/cu in)" },
+    { value: "lb/cu ft", label: "pounds per cubic feet (lb/cu ft)" },
+    { value: "lb/cu yd", label: "pounds per cubic yard (lb/cu yd)" },
+    { value: "lb/US gal", label: "pounds per gallon (US) (lb/US gal)" },
+    { value: "lb/UK gal", label: "pounds per gallon (UK) (lb/UK gal)" }
+  ];
+
+  // Weight unit options
+  const weightUnits = [
+    { value: "μg", label: "micrograms (μg)" },
+    { value: "mg", label: "milligrams (mg)" },
+    { value: "g", label: "grams (g)" },
+    { value: "dag", label: "decagrams (dag)" },
+    { value: "kg", label: "kilograms (kg)" },
+    { value: "t", label: "metric tons (t)" },
+    { value: "gr", label: "grains (gr)" },
+    { value: "dr", label: "drachms (dr)" },
+    { value: "oz", label: "ounces (oz)" },
+    { value: "lb", label: "pounds (lb)" },
+    { value: "st", label: "stones (st)" },
+    { value: "US ton", label: "US short tons (US ton)" },
+    { value: "long ton", label: "imperial tons (long ton)" }
+  ];
+
+  // Helper function to convert length to meters
+  const convertLengthToMeters = (value: number, unit: string): number => {
+    switch (unit) {
+      case "mm":
+        return value * 0.001;
+      case "cm":
+        return value * 0.01;
+      case "m":
+        return value;
+      case "in":
+        return value * 0.0254;
+      case "ft":
+        return value * 0.3048;
+      case "yd":
+        return value * 0.9144;
+      default:
+        return value;
     }
-  }, [length, width, height, lengthUnit, widthUnit, heightUnit, volumeUnit]);
+  };
   
-  // Calculate weight when volume, density, or any unit changes
-  useEffect(() => {
-    if (volume !== null && density) {
-      const densityValue = parseFloat(density);
-      if (isNaN(densityValue)) {
-        setWeight(null);
-        return;
-      }
-      
-      // Convert volume to m³
-      const selectedVolumeUnit = volumeUnits.find(u => u.value === volumeUnit);
-      const volumeInCm3 = volume * (selectedVolumeUnit?.factor || 1);
-      const volumeInM3 = volumeInCm3 / 1000000;
-      
-      // Convert density to kg/m³
-      const selectedDensityUnit = densityUnits.find(u => u.value === densityUnit);
-      const densityInKgM3 = densityValue * (selectedDensityUnit?.factor || 1);
-      
-      // Calculate weight in kg
-      const weightInKg = volumeInM3 * densityInKgM3;
-      
-      // Convert to selected weight unit
-      const selectedWeightUnit = weightUnits.find(u => u.value === weightUnit);
-      const convertedWeight = weightInKg * 1000 / (selectedWeightUnit?.factor || 1);
-      
-      setWeight(convertedWeight);
-    } else {
-      setWeight(null);
+  // Helper function to convert meters to the specified unit
+  const convertMetersToLength = (valueInMeters: number, unit: string): number => {
+    switch (unit) {
+      case "mm":
+        return valueInMeters * 1000;
+      case "cm":
+        return valueInMeters * 100;
+      case "m":
+        return valueInMeters;
+      case "in":
+        return valueInMeters / 0.0254;
+      case "ft":
+        return valueInMeters / 0.3048;
+      case "yd":
+        return valueInMeters / 0.9144;
+      default:
+        return valueInMeters;
     }
-  }, [volume, density, densityUnit, volumeUnit, weightUnit]);
-  
-  // Toggle sections
-  const toggleSection = (section: 'size' | 'weight') => {
-    setExpanded(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
+  };
+
+  // Helper function to convert volume
+  const calculateVolumeInCubicMeters = (): number => {
+    const lengthInM = convertLengthToMeters(length, lengthUnit);
+    const widthInM = convertLengthToMeters(width, widthUnit);
+    const heightInM = convertLengthToMeters(height, heightUnit);
+    
+    return lengthInM * widthInM * heightInM;
+  };
+
+  // Helper function to convert volume to selected unit
+  const convertVolumeToUnit = (volumeInCubicMeters: number, unit: string): number => {
+    switch (unit) {
+      case "mm³":
+        return volumeInCubicMeters * 1_000_000_000;
+      case "cm³":
+        return volumeInCubicMeters * 1_000_000;
+      case "dm³":
+        return volumeInCubicMeters * 1_000;
+      case "m³":
+        return volumeInCubicMeters;
+      case "cu in":
+        return volumeInCubicMeters * 61_023.7;
+      case "cu ft":
+        return volumeInCubicMeters * 35.3147;
+      case "cu yd":
+        return volumeInCubicMeters * 1.30795;
+      case "l":
+        return volumeInCubicMeters * 1_000;
+      default:
+        return volumeInCubicMeters;
+    }
   };
   
-  // Reset calculator
-  const resetCalculator = () => {
-    setLength('');
-    setWidth('');
-    setHeight('');
-    setDensity('');
-    setVolume(null);
-    setWeight(null);
-    setProblemSolved(null);
+  // Helper function to convert a volume from the specified unit to cubic meters
+  const convertUnitToVolume = (value: number, unit: string): number => {
+    switch (unit) {
+      case "mm³":
+        return value / 1_000_000_000;
+      case "cm³":
+        return value / 1_000_000;
+      case "dm³":
+        return value / 1_000;
+      case "m³":
+        return value;
+      case "cu in":
+        return value / 61_023.7;
+      case "cu ft":
+        return value / 35.3147;
+      case "cu yd":
+        return value / 1.30795;
+      case "l":
+        return value / 1_000;
+      default:
+        return value;
+    }
+  };
+
+  // Helper function to convert density to kg/m³
+  const convertDensityToKgPerCubicMeter = (value: number, unit: string): number => {
+    switch (unit) {
+      case "t/m³":
+        return value * 1000;
+      case "kg/m³":
+        return value;
+      case "kg/L":
+        return value * 1000;
+      case "g/L":
+        return value;
+      case "g/mL":
+        return value * 1000;
+      case "g/cm³":
+        return value * 1000;
+      case "oz/cu in":
+        return value * 1729.994;
+      case "lb/cu in":
+        return value * 27679.9;
+      case "lb/cu ft":
+        return value * 16.0185;
+      case "lb/cu yd":
+        return value * 0.593276;
+      case "lb/US gal":
+        return value * 119.826;
+      case "lb/UK gal":
+        return value * 99.7763;
+      default:
+        return value;
+    }
   };
   
-  // Clear all changes
-  const clearAllChanges = () => {
-    resetCalculator();
+  // Helper function to convert kg/m³ to the specified unit
+  const convertKgPerCubicMeterToDensity = (valueInKgPerCubicMeter: number, unit: string): number => {
+    switch (unit) {
+      case "t/m³":
+        return valueInKgPerCubicMeter / 1000;
+      case "kg/m³":
+        return valueInKgPerCubicMeter;
+      case "kg/L":
+        return valueInKgPerCubicMeter / 1000;
+      case "g/L":
+        return valueInKgPerCubicMeter;
+      case "g/mL":
+        return valueInKgPerCubicMeter / 1000;
+      case "g/cm³":
+        return valueInKgPerCubicMeter / 1000;
+      case "oz/cu in":
+        return valueInKgPerCubicMeter / 1729.994;
+      case "lb/cu in":
+        return valueInKgPerCubicMeter / 27679.9;
+      case "lb/cu ft":
+        return valueInKgPerCubicMeter / 16.0185;
+      case "lb/cu yd":
+        return valueInKgPerCubicMeter / 0.593276;
+      case "lb/US gal":
+        return valueInKgPerCubicMeter / 119.826;
+      case "lb/UK gal":
+        return valueInKgPerCubicMeter / 99.7763;
+      default:
+        return valueInKgPerCubicMeter;
+    }
+  };
+
+  // Helper function to convert weight from kg to selected unit
+  const convertWeightToUnit = (weightInKg: number, unit: string): number => {
+    switch (unit) {
+      case "μg":
+        return weightInKg * 1_000_000_000;
+      case "mg":
+        return weightInKg * 1_000_000;
+      case "g":
+        return weightInKg * 1_000;
+      case "dag":
+        return weightInKg * 100;
+      case "kg":
+        return weightInKg;
+      case "t":
+        return weightInKg * 0.001;
+      case "gr":
+        return weightInKg * 15432.4;
+      case "dr":
+        return weightInKg * 564.383;
+      case "oz":
+        return weightInKg * 35.274;
+      case "lb":
+        return weightInKg * 2.20462;
+      case "st":
+        return weightInKg * 0.157473;
+      case "US ton":
+        return weightInKg * 0.00110231;
+      case "long ton":
+        return weightInKg * 0.000984207;
+      default:
+        return weightInKg;
+    }
   };
   
-  // Handle feedback
-  const handleFeedback = (solved: boolean) => {
-    setProblemSolved(solved);
+  // Helper function to convert weight from the selected unit to kg
+  const convertUnitToWeight = (value: number, unit: string): number => {
+    switch (unit) {
+      case "μg":
+        return value / 1_000_000_000;
+      case "mg":
+        return value / 1_000_000;
+      case "g":
+        return value / 1_000;
+      case "dag":
+        return value / 100;
+      case "kg":
+        return value;
+      case "t":
+        return value / 0.001;
+      case "gr":
+        return value / 15432.4;
+      case "dr":
+        return value / 564.383;
+      case "oz":
+        return value / 35.274;
+      case "lb":
+        return value / 2.20462;
+      case "st":
+        return value / 0.157473;
+      case "US ton":
+        return value / 0.00110231;
+      case "long ton":
+        return value / 0.000984207;
+      default:
+        return value;
+    }
   };
-  
-  // Format number for display
-  const formatDisplayNumber = (num: number | null): string => {
-    if (num === null) return '';
-    return num.toLocaleString('en-US', {
-      maximumFractionDigits: 4,
-      minimumFractionDigits: 0
-    });
+
+  // Handle material change
+  const handleMaterialChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    // Placeholder for materials selection
+    // This will be implemented later when materials data is available
+    // const selectedMaterial = materials.find(m => m.name === e.target.value);
+    // if (selectedMaterial) {
+    //   setDensity(selectedMaterial.density);
+    // }
   };
-  
+
+  // Format number with commas for thousands separators
+  const formatNumberWithCommas = (num: number): string => {
+    return num.toLocaleString('en-US', { maximumFractionDigits: 4 });
+  };
+
+  // Validate all inputs
+  useEffect(() => {
+    setLengthError(length < 0 ? "Length cannot be negative." : null);
+    setWidthError(width < 0 ? "Width cannot be negative." : null);
+    setHeightError(height < 0 ? "Height cannot be negative." : null);
+    if (density !== undefined) {
+      setDensityError(density < 0 ? "Density cannot be negative." : null);
+    }
+  }, [length, width, height, density]);
+
+  // Calculate volume and weight whenever dimensions or density change, but not when units change
+  useEffect(() => {
+    // Only calculate when all values are valid (not negative)
+    const hasNegativeValues = length < 0 || width < 0 || height < 0 || (density !== undefined && density < 0);
+    
+    if (hasNegativeValues) {
+      setVolume(0);
+      setWeight(0);
+      return;
+    }
+
+    const volumeInCubicMeters = calculateVolumeInCubicMeters();
+    const volumeInSelectedUnit = convertVolumeToUnit(volumeInCubicMeters, volumeUnit);
+    setVolume(volumeInSelectedUnit);
+
+    // Calculate weight (mass = density × volume)
+    if (density !== undefined) {
+      const densityInKgPerCubicMeter = convertDensityToKgPerCubicMeter(density, densityUnit);
+      const weightInKg = volumeInCubicMeters * densityInKgPerCubicMeter;
+      const weightInSelectedUnit = convertWeightToUnit(weightInKg, weightUnit);
+      setWeight(weightInSelectedUnit);
+    } else {
+      setWeight(0); // Set weight to 0 when density is undefined
+    }
+  }, [length, width, height, lengthUnit, widthUnit, heightUnit, volumeUnit, density, densityUnit, weightUnit]); // Include units in dependencies since they're used in calculations
+
   return (
-    <div className="max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent flex items-center">
-        Size to Weight Calculator
-        <span className="ml-3 text-2xl">📋</span>
-      </h1>
+    <div className="p-4 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Size to Weight Calculator</h1>
       
-      <p className="text-slate-700 mb-8">
-        Calculate the weight of objects based on their dimensions and material density. Perfect for estimating shipping weights, material quantities, and construction planning.
-      </p>
+      {/* Size Section */}
+      <div className="bg-white rounded-lg shadow mb-4 overflow-hidden">
+        <button 
+          className="w-full flex items-center justify-between p-4 bg-blue-50 text-blue-600"
+          onClick={() => setSizeExpanded(!sizeExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              {sizeExpanded ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              )}
+            </svg>
+            <span className="font-semibold">Size</span>
+          </div>
+        </button>
+        
+        {sizeExpanded && (
+          <div className="p-4">
+            {/* Length */}
+            <div className="mb-3">
+              <div className="flex justify-between mb-1">
+                <label className="text-base font-medium text-gray-700">Length</label>
+                <button className="text-blue-500 text-xs">•••</button>
+              </div>
+              <div className="flex">
+                <input 
+                  type="number" 
+                  className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${lengthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                  value={length || ''}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    setLength(value);
+                    setLengthError(value < 0 ? "Length cannot be negative." : null);
+                  }}
+                  placeholder="0"
+                />
+                <select 
+                  className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                  value={lengthUnit}
+                  onChange={(e) => {
+                    const newUnit = e.target.value;
+                    // Convert the current length to meters, then to the new unit
+                    const lengthInMeters = convertLengthToMeters(length, lengthUnit);
+                    const convertedLength = convertMetersToLength(lengthInMeters, newUnit);
+                    setLength(convertedLength);
+                    setLengthUnit(newUnit);
+                  }}
+                >
+                  {lengthUnits.map(unit => (
+                    <option key={unit.value} value={unit.value}>{unit.value}</option>
+                  ))}
+                </select>
+              </div>
+              {lengthError && (
+                <div className="mt-1 flex items-center text-red-500 text-xs">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {lengthError}
+                </div>
+              )}
+            </div>
+            
+            {/* Width */}
+            <div className="mb-3">
+              <div className="flex justify-between mb-1">
+                <label className="text-base font-medium text-gray-700">Width</label>
+                <button className="text-blue-500 text-xs">•••</button>
+              </div>
+              <div className="flex">
+                <input 
+                  type="number" 
+                  className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${widthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                  value={width || ''}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    setWidth(value);
+                    setWidthError(value < 0 ? "Width cannot be negative." : null);
+                  }}
+                  placeholder="0"
+                />
+                <select 
+                  className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                  value={widthUnit}
+                  onChange={(e) => {
+                    const newUnit = e.target.value;
+                    // Convert the current width to meters, then to the new unit
+                    const widthInMeters = convertLengthToMeters(width, widthUnit);
+                    const convertedWidth = convertMetersToLength(widthInMeters, newUnit);
+                    setWidth(convertedWidth);
+                    setWidthUnit(newUnit);
+                  }}
+                >
+                  {lengthUnits.map(unit => (
+                    <option key={unit.value} value={unit.value}>{unit.value}</option>
+                  ))}
+                </select>
+              </div>
+              {widthError && (
+                <div className="mt-1 flex items-center text-red-500 text-xs">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {widthError}
+                </div>
+              )}
+            </div>
+            
+            {/* Height */}
+            <div className="mb-3">
+              <div className="flex justify-between mb-1">
+                <label className="text-base font-medium text-gray-700">Height</label>
+                <button className="text-blue-500 text-xs">•••</button>
+              </div>
+              <div className="flex">
+                <input 
+                  type="number" 
+                  className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${heightError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                  value={height || ''}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    setHeight(value);
+                    setHeightError(value < 0 ? "Height cannot be negative." : null);
+                  }}
+                  placeholder="0"
+                />
+                <select 
+                  className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                  value={heightUnit}
+                  onChange={(e) => {
+                    const newUnit = e.target.value;
+                    // Convert the current height to meters, then to the new unit
+                    const heightInMeters = convertLengthToMeters(height, heightUnit);
+                    const convertedHeight = convertMetersToLength(heightInMeters, newUnit);
+                    setHeight(convertedHeight);
+                    setHeightUnit(newUnit);
+                  }}
+                >
+                  {lengthUnits.map(unit => (
+                    <option key={unit.value} value={unit.value}>{unit.value}</option>
+                  ))}
+                </select>
+              </div>
+              {heightError && (
+                <div className="mt-1 flex items-center text-red-500 text-xs">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {heightError}
+                </div>
+              )}
+            </div>
+            
+            {/* Volume */}
+            <div>
+              <div className="flex justify-between mb-1">
+                <label className="text-base font-medium text-gray-700">Volume</label>
+                <button className="text-blue-500 text-xs">•••</button>
+              </div>
+              <div className="flex">
+                <input 
+                  type="text" 
+                  className="flex-1 px-3 py-2 border rounded-l-md bg-gray-50 focus:outline-none "
+                  value={formatNumberWithCommas(volume)}
+                  readOnly
+
+                />
+                <select 
+                  className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                  value={volumeUnit}
+                  onChange={(e) => {
+                    const newUnit = e.target.value;
+                    // Convert the current volume to cubic meters, then to the new unit
+                    const volumeInCubicMeters = calculateVolumeInCubicMeters();
+                    const convertedVolume = convertVolumeToUnit(volumeInCubicMeters, newUnit);
+                    setVolume(convertedVolume);
+                    setVolumeUnit(newUnit);
+                  }}
+                >
+                  {volumeUnits.map(unit => (
+                    <option key={unit.value} value={unit.value}>{unit.value}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
       
-      <div className="space-y-6">
-        {/* Size Section */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <button
-            onClick={() => toggleSection('size')}
-            className="w-full flex items-center justify-between p-4 text-left focus:outline-none"
-          >
-            <div className="flex items-center">
-              <div className={cn(
-                "w-6 h-6 flex items-center justify-center transition-transform",
-                expanded.size ? "transform rotate-180" : ""
-              )}>
-                {expanded.size ? <ChevronUp className="text-blue-500" /> : <ChevronDown className="text-blue-500" />}
-              </div>
-              <h2 className="ml-2 text-xl font-semibold">Size</h2>
-            </div>
-          </button>
-          
-          {expanded.size && (
-            <div className="px-4 pb-4 pt-2 space-y-4">
-              {/* Length */}
-              <div className="relative">
-                <div className="flex justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700">Length</label>
-                  <div className="text-slate-400">...</div>
-                </div>
-                <div className="flex">
-                  <input
-                    type="number"
-                    value={length}
-                    onChange={(e) => setLength(e.target.value)}
-                    className="block w-full rounded-l-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="0"
-                  />
-                  <div className="relative">
-                    <select
-                      value={lengthUnit}
-                      onChange={(e) => {
-                        const newUnit = e.target.value;
-                        // Convert length value from old unit to new unit
-                        if (length) {
-                          const convertedValue = convertLength(length, lengthUnit, newUnit);
-                          setLength(convertedValue);
-                        }
-                        setLengthUnit(newUnit);
-                      }}
-                      className="h-full py-0 pl-2 pr-7 border-l-0 border-slate-300 rounded-r-lg bg-slate-50 text-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      {lengthUnits.map((unit) => (
-                        <option key={unit.value} value={unit.value}>{unit.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Width */}
-              <div className="relative">
-                <div className="flex justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700">Width</label>
-                  <div className="text-slate-400">...</div>
-                </div>
-                <div className="flex">
-                  <input
-                    type="number"
-                    value={width}
-                    onChange={(e) => setWidth(e.target.value)}
-                    className="block w-full rounded-l-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="0"
-                  />
-                  <div className="relative">
-                    <select
-                      value={widthUnit}
-                      onChange={(e) => {
-                        const newUnit = e.target.value;
-                        // Convert width value from old unit to new unit
-                        if (width) {
-                          const convertedValue = convertLength(width, widthUnit, newUnit);
-                          setWidth(convertedValue);
-                        }
-                        setWidthUnit(newUnit);
-                      }}
-                      className="h-full py-0 pl-2 pr-7 border-l-0 border-slate-300 rounded-r-lg bg-slate-50 text-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      {lengthUnits.map((unit) => (
-                        <option key={unit.value} value={unit.value}>{unit.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Height */}
-              <div className="relative">
-                <div className="flex justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700">Height</label>
-                  <div className="text-slate-400">...</div>
-                </div>
-                <div className="flex">
-                  <input
-                    type="number"
-                    value={height}
-                    onChange={(e) => setHeight(e.target.value)}
-                    className="block w-full rounded-l-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="0"
-                  />
-                  <div className="relative">
-                    <select
-                      value={heightUnit}
-                      onChange={(e) => {
-                        const newUnit = e.target.value;
-                        // Convert height value from old unit to new unit
-                        if (height) {
-                          const convertedValue = convertLength(height, heightUnit, newUnit);
-                          setHeight(convertedValue);
-                        }
-                        setHeightUnit(newUnit);
-                      }}
-                      className="h-full py-0 pl-2 pr-7 border-l-0 border-slate-300 rounded-r-lg bg-slate-50 text-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      {lengthUnits.map((unit) => (
-                        <option key={unit.value} value={unit.value}>{unit.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Volume */}
-              <div className="relative">
-                <div className="flex justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700">Volume</label>
-                  <div className="text-slate-400">...</div>
-                </div>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={volume !== null ? formatDisplayNumber(volume) : ''}
-                    readOnly
-                    className="block w-full rounded-l-lg border-slate-300 bg-slate-50 shadow-sm"
-                    placeholder="0"
-                  />
-                  <div className="relative">
-                    <select
-                      value={volumeUnit}
-                      onChange={(e) => setVolumeUnit(e.target.value)}
-                      className="h-full py-0 pl-2 pr-7 border-l-0 border-slate-300 rounded-r-lg bg-slate-50 text-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      {volumeUnits.map((unit) => (
-                        <option key={unit.value} value={unit.value}>{unit.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+      {/* Weight Section */}
+      <div className="bg-white rounded-lg shadow mb-4 overflow-hidden">
+        <div className="w-full flex items-center justify-between p-4 bg-blue-50 text-blue-600">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Weight</span>
+          </div>
         </div>
         
-        {/* Weight Section */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <button
-            onClick={() => toggleSection('weight')}
-            className="w-full flex items-center justify-between p-4 text-left focus:outline-none"
-          >
-            <div className="flex items-center">
-              <div className={cn(
-                "w-6 h-6 flex items-center justify-center transition-transform",
-                expanded.weight ? "transform rotate-180" : ""
-              )}>
-                {expanded.weight ? <ChevronUp className="text-blue-500" /> : <ChevronDown className="text-blue-500" />}
-              </div>
-              <h2 className="ml-2 text-xl font-semibold">Weight</h2>
+        <div className="p-4">
+          {/* Density */}
+          <div className="mb-3">
+            <div className="flex justify-between mb-1">
+              <label className="text-base font-medium text-gray-700">Density</label>
+              <button className="text-blue-500 text-xs">•••</button>
             </div>
-          </button>
+            <div className="flex">
+              <input 
+                type="number" 
+                className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${densityError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                value={density ?? ''}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (isNaN(value) || e.target.value === '') {
+                    setDensity(undefined);
+                    setDensityError(null);
+                  } else {
+                    setDensity(value);
+                    setDensityError(value < 0 ? "Density cannot be negative." : null);
+                  }
+                }}
+                placeholder="0"
+              />
+              <select 
+                className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                value={densityUnit}
+                onChange={(e) => {
+                  const newUnit = e.target.value;
+                  // Convert the current density to kg/m³, then to the new unit
+                  if (density !== undefined) {
+                    const densityInKgPerCubicMeter = convertDensityToKgPerCubicMeter(density, densityUnit);
+                    const convertedDensity = convertKgPerCubicMeterToDensity(densityInKgPerCubicMeter, newUnit);
+                    setDensity(convertedDensity);
+                  }
+                  setDensityUnit(newUnit);
+                }}
+              >
+                {densityUnits.map(unit => (
+                  <option key={unit.value} value={unit.value}>{unit.value}</option>
+                ))}
+              </select>
+            </div>
+            {densityError && (
+              <div className="mt-1 flex items-center text-red-500 text-xs">
+                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                {densityError}
+              </div>
+            )}
+          </div>
           
-          {expanded.weight && (
-            <div className="px-4 pb-4 pt-2 space-y-4">
-              {/* Density */}
-              <div className="relative">
-                <div className="flex justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700">Density</label>
-                  <div className="text-slate-400">...</div>
-                </div>
-                <div className="flex">
-                  <input
-                    type="number"
-                    value={density}
-                    onChange={(e) => setDensity(e.target.value)}
-                    className="block w-full rounded-l-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="0"
-                  />
-                  <div className="relative">
-                    <select
-                      value={densityUnit}
-                      onChange={(e) => {
-                        const newUnit = e.target.value;
-                        // Convert density value from old unit to new unit
-                        if (density) {
-                          const convertedValue = convertDensity(density, densityUnit, newUnit);
-                          setDensity(convertedValue);
-                        }
-                        setDensityUnit(newUnit);
-                      }}
-                      className="h-full py-0 pl-2 pr-7 border-l-0 border-slate-300 rounded-r-lg bg-slate-50 text-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      {densityUnits.map((unit) => (
-                        <option key={unit.value} value={unit.value}>{unit.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Weight */}
-              <div className="relative">
-                <div className="flex justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700">Weight</label>
-                  <div className="text-slate-400">...</div>
-                </div>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={weight !== null ? formatDisplayNumber(weight) : ''}
-                    readOnly
-                    className="block w-full rounded-l-lg border-slate-300 bg-slate-50 shadow-sm"
-                    placeholder="0"
-                  />
-                  <div className="relative">
-                    <select
-                      value={weightUnit}
-                      onChange={(e) => setWeightUnit(e.target.value)}
-                      className="h-full py-0 pl-2 pr-7 border-l-0 border-slate-300 rounded-r-lg bg-slate-50 text-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      {weightUnits.map((unit) => (
-                        <option key={unit.value} value={unit.value}>{unit.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex gap-4 pt-2 border-t border-slate-200">
-                <button
-                  className="flex items-center justify-center gap-2 bg-red-100 hover:bg-red-200 text-red-600 p-3 rounded-lg flex-1"
-                  onClick={() => {}}>
-                  <Share2 size={20} />
-                  <span className="font-medium">Share result</span>
-                </button>
-                
-                <div className="flex flex-col gap-2 flex-1">
-                  <button
-                    className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 p-3 rounded-lg"
-                    onClick={resetCalculator}>
-                    <RefreshCcw size={16} />
-                    <span className="font-medium">Reload calculator</span>
-                  </button>
-                  <button
-                    className="text-slate-400 hover:text-slate-600 text-sm"
-                    onClick={clearAllChanges}>
-                    Clear all changes
-                  </button>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between pt-2 text-sm">
-                <p className="text-slate-600">Did we solve your problem today?</p>
-                <div className="flex gap-2">
-                  <button
-                    className={`px-3 py-1 rounded ${problemSolved === true ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
-                    onClick={() => handleFeedback(true)}>
-                    Yes
-                  </button>
-                  <button
-                    className={`px-3 py-1 rounded ${problemSolved === false ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
-                    onClick={() => handleFeedback(false)}>
-                    No
-                  </button>
-                </div>
-              </div>
+          {/* Weight */}
+          <div>
+            <div className="flex justify-between mb-1">
+              <label className="text-base font-medium text-gray-700">Weight</label>
+              <button className="text-blue-500 text-xs">•••</button>
             </div>
-          )}
-        </div>
-        
-        <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-          <p className="text-yellow-800 text-sm">
-            Check out <span className="font-medium text-blue-600 hover:underline">6 similar</span> construction converters
-          </p>
+            <div className="flex">
+              <input 
+                type="text" 
+                className="flex-1 px-3 py-2 border rounded-l-md bg-gray-50 focus:outline-none "
+                value={formatNumberWithCommas(weight)}
+                readOnly
+              />
+              <select 
+                className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                value={weightUnit}
+                onChange={(e) => {
+                  const newUnit = e.target.value;
+                  // First convert current weight to kg, then to the new unit
+                  if (density !== undefined) {
+                    const volumeInCubicMeters = calculateVolumeInCubicMeters();
+                    const densityInKgPerCubicMeter = convertDensityToKgPerCubicMeter(density, densityUnit);
+                    const weightInKg = volumeInCubicMeters * densityInKgPerCubicMeter;
+                    const convertedWeight = convertWeightToUnit(weightInKg, newUnit);
+                    setWeight(convertedWeight);
+                  }
+                  setWeightUnit(newUnit);
+                }}
+              >
+                {weightUnits.map(unit => (
+                  <option key={unit.value} value={unit.value}>{unit.value}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       </div>
     </div>
