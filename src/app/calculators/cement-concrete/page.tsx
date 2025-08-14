@@ -113,7 +113,7 @@ export default function CementConcretePage() {
           </a>
         </div>
         <div className="flex flex-col gap-6">
-          <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
+          <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl ghover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <Image
