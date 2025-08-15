@@ -34,59 +34,69 @@ export default function CarpetCalculator() {
     const widthUnitvalues = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft-in', 'm-cm'];
     const radiusUnitvalues = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft-in', 'm-cm'];
     const axisAUnitvalues = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft-in', 'm-cm'];
+    const axisBUnitvalues = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft-in', 'm-cm'];
+
+    useEffect(() => {
+        calculateArea();
+        calculateCost();
+    }, [length, width, lengthUnit, widthUnit, radius, radiusUnit, axisA, axisB, axisAUnit, axisBUnit, side, sideUnit, shape, area, areaUnit, price, priceUnit]);
 
     const calculateArea = () => {
+        const roundToThreeDecimals = (num: number) => {
+            return Math.round(num * 1000) / 1000;
+        };
+
         if (shape === 'rectangle') {
             if (length <= 0 || width <= 0) {
                 setArea(0);
                 return;
             }
-        const lengthInMeters = convertValue(length, lengthUnit, 'm');
-        const widthInMeters = convertValue(width, widthUnit, 'm');
-        const areaInSquareMeters = lengthInMeters * widthInMeters;
-        const areaDisplay = convertValue(areaInSquareMeters, 'm2', areaUnit);
-        setArea(areaDisplay);
+            const lengthInMeters = convertValue(length, lengthUnit, 'm');
+            const widthInMeters = convertValue(width, widthUnit, 'm');
+            const areaInSquareMeters = roundToThreeDecimals(lengthInMeters * widthInMeters);
+            const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
+            setArea(areaDisplay);
         };
         if (shape === 'circle') {
             if (radius <= 0) {
                 setArea(0);
                 return;
             }
-        const radiusInMeters = convertValue(radius, radiusUnit, 'm');
-        const areaInSquareMeters = Math.PI * radiusInMeters * radiusInMeters;
-        const areaDisplay = convertValue(areaInSquareMeters, 'm2', areaUnit);
-        setArea(areaDisplay);
+            const radiusInMeters = convertValue(radius, radiusUnit, 'm');
+            const areaInSquareMeters = roundToThreeDecimals(Math.PI * radiusInMeters * radiusInMeters);
+            const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
+            setArea(areaDisplay);
         };
         if (shape === 'ellipse') {
             if (axisA <= 0 || axisB <= 0) {
                 setArea(0);
                 return;
             }
-        const axisAInMeters = convertValue(axisA, axisAUnit, 'm');
-        const axisBInMeters = convertValue(axisB, axisBUnit, 'm');
-        const areaInSquareMeters = Math.PI * axisAInMeters * axisBInMeters;
-        const areaDisplay = convertValue(areaInSquareMeters, 'm2', areaUnit);
-        setArea(areaDisplay);
+            const axisAInMeters = convertValue(axisA, axisAUnit, 'm');
+            const axisBInMeters = convertValue(axisB, axisBUnit, 'm');
+            const areaInSquareMeters = roundToThreeDecimals(Math.PI * axisAInMeters * axisBInMeters);
+            const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
+            setArea(areaDisplay);
         };
         if (shape === 'pentagon') {
             if (side <= 0) {
                 setArea(0);
                 return;
             }
-        const sideInMeters = convertValue(side, sideUnit, 'm');
-        const areaInSquareMeters = (Math.sqrt(5 * (5 + 2 * Math.sqrt(5))) / 4) * Math.pow(sideInMeters, 2);
-        const areaDisplay = convertValue(areaInSquareMeters, 'm2', areaUnit);
-        setArea(areaDisplay);
+            const sideInMeters = convertValue(side, sideUnit, 'm');
+            const areaInSquareMeters = roundToThreeDecimals((Math.sqrt(5 * (5 + 2 * Math.sqrt(5))) / 4) * Math.pow(sideInMeters, 2));
+            const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
+            setArea(areaDisplay);
         }
         if (shape === 'hexagon') {
             if (side <= 0) {
                 setArea(0);
                 return;
             }
-        const sideInMeters = convertValue(side, sideUnit, 'm');
-        const areaInSquareMeters = (3 * Math.sqrt(3) / 2) * Math.pow(sideInMeters, 2);
-        const areaDisplay = convertValue(areaInSquareMeters, 'm2', areaUnit);
-        setArea(areaDisplay);
+            const sideInMeters = convertValue(side, sideUnit, 'm');
+            const areaInSquareMeters = roundToThreeDecimals((3 * Math.sqrt(3) / 2) * Math.pow(sideInMeters, 2));
+            const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
+            setArea(areaDisplay);
         }
     };
 
@@ -222,7 +232,6 @@ export default function CarpetCalculator() {
                                         onFocus={(e) => handleFocus(length, e)}
                                         className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                                        step="0.01"
                                         min="0"
                                         placeholder="Enter length"
                                     />
@@ -246,7 +255,6 @@ export default function CarpetCalculator() {
                                         onFocus={(e) => handleFocus(width, e)}
                                         className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                                        step="0.01"
                                         min="0"
                                         placeholder="Enter width"
                                     />
@@ -266,13 +274,10 @@ export default function CarpetCalculator() {
                                     <input
                                         type="number"
                                         value={area}
-                                        onChange={(e) => handleNumberInput(e.target.value, setArea)}
-                                        onFocus={(e) => handleFocus(area, e)}
-                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                                        step="0.01"
-                                        min="0"
-                                        placeholder="Enter area"
+                                        readOnly
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100"
+                                        style={{ color: '#1e293b' }}
+                                        placeholder="Calculated area"
                                     />
                                     <UnitDropdown
                                         value={areaUnit}
@@ -285,8 +290,271 @@ export default function CarpetCalculator() {
                             
                         </div>
                     )}
-
-
+                    {shape === 'circle' && (
+                        <div>
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    Radius
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        value={radius}
+                                        onChange={(e) => handleNumberInput(e.target.value, setRadius)}
+                                        onFocus={(e) => handleFocus(radius, e)}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                        min="0"
+                                        placeholder="Enter radius"
+                                    />
+                                    <UnitDropdown
+                                        value={radiusUnit}
+                                        onChange={(e) => setRadiusUnit(e.target.value)}
+                                        unitValues={radiusUnitvalues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                                </div>
+                            </div>
+                            <div className='mb-6'>
+                                <label className='block text-sm font-medium text-slate-700 mb-2'>
+                                    Area
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        value={area}
+                                        readOnly
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                        min="0"
+                                        placeholder="Calculated area"
+                                    />
+                                    <UnitDropdown
+                                        value={areaUnit}
+                                        onChange={(e) => setAreaUnit(e.target.value)}
+                                        unitValues={areaUnitvalues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {shape === 'ellipse' && (
+                        <div>
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    Axis A
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        value={axisA}
+                                        onChange={(e) => handleNumberInput(e.target.value, setAxisA)}
+                                        onFocus={(e) => handleFocus(axisA, e)}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"  
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                        min="0"
+                                        placeholder="Enter axis A"
+                                    />
+                                    <UnitDropdown
+                                        value={axisAUnit}
+                                        onChange={(e) => setAxisAUnit(e.target.value)}
+                                        unitValues={axisAUnitvalues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />    
+                                </div>
+                            </div>
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    Axis B
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        value={axisB}
+                                        onChange={(e) => handleNumberInput(e.target.value, setAxisB)}
+                                        onFocus={(e) => handleFocus(axisB, e)}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                        min="0"
+                                        placeholder="Enter axis B"
+                                    />
+                                    <UnitDropdown
+                                        value={axisBUnit}
+                                        onChange={(e) => setAxisBUnit(e.target.value)}
+                                        unitValues={axisBUnitvalues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                                </div>
+                            </div>
+                            <div className='mb-6'>
+                                <label className='block text-sm font-medium text-slate-700 mb-2'>
+                                    Area
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        value={area}
+                                        readOnly
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                        min="0"
+                                        placeholder="Calculated area"
+                                    />
+                                    <UnitDropdown
+                                        value={areaUnit}
+                                        onChange={(e) => setAreaUnit(e.target.value)}
+                                        unitValues={areaUnitvalues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                     )}
+                     { shape === 'pentagon' && (
+                      <div>
+                        <div className="mb-6">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    Side
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        value={side}
+                                        onChange={(e) => handleNumberInput(e.target.value, setSide)}
+                                        onFocus={(e) => handleFocus(side, e)}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                        placeholder="Enter side"
+                                    />
+                                    <UnitDropdown
+                                        value={sideUnit}
+                                        onChange={(e) => setSideUnit(e.target.value)}
+                                        unitValues={sideUnitvalues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                              </div>
+                            </div>
+                            <div className='mb-6'>
+                                <label className='block text-sm font-medium text-slate-700 mb-2'>
+                                    Area
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        value={area}
+                                        readOnly
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="Calculated area"
+                                    />
+                                    <UnitDropdown
+                                        value={areaUnit}
+                                        onChange={(e) => setAreaUnit(e.target.value)}
+                                        unitValues={areaUnitvalues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                              </div>
+                            </div>
+                          </div>
+                     )}
+                     { shape === 'hexagon' && (
+                      <div>
+                        <div className="mb-6">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    Side
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        value={side}
+                                        onChange={(e) => handleNumberInput(e.target.value, setSide)}
+                                        onFocus={(e) => handleFocus(side, e)}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                        placeholder="Enter side"
+                                    />
+                                    <UnitDropdown
+                                        value={sideUnit}
+                                        onChange={(e) => setSideUnit(e.target.value)}
+                                        unitValues={sideUnitvalues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                              </div>
+                            </div>
+                            <div className='mb-6'>
+                                <label className='block text-sm font-medium text-slate-700 mb-2'>
+                                    Area
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        value={area}
+                                        readOnly
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="Calculated area"
+                                    />
+                                    <UnitDropdown
+                                        value={areaUnit}
+                                        onChange={(e) => setAreaUnit(e.target.value)}
+                                        unitValues={areaUnitvalues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                              </div>
+                            </div>
+                          </div>
+                     )}
+                </div>
+                <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200 w-full max-w-lg">
+                     <h2 className='text-xl font-semibold mb-6 text-slate-800'> Cost Calculations</h2>
+                     <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Price per unit area
+                        </label>
+                        <div className="flex gap-2">
+                            <div className="flex items-center px-3 border border-slate-300 rounded-l bg-slate-50 text-slate-700">
+                                PKR
+                            </div>
+                            <input
+                                type="number"
+                                value={price}
+                                onChange={(e) => handleNumberInput(e.target.value, setPrice)}
+                                onFocus={(e) => handleFocus(price, e)}
+                                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                min="0"
+                                placeholder="Enter price"
+                            />
+                            <UnitDropdown
+                                value={priceUnit}
+                                onChange={(e) => setPriceUnit(e.target.value)}
+                                unitValues={priceUnitvalues}
+                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                            />
+                        </div>
+                     </div>
+                     <div className='mb-6'>
+                        <label className='block text-sm font-medium text-slate-700 mb-2'>
+                            Carpet Cost
+                        </label>
+                        <div className="flex gap-2">
+                            <div className="flex items-center px-3 border border-slate-300 rounded-l bg-slate-50 text-slate-700">
+                                PKR
+                            </div>
+                            <input
+                                type="number"
+                                value={totalCost}
+                                readOnly
+                                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-700"
+                                style={{ color: '#374151', backgroundColor: '#f8fafc' }}
+                            />
+                        </div>
+                     </div>
                 </div>
         </div>
         </div>
