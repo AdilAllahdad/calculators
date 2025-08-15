@@ -77,6 +77,9 @@ export const UNIT_OPTIONS: UnitOption[] = [
 
   //Boiler Units
   { value: 'LPM', label: 'Liters per Minute (LPM)', type: 'boiler' },
+  { value: 'GPM', label: 'Gallons per Minute (GPM)', type: 'boiler' },
+  { value: 'kW', label: 'kW', type: 'boiler' },
+  { value: 'hp', label: 'hp', type: 'boiler' },
 
   // Weight units
   { value: 'st', label: 'stones (st)', type: 'weight' },

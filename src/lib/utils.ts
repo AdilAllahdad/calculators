@@ -99,6 +99,13 @@ const conversionFactors = {
     'lb/yd3': 0.593276,
     'lb/US gal': 119.826,
     'lb/UK gal': 99.776
+  },
+  // Boiler (base: kW)
+  boiler: {
+    'LPM': 0.006,
+    'GPM': 0.0163,
+    'kW': 1,
+    'hp': 0.7457
   }
 };
 
@@ -158,6 +165,12 @@ export const convertValue = (value: number, fromUnit: string, toUnit: string): n
   if (unitType === 'density' && fromUnit in conversionFactors.density && toUnit in conversionFactors.density) {
     const fromFactor = conversionFactors.density[fromUnit as keyof typeof conversionFactors.density];
     const toFactor = conversionFactors.density[toUnit as keyof typeof conversionFactors.density];
+    return (value * fromFactor) / toFactor;
+  }
+  
+  if (unitType === 'boiler' && fromUnit in conversionFactors.boiler && toUnit in conversionFactors.boiler) {
+    const fromFactor = conversionFactors.boiler[fromUnit as keyof typeof conversionFactors.boiler];
+    const toFactor = conversionFactors.boiler[toUnit as keyof typeof conversionFactors.boiler];
     return (value * fromFactor) / toFactor;
   }
   
