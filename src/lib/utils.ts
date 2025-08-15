@@ -50,8 +50,11 @@ const conversionFactors = {
     'l': 0.001,
     'm3': 1,
     'in3': 0.000016387,
+    'cu in': 0.000016387,
     'ft3': 0.028317,
+    'cu ft': 0.028317,
     'yd3': 0.764555,
+    'cu yd': 0.764555,
     'gal': 0.003785,
     'gal-uk': 0.00454609
   },
@@ -68,6 +71,17 @@ const conversionFactors = {
     'oz': 0.0283495,
     'lb': 0.453592,
     'st': 6.35029,
+    'ton': 907.185,
+    'ton-uk': 1016.05
+  },
+  // BTU (base: BTU)
+  BTU: {
+    'BTU': 1,
+    'kW': 3412.14,        // 1 kW = 3412.14 BTU/hr
+    'watts': 3.41214,     // 1 watt = 3.41214 BTU/hr
+    'hp(l)': 2544.43,     // 1 hp (mechanical) = 2544.43 BTU/hr
+    'hp(E)': 2544.43,     // 1 hp (electrical) = 2544.43 BTU/hr
+    'tons': 12000         // 1 ton of refrigeration = 12000 BTU/hr
     'US ton': 907.185,
     'long ton': 1016.05
   },
@@ -132,6 +146,12 @@ export const convertValue = (value: number, fromUnit: string, toUnit: string): n
   if (unitType === 'weight' && fromUnit in conversionFactors.weight && toUnit in conversionFactors.weight) {
     const fromFactor = conversionFactors.weight[fromUnit as keyof typeof conversionFactors.weight];
     const toFactor = conversionFactors.weight[toUnit as keyof typeof conversionFactors.weight];
+    return (value * fromFactor) / toFactor;
+  }
+
+  if (unitType === 'BTU' && fromUnit in conversionFactors.BTU && toUnit in conversionFactors.BTU) {
+    const fromFactor = conversionFactors.BTU[fromUnit as keyof typeof conversionFactors.BTU];
+    const toFactor = conversionFactors.BTU[toUnit as keyof typeof conversionFactors.BTU];
     return (value * fromFactor) / toFactor;
   }
   
