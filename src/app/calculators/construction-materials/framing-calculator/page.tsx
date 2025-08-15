@@ -32,7 +32,7 @@ export default function FramingCalculator() {
     }
     return "";
   };
-  
+
   // Handle input changes with validation
   const handleWallLengthChange = (value: string) => {
     setWallLength(value);
@@ -59,13 +59,12 @@ export default function FramingCalculator() {
   };
 
   const handleWastagePercentChange = (value: string) => {
-    setWastagePercent(value);
+    setWastagePercent(parseFloat(value) || 0);
     setValidationErrors((prev) => ({
       ...prev,
       wastagePercent: validateField("wastagePercent", value),
     }));
   };
-
   // Improved conversion function with higher precision
   const convertToInches = (value: string, unit: string) => {
     const val = parseFloat(value);
