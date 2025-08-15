@@ -283,10 +283,9 @@ export default function BalusterCalculator() {
     } else {
       setSpacingWarning("");
     }
-
     if (
       railingLengthInches <= 0 ||
-      numberOfPosts <= 0 ||
+      Number(numberOfPosts) <= 0 ||
       postWidthInches <= 0 ||
       balusterWidthInches <= 0 ||
       balusterSpacingInches <= 0
@@ -471,8 +470,7 @@ export default function BalusterCalculator() {
               className="w-full max-w-sm h-auto object-contain"
             />
           </div>
-
-          {/* Railing Length */}
+          c{/* Railing Length */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-gray-700">
@@ -529,7 +527,6 @@ export default function BalusterCalculator() {
               </p>
             )}
           </div>
-
           {/* Number of Posts */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -568,7 +565,6 @@ export default function BalusterCalculator() {
               </p>
             )}
           </div>
-
           {/* Post Width */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -624,7 +620,6 @@ export default function BalusterCalculator() {
               </p>
             )}
           </div>
-
           {/* Baluster Width */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -682,7 +677,6 @@ export default function BalusterCalculator() {
               </p>
             )}
           </div>
-
           {/* Baluster Spacing */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -745,7 +739,6 @@ export default function BalusterCalculator() {
               </p>
             )}
           </div>
-
           {/* Balusters Needed */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -777,7 +770,6 @@ export default function BalusterCalculator() {
               className="w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-blue-600 font-semibold hover:border-gray-400 transition-colors"
             />
           </div>
-
           {/* Action Buttons */}
           <div className="flex space-x-2 pt-4">
             <button
@@ -793,7 +785,6 @@ export default function BalusterCalculator() {
               Clear all changes
             </button>
           </div>
-
           {/* Share Section */}
           <div className="flex items-center space-x-2 pt-2">
             <button className="flex items-center justify-center w-10 h-10 bg-red-500 rounded-full text-white hover:bg-red-600">
@@ -803,7 +794,6 @@ export default function BalusterCalculator() {
             </button>
             <span className="text-sm text-gray-600">Share result</span>
           </div>
-
           {/* Bottom Question */}
           <div className="text-center pt-4 border-t">
             <p className="text-sm text-gray-600 mb-3">
