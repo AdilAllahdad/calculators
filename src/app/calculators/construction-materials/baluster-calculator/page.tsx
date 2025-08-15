@@ -25,7 +25,7 @@ export default function BalusterCalculator() {
   const [spacingWarning, setSpacingWarning] = useState("");
 
   // Validation function
-  const validateField = (fieldName, value) => {
+  const validateField = (fieldName: string, value: string) => {
     const numValue = Number.parseFloat(value);
     if (value === "") {
       return "";
