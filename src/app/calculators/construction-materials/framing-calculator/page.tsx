@@ -22,7 +22,7 @@ export default function FramingCalculator() {
   });
 
   // Validation function
-  const validateField = (fieldName, value) => {
+  const validateField = (fieldName: string, value: string) => {
     const numValue = parseFloat(value);
     if (value === "") {
       return "";
@@ -34,7 +34,7 @@ export default function FramingCalculator() {
   };
 
   // Handle input changes with validation
-  const handleWallLengthChange = (value) => {
+  const handleWallLengthChange = (value: string) => {
     setWallLength(value);
     setValidationErrors((prev) => ({
       ...prev,
@@ -42,7 +42,7 @@ export default function FramingCalculator() {
     }));
   };
 
-  const handleOcSpacingChange = (value) => {
+  const handleOcSpacingChange = (value: string) => {
     setOcSpacing(value);
     setValidationErrors((prev) => ({
       ...prev,
@@ -50,7 +50,7 @@ export default function FramingCalculator() {
     }));
   };
 
-  const handlePricePerStudChange = (value) => {
+  const handlePricePerStudChange = (value: string) => {
     setPricePerStud(value);
     setValidationErrors((prev) => ({
       ...prev,
@@ -58,7 +58,7 @@ export default function FramingCalculator() {
     }));
   };
 
-  const handleWastagePercentChange = (value) => {
+  const handleWastagePercentChange = (value: string) => {
     setWastagePercent(value);
     setValidationErrors((prev) => ({
       ...prev,
@@ -67,7 +67,7 @@ export default function FramingCalculator() {
   };
 
   // Improved conversion function with higher precision
-  const convertToInches = (value, unit) => {
+  const convertToInches = (value: string, unit: string) => {
     const val = parseFloat(value);
     if (isNaN(val)) return 0;
     switch (unit) {
@@ -87,7 +87,7 @@ export default function FramingCalculator() {
   };
 
   // Convert from inches to target unit
-  const convertFromInches = (inches, targetUnit) => {
+  const convertFromInches = (inches: number, targetUnit: string) => {
     if (isNaN(inches) || inches === 0) return 0;
     switch (targetUnit) {
       case "mm":
@@ -106,7 +106,7 @@ export default function FramingCalculator() {
   };
 
   // Handle wall length unit change with conversion
-  const handleWallLengthUnitChange = (newUnit) => {
+  const handleWallLengthUnitChange = (newUnit: string) => {
     if (wallLength && !isNaN(parseFloat(wallLength))) {
       // Convert current value to inches first
       const currentValueInInches = convertToInches(wallLength, wallLengthUnit);
@@ -129,7 +129,7 @@ export default function FramingCalculator() {
   };
 
   // Handle OC spacing unit change with conversion
-  const handleOcSpacingUnitChange = (newUnit) => {
+  const handleOcSpacingUnitChange = (newUnit: string) => {
     if (ocSpacing && !isNaN(parseFloat(ocSpacing))) {
       // Convert current value to inches first
       const currentValueInInches = convertToInches(ocSpacing, ocSpacingUnit);
@@ -174,7 +174,7 @@ export default function FramingCalculator() {
     const studsNeeded = exactStudsNeeded; // No rounding
 
     // Apply wastage percentage without rounding
-    const wastageDecimal = parseFloat(wastagePercent) / 100;
+    const wastageDecimal = parseFloat(wastagePercent.toString()) / 100;
     const totalStudsWithWastage = studsNeeded * (1 + wastageDecimal);
 
     // Calculate total cost
@@ -228,7 +228,7 @@ export default function FramingCalculator() {
         const exactStudsNeeded = wallLengthInches / ocSpacingInches + 1;
         const studsNeeded = exactStudsNeeded; // No rounding
 
-        const wastageDecimal = parseFloat(wastagePercent) / 100;
+        const wastageDecimal = parseFloat(wastagePercent.toString()) / 100;
         const totalStudsWithWastage = studsNeeded * (1 + wastageDecimal);
 
         const totalCost = pricePerStud
