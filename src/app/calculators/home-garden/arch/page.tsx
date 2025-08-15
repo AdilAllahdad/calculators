@@ -275,7 +275,7 @@ export default function ArchCalculator() {
                             </div>
                         </div>
                 )}
-                <p className='text-md font-semibold text-slate-800 mt-8 mb-4'>To draw the arch's outline:</p>
+                <p className='text-md font-semibold text-slate-800 mt-8 mb-4'>To draw the archs outline:</p>
                 <div className=''>
                     <ol className='list-decimal list-inside space-y-2'>
                         <li className='text-sm font-medium text-slate-600'>Draw a line from the focus to the base of the arch.</li>
