@@ -40,7 +40,7 @@ export default function BalusterCalculator() {
   };
 
   // Handle input changes with validation
-  const handleRailingLengthChange = (value) => {
+  const handleRailingLengthChange = (value: string) => {
     setRailingLength(value);
     setValidationErrors((prev) => ({
       ...prev,
@@ -48,7 +48,7 @@ export default function BalusterCalculator() {
     }));
   };
 
-  const handleNumberOfPostsChange = (value) => {
+  const handleNumberOfPostsChange = (value: string) => {
     setNumberOfPosts(value);
     setValidationErrors((prev) => ({
       ...prev,
@@ -56,7 +56,7 @@ export default function BalusterCalculator() {
     }));
   };
 
-  const handlePostWidthChange = (value) => {
+  const handlePostWidthChange = (value: string) => {
     setPostWidth(value);
     setValidationErrors((prev) => ({
       ...prev,
@@ -64,7 +64,7 @@ export default function BalusterCalculator() {
     }));
   };
 
-  const handleBalusterWidthChange = (value) => {
+  const handleBalusterWidthChange = (value: string) => {
     setBalusterWidth(value);
     setValidationErrors((prev) => ({
       ...prev,
@@ -72,7 +72,7 @@ export default function BalusterCalculator() {
     }));
   };
 
-  const handleBalusterSpacingChange = (value) => {
+  const handleBalusterSpacingChange = (value: string) => {
     setBalusterSpacing(value);
     setValidationErrors((prev) => ({
       ...prev,
@@ -81,7 +81,7 @@ export default function BalusterCalculator() {
   };
 
   // Improved conversion function with higher precision
-  const convertToInches = (value, unit) => {
+  const convertToInches = (value: string, unit: string) => {
     const val = Number.parseFloat(value);
     if (isNaN(val)) return 0;
     switch (unit) {
@@ -101,7 +101,7 @@ export default function BalusterCalculator() {
   };
 
   // Convert from inches to target unit
-  const convertFromInches = (inches, targetUnit) => {
+  const convertFromInches = (inches: number, targetUnit: string) => {
     if (isNaN(inches) || inches === 0) return 0;
     switch (targetUnit) {
       case "mm":
@@ -120,7 +120,7 @@ export default function BalusterCalculator() {
   };
 
   // Handle unit changes with conversion
-  const handleRailingLengthUnitChange = (newUnit) => {
+  const handleRailingLengthUnitChange = (newUnit: string) => {
     if (railingLength && !isNaN(Number.parseFloat(railingLength))) {
       const currentValueInInches = convertToInches(
         railingLength,
@@ -142,7 +142,7 @@ export default function BalusterCalculator() {
     setRailingLengthUnit(newUnit);
   };
 
-  const handlePostWidthUnitChange = (newUnit) => {
+  const handlePostWidthUnitChange = (newUnit: string) => {
     if (postWidth && !isNaN(Number.parseFloat(postWidth))) {
       const currentValueInInches = convertToInches(postWidth, postWidthUnit);
       const newValue = convertFromInches(currentValueInInches, newUnit);
@@ -161,7 +161,7 @@ export default function BalusterCalculator() {
     setPostWidthUnit(newUnit);
   };
 
-  const handleBalusterWidthUnitChange = (newUnit) => {
+  const handleBalusterWidthUnitChange = (newUnit: string) => {
     if (balusterWidth && !isNaN(Number.parseFloat(balusterWidth))) {
       const currentValueInInches = convertToInches(
         balusterWidth,
@@ -183,7 +183,7 @@ export default function BalusterCalculator() {
     setBalusterWidthUnit(newUnit);
   };
 
-  const handleBalusterSpacingUnitChange = (newUnit) => {
+  const handleBalusterSpacingUnitChange = (newUnit: string) => {
     if (balusterSpacing && !isNaN(Number.parseFloat(balusterSpacing))) {
       const currentValueInInches = convertToInches(
         balusterSpacing,
