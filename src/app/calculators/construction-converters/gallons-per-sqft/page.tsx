@@ -3,21 +3,32 @@
 import { useState, useEffect } from 'react';
 
 export default function GallonsPerSquareFootCalculator() {
-  const [areaValue, setAreaValue] = useState<number>(0);
+  const [areaValue, setAreaValue] = useState<string>('0');
+  // const [areaValue, setAreaValue] = useState<string>('0');
   const [areaUnit, setAreaUnit] = useState<string>('ft²');
-  const [heightValue, setHeightValue] = useState<number>(0);
+  // const [heightValue, setHeightValue] = useState<string>('0');
+  const [heightValue, setHeightValue] = useState<string>('0');
   const [heightUnit, setHeightUnit] = useState<string>('ft');
-  const [volumeValue, setVolumeValue] = useState<number>(0);
+  const [volumeValue, setVolumeValue] = useState<string>('0');
+  // const [volumeValue, setVolumeValue] = useState<string>('0');
   const [volumeUnit, setVolumeUnit] = useState<string>('US gal');
-  const [gallonsPerSqFtValue, setGallonsPerSqFtValue] = useState<number>(0);
+  const [gallonsPerSqFtValue, setGallonsPerSqFtValue] = useState<string>('0');
+  // const [gallonsPerSqFtValue, setGallonsPerSqFtValue] = useState<string>('0');
   const [gallonsPerSqFtUnit, setGallonsPerSqFtUnit] = useState<string>('US gal');
   
   // Area calculation states
-  const [showAreaCalculator, setShowAreaCalculator] = useState<boolean>(false);
-  const [lengthValue, setLengthValue] = useState<number>(0);
+  const [lengthValue, setLengthValue] = useState<string>('0');
   const [lengthUnit, setLengthUnit] = useState<string>('ft');
-  const [widthValue, setWidthValue] = useState<number>(0);
+  const [widthValue, setWidthValue] = useState<string>('0');
+  // const [widthValue, setWidthValue] = useState<string>('0');
   const [widthUnit, setWidthUnit] = useState<string>('ft');
+
+  // Add useEffect to calculate area when component mounts or when length/width values change
+  useEffect(() => {
+    if (lengthValue !== '0' && widthValue !== '0') {
+      calculateArea();
+    }
+  }, [lengthValue, widthValue, lengthUnit, widthUnit]);
 
   // Unit conversion factors to base units
   const areaConversions = {
@@ -64,23 +75,28 @@ export default function GallonsPerSquareFootCalculator() {
   };
 
   const convertToBaseSqFt = (value: number, unit: string): number => {
-    return value * (areaConversions[unit] || 1);
+    return value * (areaConversions[unit as keyof typeof areaConversions] || 1);
+    return value * (areaConversions[unit as keyof typeof areaConversions] || 1);
   };
 
   const convertToBaseFt = (value: number, unit: string): number => {
-    return value * (lengthConversions[unit] || 1);
+    return value * (lengthConversions[unit as keyof typeof lengthConversions] || 1);
+    return value * (lengthConversions[unit as keyof typeof lengthConversions] || 1);
   };
 
   const convertToBaseGallons = (value: number, unit: string): number => {
-    return value * (volumeConversions[unit] || 1);
+    return value * (volumeConversions[unit as keyof typeof volumeConversions] || 1);
+    return value * (volumeConversions[unit as keyof typeof volumeConversions] || 1);
   };
 
   const convertFromBaseSqFt = (value: number, unit: string): number => {
-    return value / (areaConversions[unit] || 1);
+    return value / (areaConversions[unit as keyof typeof areaConversions] || 1);
+    return value / (areaConversions[unit as keyof typeof areaConversions] || 1);
   };
 
   const convertFromBaseGallons = (value: number, unit: string): number => {
-    return value / (volumeConversions[unit] || 1);
+    return value / (volumeConversions[unit as keyof typeof volumeConversions] || 1);
+    return value / (volumeConversions[unit as keyof typeof volumeConversions] || 1);
   };
 
   const calculateArea = () => {
@@ -166,12 +182,18 @@ export default function GallonsPerSquareFootCalculator() {
   };
 
   const reloadCalculator = () => {
-    setAreaValue('');
-    setHeightValue('');
-    setVolumeValue('');
-    setGallonsPerSqFtValue('');
-    setLengthValue('');
-    setWidthValue('');
+    setAreaValue('0');
+    setHeightValue('0');
+    setVolumeValue('0');
+    setGallonsPerSqFtValue('0');
+    setLengthValue('0');
+    setWidthValue('0');
+    setAreaValue('0');
+    setHeightValue('0');
+    setVolumeValue('0');
+    setGallonsPerSqFtValue('0');
+    setLengthValue('0');
+    setWidthValue('0');
     setAreaUnit('ft²');
     setHeightUnit('ft');
     setVolumeUnit('US gal');
@@ -212,101 +234,90 @@ export default function GallonsPerSquareFootCalculator() {
         {/* Calculator Form */}
         <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200 w-full max-w-md">
           
-          {/* Area Calculator Section */}
+          {/* Length Input */}
           <div className="mb-6">
-            <button
-              onClick={() => setShowAreaCalculator(!showAreaCalculator)}
-              className="flex items-center justify-between w-full p-4 text-left bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-            >
-              <span className="text-lg font-semibold text-blue-900">
-                Calculate area
-              </span>
-              <svg
-                className={showAreaCalculator 
-                  ? "w-5 h-5 text-blue-600 transform transition-transform rotate-180" 
-                  : "w-5 h-5 text-blue-600 transform transition-transform"
-                }
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {showAreaCalculator && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Length
-                    </label>
-                    <div className="flex">
-                      <input
-                        type="number"
-                        value={lengthValue}
-                        onChange={(e) => handleLengthChange(e.target.value)}
-                        placeholder="Enter length"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <select
-                        value={lengthUnit}
-                        onChange={(e) => setLengthUnit(e.target.value)}
-                        className="px-3 py-2 border border-l-0 border-gray-300 rounded-r-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="mm">millimeters (mm)</option>
-                        <option value="cm">centimeters (cm)</option>
-                        <option value="m">meters (m)</option>
-                        <option value="km">kilometers (km)</option>
-                        <option value="in">inches (in)</option>
-                        <option value="ft">feet (ft)</option>
-                        <option value="yd">yards (yd)</option>
-                        <option value="mi">miles (mi)</option>
-                        <option value="ft / in">feet / inches (ft / in)</option>
-                        <option value="m / cm">meters / centimeters (m / cm)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Width
-                    </label>
-                    <div className="flex">
-                      <input
-                        type="number"
-                        value={widthValue}
-                        onChange={(e) => handleWidthChange(e.target.value)}
-                        placeholder="Enter width"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <select
-                        value={widthUnit}
-                        onChange={(e) => setWidthUnit(e.target.value)}
-                        className="px-3 py-2 border border-l-0 border-gray-300 rounded-r-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="mm">millimeters (mm)</option>
-                        <option value="cm">centimeters (cm)</option>
-                        <option value="m">meters (m)</option>
-                        <option value="km">kilometers (km)</option>
-                        <option value="in">inches (in)</option>
-                        <option value="ft">feet (ft)</option>
-                        <option value="yd">yards (yd)</option>
-                        <option value="mi">miles (mi)</option>
-                        <option value="ft / in">feet / inches (ft / in)</option>
-                        <option value="m / cm">meters / centimeters (m / cm)</option>
-                      </select>
-                    </div>
-                  </div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Length <span className="text-slate-400">⋯</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={lengthValue}
+                onChange={(e) => handleLengthChange(e.target.value)}
+                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                step="0.01"
+                placeholder="Enter length"
+              />
+              <div className="relative min-w-[120px]">
+                <select
+                  value={lengthUnit}
+                  onChange={(e) => setLengthUnit(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none pr-8"
+                  style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                >
+                  <option value="mm" className="text-blue-600">millimeters (mm)</option>
+                  <option value="cm" className="text-blue-600">centimeters (cm)</option>
+                  <option value="m" className="text-blue-600">meters (m)</option>
+                  <option value="km" className="text-blue-600">kilometers (km)</option>
+                  <option value="in" className="text-blue-600">inches (in)</option>
+                  <option value="ft" className="text-blue-600">feet (ft)</option>
+                  <option value="yd" className="text-blue-600">yards (yd)</option>
+                  <option value="mi" className="text-blue-600">miles (mi)</option>
+                  <option value="ft / in" className="text-blue-600">feet / inches (ft / in)</option>
+                  <option value="m / cm" className="text-blue-600">meters / centimeters (m / cm)</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <span className="text-slate-500">▼</span>
                 </div>
               </div>
-            )}
+            </div>
+          </div>
+          
+          {/* Width Input */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Width <span className="text-slate-400">⋯</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={widthValue}
+                onChange={(e) => handleWidthChange(e.target.value)}
+                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                step="0.01"
+                placeholder="Enter width"
+              />
+              <div className="relative min-w-[120px]">
+                <select
+                  value={widthUnit}
+                  onChange={(e) => setWidthUnit(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none pr-8"
+                  style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                >
+                  <option value="mm" className="text-blue-600">millimeters (mm)</option>
+                  <option value="cm" className="text-blue-600">centimeters (cm)</option>
+                  <option value="m" className="text-blue-600">meters (m)</option>
+                  <option value="km" className="text-blue-600">kilometers (km)</option>
+                  <option value="in" className="text-blue-600">inches (in)</option>
+                  <option value="ft" className="text-blue-600">feet (ft)</option>
+                  <option value="yd" className="text-blue-600">yards (yd)</option>
+                  <option value="mi" className="text-blue-600">miles (mi)</option>
+                  <option value="ft / in" className="text-blue-600">feet / inches (ft / in)</option>
+                  <option value="m / cm" className="text-blue-600">meters / centimeters (m / cm)</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <span className="text-slate-500">▼</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Area Input */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Area in square feet <span className="text-slate-400">⋯</span>
+              Area <span className="text-slate-400">⋯</span>
             </label>
             <div className="flex gap-2">
               <input
@@ -318,27 +329,32 @@ export default function GallonsPerSquareFootCalculator() {
                 step="0.01"
                 placeholder="Enter area"
               />
-              <select
-                value={areaUnit}
-                onChange={(e) => setAreaUnit(e.target.value)}
-                className="w-20 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-              >
-                <option value="mm²">mm²</option>
-                <option value="cm²">cm²</option>
-                <option value="dm²">dm²</option>
-                <option value="m²">m²</option>
-                <option value="km²">km²</option>
-                <option value="in²">in²</option>
-                <option value="ft²">ft²</option>
-                <option value="yd²">yd²</option>
-                <option value="mi²">mi²</option>
-                <option value="a">a</option>
-                <option value="da">da</option>
-                <option value="ha">ha</option>
-                <option value="ac">ac</option>
-                <option value="sf">sf</option>
-              </select>
+              <div className="relative min-w-[120px]">
+                <select
+                  value={areaUnit}
+                  onChange={(e) => setAreaUnit(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none pr-8"
+                  style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                >
+                  <option value="mm²" className="text-blue-600">square millimeters (mm²)</option>
+                  <option value="cm²" className="text-blue-600">square centimeters (cm²)</option>
+                  <option value="dm²" className="text-blue-600">square decimeters (dm²)</option>
+                  <option value="m²" className="text-blue-600">square meters (m²)</option>
+                  <option value="km²" className="text-blue-600">square kilometers (km²)</option>
+                  <option value="in²" className="text-blue-600">square inches (in²)</option>
+                  <option value="ft²" className="text-blue-600">square feet (ft²)</option>
+                  <option value="yd²" className="text-blue-600">square yards (yd²)</option>
+                  <option value="mi²" className="text-blue-600">square miles (mi²)</option>
+                  <option value="a" className="text-blue-600">ares (a)</option>
+                  <option value="da" className="text-blue-600">decares (da)</option>
+                  <option value="ha" className="text-blue-600">hectares (ha)</option>
+                  <option value="ac" className="text-blue-600">acres (ac)</option>
+                  <option value="sf" className="text-blue-600">square feet (sf)</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <span className="text-slate-500">▼</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -357,23 +373,28 @@ export default function GallonsPerSquareFootCalculator() {
                 step="0.01"
                 placeholder="Enter height"
               />
-              <select
-                value={heightUnit}
-                onChange={(e) => setHeightUnit(e.target.value)}
-                className="w-20 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-              >
-                <option value="mm">mm</option>
-                <option value="cm">cm</option>
-                <option value="m">m</option>
-                <option value="km">km</option>
-                <option value="in">in</option>
-                <option value="ft">ft</option>
-                <option value="yd">yd</option>
-                <option value="mi">mi</option>
-                <option value="ft / in">ft / in</option>
-                <option value="m / cm">m / cm</option>
-              </select>
+              <div className="relative min-w-[120px]">
+                <select
+                  value={heightUnit}
+                  onChange={(e) => setHeightUnit(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none pr-8"
+                  style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                >
+                  <option value="mm" className="text-blue-600">millimeters (mm)</option>
+                  <option value="cm" className="text-blue-600">centimeters (cm)</option>
+                  <option value="m" className="text-blue-600">meters (m)</option>
+                  <option value="km" className="text-blue-600">kilometers (km)</option>
+                  <option value="in" className="text-blue-600">inches (in)</option>
+                  <option value="ft" className="text-blue-600">feet (ft)</option>
+                  <option value="yd" className="text-blue-600">yards (yd)</option>
+                  <option value="mi" className="text-blue-600">miles (mi)</option>
+                  <option value="ft / in" className="text-blue-600">feet / inches (ft / in)</option>
+                  <option value="m / cm" className="text-blue-600">meters / centimeters (m / cm)</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <span className="text-slate-500">▼</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -391,24 +412,29 @@ export default function GallonsPerSquareFootCalculator() {
                 style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}
                 placeholder="Volume will be calculated"
               />
-              <select
-                value={volumeUnit}
-                onChange={(e) => setVolumeUnit(e.target.value)}
-                className="w-24 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-              >
-                <option value="m³">m³</option>
-                <option value="cu in">cu in</option>
-                <option value="cu ft">cu ft</option>
-                <option value="cu yd">cu yd</option>
-                <option value="ml">ml</option>
-                <option value="cl">cl</option>
-                <option value="l">l</option>
-                <option value="US gal">US gal</option>
-                <option value="UK gal">UK gal</option>
-                <option value="US fl oz">US fl oz</option>
-                <option value="UK fl oz">UK fl oz</option>
-              </select>
+              <div className="relative min-w-[120px]">
+                <select
+                  value={volumeUnit}
+                  onChange={(e) => setVolumeUnit(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none pr-8"
+                  style={{ color: '#2563eb' }}
+                >
+                  <option value="m³" className="text-blue-600">cubic meters (m³)</option>
+                  <option value="cu in" className="text-blue-600">cubic inches (cu in)</option>
+                  <option value="cu ft" className="text-blue-600">cubic feet (cu ft)</option>
+                  <option value="cu yd" className="text-blue-600">cubic yards (cu yd)</option>
+                  <option value="ml" className="text-blue-600">milliliters (ml)</option>
+                  <option value="cl" className="text-blue-600">centiliters (cl)</option>
+                  <option value="l" className="text-blue-600">liters (l)</option>
+                  <option value="US gal" className="bg-blue-500 text-white">gallons (US) (US gal)</option>
+                  <option value="UK gal" className="text-blue-600">gallons (UK) (UK gal)</option>
+                  <option value="US fl oz" className="text-blue-600">fluid ounces (US) (US fl oz)</option>
+                  <option value="UK fl oz" className="text-blue-600">fluid ounces (UK) (UK fl oz)</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <span className="text-blue-600">▼</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -426,18 +452,31 @@ export default function GallonsPerSquareFootCalculator() {
                 style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}
                 placeholder="Will be calculated"
               />
-              <select
-                value={gallonsPerSqFtUnit}
-                onChange={(e) => setGallonsPerSqFtUnit(e.target.value)}
-                className="w-24 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-              >
-                <option value="US gal">US gal</option>
-                <option value="UK gal">UK gal</option>
-              </select>
+              <div className="relative min-w-[120px]">
+                <select
+                  value={gallonsPerSqFtUnit}
+                  onChange={(e) => setGallonsPerSqFtUnit(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none pr-8"
+                  style={{ color: '#2563eb' }}
+                                >
+                  <option value="m³" className="text-blue-600">cubic meters (m³)</option>
+                  <option value="cu in" className="text-blue-600">cubic inches (cu in)</option>
+                  <option value="cu ft" className="text-blue-600">cubic feet (cu ft)</option>
+                  <option value="cu yd" className="text-blue-600">cubic yards (cu yd)</option>
+                  <option value="ml" className="text-blue-600">milliliters (ml)</option>
+                  <option value="cl" className="text-blue-600">centiliters (cl)</option>
+                  <option value="l" className="text-blue-600">liters (l)</option>
+                  <option value="US gal" className="bg-blue-500 text-white">gallons (US) (US gal)</option>
+                  <option value="UK gal" className="text-blue-600">gallons (UK) (UK gal)</option>
+                  <option value="US fl oz" className="text-blue-600">fluid ounces (US) (US fl oz)</option>
+                  <option value="UK fl oz" className="text-blue-600">fluid ounces (UK) (UK fl oz)</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <span className="text-blue-600">▼</span>
+                </div>
+              </div>
             </div>
             <div className="mt-1 text-xs text-slate-500">per sq.ft</div>
-          </div>
           </div>
 
           {/* Action Buttons */}
@@ -481,5 +520,7 @@ export default function GallonsPerSquareFootCalculator() {
           </div>
         </div>
       </div>
+    </div>
+   
   );
 }

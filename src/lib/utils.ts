@@ -46,7 +46,7 @@ const conversionFactors = {
   volume: {
     'mm3': 0.000000001,
     'cm3': 0.000001,
-    'ml': 0.000001,
+    'dm3': 0.001,
     'l': 0.001,
     'm3': 1,
     'in3': 0.000016387,
@@ -56,17 +56,18 @@ const conversionFactors = {
     'yd3': 0.764555,
     'cu yd': 0.764555,
     'gal': 0.003785,
-    'gal-uk': 0.00454609,
-    'qt': 0.000946353,
-    'pt': 0.000473176,
-    'fl-oz': 0.0000295735
+    'gal-uk': 0.00454609
   },
   // Weight (base: kilograms)
   weight: {
+    'µg': 0.000000001,
     'mg': 0.000001,
     'g': 0.001,
+    'dag': 0.01,
     'kg': 1,
     't': 1000,
+    'gr': 0.0000648,
+    'dr': 0.00177185,
     'oz': 0.0283495,
     'lb': 0.453592,
     'st': 6.35029,
@@ -81,6 +82,23 @@ const conversionFactors = {
     'hp(l)': 2544.43,     // 1 hp (mechanical) = 2544.43 BTU/hr
     'hp(E)': 2544.43,     // 1 hp (electrical) = 2544.43 BTU/hr
     'tons': 12000         // 1 ton of refrigeration = 12000 BTU/hr
+    'US ton': 907.185,
+    'long ton': 1016.05
+  },
+  // Density (base: kg/m³)
+  density: {
+    't/m3': 1000,
+    'kg/m3': 1,
+    'kg/L': 1000,
+    'g/L': 1,
+    'g/mL': 1000,
+    'g/cm3': 1000,
+    'oz/in3': 1729.994,
+    'lb/in3': 27679.904,
+    'lb/ft3': 16.01846,
+    'lb/yd3': 0.593276,
+    'lb/US gal': 119.826,
+    'lb/UK gal': 99.776
   }
 };
 
@@ -136,7 +154,13 @@ export const convertValue = (value: number, fromUnit: string, toUnit: string): n
     const toFactor = conversionFactors.BTU[toUnit as keyof typeof conversionFactors.BTU];
     return (value * fromFactor) / toFactor;
   }
-
+  
+  if (unitType === 'density' && fromUnit in conversionFactors.density && toUnit in conversionFactors.density) {
+    const fromFactor = conversionFactors.density[fromUnit as keyof typeof conversionFactors.density];
+    const toFactor = conversionFactors.density[toUnit as keyof typeof conversionFactors.density];
+    return (value * fromFactor) / toFactor;
+  }
+  
   return value; // No conversion available
 };
 
