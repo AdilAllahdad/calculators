@@ -57,7 +57,34 @@ export default function BoilerSizeCalculator() {
         return baseKw;
     };
 
+    const clearAll = () => {
+        setBoilerType('Combi');
+        setAgeOfProperty('pre 1900 (poorly insulated)');
+        setNumBathrooms(1);
+        setNumBedrooms(1);
+        setBoilerSize(0);
+    };
 
+    const reloadCalculator = () => {
+        setBoilerType('Combi');
+        setAgeOfProperty('pre 1900 (poorly insulated)');
+        setNumBathrooms(1);
+        setNumBedrooms(1);
+        setBoilerSize(0);
+    };
+
+    const shareResult = () => {
+        const result = `Boiler Type: ${boilerType}\nAge of Property: ${ageOfProperty}\nNumber of Bathrooms: ${numBathrooms}\nNumber of Bedrooms: ${numBedrooms}\nBoiler Size: ${boilerSize} kW`;
+        if (navigator.share) {
+          navigator.share({
+            title: 'Boiler Size Calculator Result',
+            text: result
+          });
+        } else {
+          navigator.clipboard.writeText(result);
+          alert('Result copied to clipboard!');
+        }
+      };
 
     // Check if Combi is selected
     const isCombiSelected = boilerType === 'Combi';
@@ -281,6 +308,29 @@ export default function BoilerSizeCalculator() {
                         </div>
                     )}
                 </div>
+                <div className="grid grid-cols-1 gap-4">    
+                        <div className="grid grid-cols-2 gap-4">
+                            <button
+                                onClick={shareResult}
+                                className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                            >
+                                <span className="text-white">🔗</span>
+                                Share result
+                            </button>
+                            <button
+                                onClick={reloadCalculator}
+                                className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                            >
+                                Reload calculator
+                            </button>
+                            <button
+                                onClick={clearAll}
+                                className="col-span-2 px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                            >
+                                Clear all changes
+                            </button>
+                        </div>
+                    </div>
             </div>
         </div>
     );
