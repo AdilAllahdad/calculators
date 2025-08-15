@@ -81,7 +81,7 @@ const conversionFactors = {
     'watts': 3.41214,     // 1 watt = 3.41214 BTU/hr
     'hp(l)': 2544.43,     // 1 hp (mechanical) = 2544.43 BTU/hr
     'hp(E)': 2544.43,     // 1 hp (electrical) = 2544.43 BTU/hr
-    'tons': 12000         // 1 ton of refrigeration = 12000 BTU/hr
+    'tons': 12000,         // 1 ton of refrigeration = 12000 BTU/hr
     'US ton': 907.185,
     'long ton': 1016.05
   },
