@@ -216,3 +216,39 @@ export const validatePositiveNumber = (value: string): number => {
   const num = parseFloat(value);
   return isNaN(num) || num < 0 ? 0 : num;
 };
+
+
+export const formatNumberWithCommas = (num: number, maxDecimals: number = 2): string => {
+  // Check if the number is an integer or has decimal values
+  const isInteger = Number.isInteger(num);
+  
+  // For integers, don't show any decimal places
+  if (isInteger) {
+    return num.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  }
+  
+  // Round to 2 decimal places for most values
+  // If the value is very small (< 0.01), use more decimals as needed
+  const absNum = Math.abs(num);
+  let actualDecimals = maxDecimals;
+  
+  if (absNum < 0.01 && absNum > 0) {
+    // Find appropriate number of decimals to show non-zero digits
+    let tempNum = absNum;
+    actualDecimals = maxDecimals;
+    while (tempNum < 0.1 && actualDecimals < 6) {
+      tempNum *= 10;
+      actualDecimals += 1;
+    }
+  }
+  
+  return num.toLocaleString('en-US', { 
+    minimumFractionDigits: 0, 
+    maximumFractionDigits: actualDecimals 
+  });
+};
+
+// Format currency values with 2 decimal places
+export const formatCurrency = (num: number): string => {
+  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};

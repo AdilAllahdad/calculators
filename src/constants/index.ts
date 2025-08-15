@@ -95,7 +95,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
 
 export const CURRENCY_OPTIONS = [
   { value: 'USD', label: 'US Dollar', symbol: '$' },
-  { value: 'PKR', label: 'Pakistani Rupee', symbol: '₨' },
+  { value: 'PKR', label: 'Pakistani Rupee', symbol: 'PKR' },
   { value: 'EUR', label: 'Euro', symbol: '€' },
   { value: 'GBP', label: 'British Pound', symbol: '£' }
 ];
@@ -162,3 +162,12 @@ export const DEFAULT_BOARD_FOOT_VALUES = {
   price: 4.15,
   currency: 'USD'
 };
+
+export const CALCULATOR_UNITS = {
+  squareFootage: {
+    length: ['cm', 'm', 'in', 'ft', 'yd', 'ft-in', 'm-cm'],
+    area: ['cm2', 'm2', 'in2', 'ft2', 'yd2'],
+    costArea: ['m2', 'ft2', 'yd2']
+  }
+};
+
