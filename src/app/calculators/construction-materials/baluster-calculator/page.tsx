@@ -239,6 +239,42 @@ export default function BalusterCalculator() {
       balusterSpacingUnit
     );
 
+    console.log("[v0] === BALUSTER CALCULATION DEBUG ===");
+    console.log("[v0] Input values:");
+    console.log(
+      "[v0] - Railing length:",
+      railingLength,
+      railingLengthUnit,
+      "=",
+      railingLengthInches,
+      "inches"
+    );
+    console.log("[v0] - Number of posts:", numberOfPosts);
+    console.log(
+      "[v0] - Post width:",
+      postWidth,
+      postWidthUnit,
+      "=",
+      postWidthInches,
+      "inches"
+    );
+    console.log(
+      "[v0] - Baluster width:",
+      balusterWidth,
+      balusterWidthUnit,
+      "=",
+      balusterWidthInches,
+      "inches"
+    );
+    console.log(
+      "[v0] - Baluster spacing:",
+      balusterSpacing,
+      balusterSpacingUnit,
+      "=",
+      balusterSpacingInches,
+      "inches"
+    );
+
     // Check for maximum spacing warning (4 inches or 99mm)
     if (balusterSpacingInches > 4) {
       setSpacingWarning(
@@ -259,16 +295,60 @@ export default function BalusterCalculator() {
     }
 
     // Formula: (railing length - (number of posts × single post's width)) / (baluster width + baluster spacing)
-    const availableLength =
-      railingLengthInches - Number.parseFloat(numberOfPosts) * postWidthInches;
+    const totalPostWidth = Number.parseFloat(numberOfPosts) * postWidthInches;
+    const availableLength = railingLengthInches - totalPostWidth;
     const balusterPitch = balusterWidthInches + balusterSpacingInches;
 
+    console.log("[v0] Calculation steps:");
+    console.log(
+      "[v0] - Total post width:",
+      numberOfPosts,
+      "×",
+      postWidthInches,
+      "=",
+      totalPostWidth,
+      "inches"
+    );
+    console.log(
+      "[v0] - Available length:",
+      railingLengthInches,
+      "-",
+      totalPostWidth,
+      "=",
+      availableLength,
+      "inches"
+    );
+    console.log(
+      "[v0] - Baluster pitch:",
+      balusterWidthInches,
+      "+",
+      balusterSpacingInches,
+      "=",
+      balusterPitch,
+      "inches"
+    );
+
     if (availableLength <= 0 || balusterPitch <= 0) {
+      console.log(
+        "[v0] ERROR: Invalid calculation - availableLength or balusterPitch <= 0"
+      );
       setResult({ balustersNeeded: 0 });
       return;
     }
 
     const balustersNeeded = availableLength / balusterPitch;
+    const roundedResult = Math.ceil(balustersNeeded);
+
+    console.log(
+      "[v0] - Balusters needed (exact):",
+      availableLength,
+      "÷",
+      balusterPitch,
+      "=",
+      balustersNeeded
+    );
+    console.log("[v0] - Balusters needed (rounded up):", roundedResult);
+    console.log("[v0] === END DEBUG ===");
 
     setResult({
       balustersNeeded,
@@ -311,7 +391,6 @@ export default function BalusterCalculator() {
   };
 
   const reloadCalculator = () => {
-    // Recalculate based on current values
     if (
       railingLength &&
       numberOfPosts &&
@@ -333,13 +412,39 @@ export default function BalusterCalculator() {
         balusterSpacingUnit
       );
 
-      const availableLength =
-        railingLengthInches -
-        Number.parseFloat(numberOfPosts) * postWidthInches;
+      console.log("[v0] RELOAD - Input verification:");
+      console.log(
+        "[v0] - Railing:",
+        railingLength,
+        railingLengthUnit,
+        "=",
+        railingLengthInches,
+        "inches"
+      );
+      console.log(
+        "[v0] - Posts:",
+        numberOfPosts,
+        "×",
+        postWidth,
+        postWidthUnit,
+        "=",
+        numberOfPosts,
+        "×",
+        postWidthInches,
+        "inches"
+      );
+
+      const totalPostWidth = Number.parseFloat(numberOfPosts) * postWidthInches;
+      const availableLength = railingLengthInches - totalPostWidth;
       const balusterPitch = balusterWidthInches + balusterSpacingInches;
 
       if (availableLength > 0 && balusterPitch > 0) {
         const balustersNeeded = availableLength / balusterPitch;
+        console.log(
+          "[v0] RELOAD - Final result:",
+          Math.ceil(balustersNeeded),
+          "balusters"
+        );
 
         setResult({
           balustersNeeded,
@@ -361,9 +466,9 @@ export default function BalusterCalculator() {
           {/* Baluster Image - Full Width */}
           <div className="flex justify-center mb-6">
             <img
-              src="/placeholder.svg?height=128&width=400"
+              src="/baluster.png"
               alt="Baluster railing diagram showing posts, balusters, and spacing"
-              className="w-full max-w-sm h-32 object-contain rounded"
+              className="w-full max-w-sm h-auto object-contain"
             />
           </div>
 
@@ -693,7 +798,7 @@ export default function BalusterCalculator() {
           <div className="flex items-center space-x-2 pt-2">
             <button className="flex items-center justify-center w-10 h-10 bg-red-500 rounded-full text-white hover:bg-red-600">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3.027 3.027 0 000-.74l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
               </svg>
             </button>
             <span className="text-sm text-gray-600">Share result</span>

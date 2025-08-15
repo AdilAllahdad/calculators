@@ -23,7 +23,7 @@ export default function FramingCalculator() {
 
   // Validation function
   const validateField = (fieldName: string, value: string) => {
-    const numValue = parseFloat(value);
+    const numValue = Number.parseFloat(value);
     if (value === "") {
       return "";
     }
@@ -32,7 +32,7 @@ export default function FramingCalculator() {
     }
     return "";
   };
-
+  
   // Handle input changes with validation
   const handleWallLengthChange = (value: string) => {
     setWallLength(value);
