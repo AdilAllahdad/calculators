@@ -33,7 +33,7 @@ export default function HomeGardenPage() {
       href:"/calculators/home-garden/carpet"
     },
     {
-      name:"Chickent Coop Size Calculator",
+      name:"Chicken Coop Size Calculator",
       description:"Calculate the size of a chicken coop",
       icon:"🐔",
       href:"/calculators/home-garden/chicken-coop-size"

@@ -94,6 +94,7 @@ export default function BoilerSizeCalculator() {
     }, [boilerType, ageOfProperty, numBathrooms, numBedrooms]);
 
     return (
+        <div className="flex justify-center">
         <div className="max-w-4xl mx-auto">
             <h1 className="text-2xl text-slate-800 font-bold mb-4">Boiler Size Calculator</h1>
             <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200 w-full max-w-lg">
@@ -331,6 +332,7 @@ export default function BoilerSizeCalculator() {
                             </button>
                         </div>
                     </div>
+                </div>
             </div>
         </div>
     );

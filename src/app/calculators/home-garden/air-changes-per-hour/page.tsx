@@ -101,9 +101,9 @@ export default function AirChangesCalculator() {
 
       return(
         <div className="flex justify-center">
-          <div className="max-w-4xl mx-auto my-auto py-8">    
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold mb-4 text-slate-800 flex items-center">
+          <div className="max-w-4xl mx-auto py-8">    
+            <div className="mb-8 text-center">
+              <h1 className="text-3xl font-bold mb-4 text-slate-800 flex items-center justify-center">
                 Air Changes Calculator 
                 <span className="ml-3 text-2xl">💨</span>
               </h1>
@@ -111,7 +111,6 @@ export default function AirChangesCalculator() {
                 Calculate air changes per hour for ventilation.
               </p>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
                 <h2 className="text-xl font-semibold mb-6 text-slate-800">Calculator</h2>
                 <div className="mb-6">
@@ -225,7 +224,6 @@ export default function AirChangesCalculator() {
             >
               Clear all changes
             </button>
-          </div>
           </div>
           </div>
           </div>
