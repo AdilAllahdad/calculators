@@ -138,12 +138,15 @@ export default function CarpetCalculator() {
     }
 
     const calculateCost = () => {
+      const roundToThreeDecimals = (num: number) => {
+            return Math.round(num * 1000) / 1000;
+        };
         if (price <= 0) {
             setTotalCost(0);
             return;
         }
         const areaInPricingUnit = convertValue(area, areaUnit, priceUnit);
-        const cost = price * areaInPricingUnit;
+        const cost = roundToThreeDecimals(price * areaInPricingUnit);
         setTotalCost(cost);
     };
 
@@ -510,7 +513,7 @@ export default function CarpetCalculator() {
                           </div>
                      )}
                 </div>
-                <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200 w-full max-w-lg">
+                <div className="bg-white rounded-xl mt-4 p-6 shadow-lg border border-slate-200 w-full max-w-lg">
                      <h2 className='text-xl font-semibold mb-6 text-slate-800'> Cost Calculations</h2>
                      <div className="mb-6">
                         <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -555,6 +558,29 @@ export default function CarpetCalculator() {
                             />
                         </div>
                      </div>
+                     <div className="grid grid-cols-1 gap-4">    
+                        <div className="grid grid-cols-2 gap-4">
+                            <button
+                                onClick={shareResult}
+                                className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                            >
+                                <span className="text-white">🔗</span>
+                                Share result
+                            </button>
+                            <button
+                                onClick={reloadCalculator}
+                                className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                            >
+                                Reload calculator
+                            </button>
+                        </div>
+                        <button
+                            onClick={clearAll}
+                            className="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                        >
+                            Clear all changes
+                        </button>
+                    </div>
                 </div>
         </div>
         </div>
