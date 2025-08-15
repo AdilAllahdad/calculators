@@ -73,7 +73,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'watts', label: 'Watts', type: 'BTU' },
   { value: 'hp(l)', label: 'hp(l)', type: 'BTU' },
   { value: 'hp(E)', label: 'hp(E)', type: 'BTU' },
-  { value: 'tons', label: 'tons', type: 'BTU' }
+  { value: 'tons', label: 'tons', type: 'BTU' },
   { value: 'st', label: 'stones (st)', type: 'weight' },
   { value: 'US ton', label: 'US short tons (US ton)', type: 'weight' },
   { value: 'long ton', label: 'imperial tons (long ton)', type: 'weight' },
