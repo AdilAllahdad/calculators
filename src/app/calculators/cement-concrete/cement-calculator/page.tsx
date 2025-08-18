@@ -180,11 +180,80 @@ export default function CementCalculatorPage() {
     return result;
   };
 
-  // Handle input changes
-  const handleNumberInput = (value: string, setter: (value: string) => void) => {
-    if (value === '' || /^(\d+\.?\d*|\.\d+)$/.test(value)) {
-      setter(value);
+  // Update handleNumberInput function
+  const handleNumberInput = (value: string, setter: (value: string) => void, updateFunc?: (numValue: number) => void) => {
+    // Remove commas from the input
+    const cleanValue = value.replace(/,/g, '');
+    
+    // Check if it's a valid number (including decimals)
+    if (cleanValue === '' || /^\d*\.?\d*$/.test(cleanValue)) {
+      // Format with commas for thousands
+      const parts = cleanValue.split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      const formattedValue = parts.join('.');
+      
+      // Update display value
+      setter(formattedValue);
+      
+      // Update base value if needed
+      if (updateFunc) {
+        const numValue = parseFloat(cleanValue) || 0;
+        updateFunc(numValue);
+      }
     }
+  };
+
+  // Update input handlers
+  const handleWetVolumeChange = (value: string) => {
+    handleNumberInput(value, setWetVolumeDisplay, (numValue) => {
+      const convertedValue = convertVolume(numValue, wetVolumeUnit, 'cubic-meters');
+      setWetVolume(convertedValue);
+      
+      // Auto-calculate dry volume based on mix type
+      const ratio = selectedMix === 'mortar' 
+        ? 1.22 
+        : (isCustomRatio ? parseFloat(customRatio) || 1.54 : 1.54);
+      const calculatedDryVolume = convertedValue * ratio;
+      setDryVolume(calculatedDryVolume);
+      
+      // Calculate total volume with waste
+      const wastePercent = parseFloat(waste) || 0;
+      const calculatedTotalVolume = convertedValue * (1 + wastePercent / 100);
+      setTotalVolume(calculatedTotalVolume);
+    });
+  };
+
+  const handleDryVolumeChange = (value: string) => {
+    handleNumberInput(value, setDryVolumeDisplay, (numValue) => {
+      const convertedValue = convertVolume(numValue, dryVolumeUnit, 'cubic-meters');
+      setDryVolume(convertedValue);
+    });
+  };
+
+  const handleCementDensityChange = (value: string) => {
+    handleNumberInput(value, setCementDensityDisplay, (numValue) => {
+      const convertedValue = convertDensity(numValue, cementDensityUnit, 'kg/m3');
+      setCementDensity(convertedValue);
+    });
+  };
+
+  const handleBagSizeChange = (value: string) => {
+    handleNumberInput(value, setBagSizeDisplay, (numValue) => {
+      const convertedValue = convertWeight(numValue, bagSizeUnit, 'kg');
+      setBagSize(convertedValue);
+    });
+  };
+
+  const handleCustomRatioChange = (value: string) => {
+    handleNumberInput(value, setCustomRatio);
+  };
+
+  const handleWasteChange = (value: string) => {
+    handleNumberInput(value, setWaste);
+  };
+
+  const handlePriceChange = (value: string, setter: (value: string) => void) => {
+    handleNumberInput(value, setter);
   };
 
   // Update display values when units change
@@ -233,81 +302,95 @@ export default function CementCalculatorPage() {
   }, [bagSizeUnit, bagSize]);
 
   // Handle wet volume input
-  const handleWetVolumeChange = (value: string) => {
+  const handleWetVolumeChangeOld = (value: string) => {
     handleNumberInput(value, setWetVolumeDisplay);
-    const newValue = parseFloat(value) || 0;
+    const newValue = parseFloat(value.replace(/,/g, '')) || 0;
     const convertedValue = convertVolume(newValue, wetVolumeUnit, 'cubic-meters');
     setWetVolume(convertedValue);
   };
 
   // Handle dry volume input
-  const handleDryVolumeChange = (value: string) => {
+  const handleDryVolumeChangeOld = (value: string) => {
     handleNumberInput(value, setDryVolumeDisplay);
-    const newValue = parseFloat(value) || 0;
+    const newValue = parseFloat(value.replace(/,/g, '')) || 0;
     const convertedValue = convertVolume(newValue, dryVolumeUnit, 'cubic-meters');
     setDryVolume(convertedValue);
   };
 
   // Handle cement density input
-  const handleCementDensityChange = (value: string) => {
+  const handleCementDensityChangeOld = (value: string) => {
     handleNumberInput(value, setCementDensityDisplay);
-    const newValue = parseFloat(value) || 0;
+    const newValue = parseFloat(value.replace(/,/g, '')) || 0;
     const convertedValue = convertDensity(newValue, cementDensityUnit, 'kg/m3');
     setCementDensity(convertedValue);
   };
 
   // Handle bag size input
-  const handleBagSizeChange = (value: string) => {
+  const handleBagSizeChangeOld = (value: string) => {
     handleNumberInput(value, setBagSizeDisplay);
-    const newValue = parseFloat(value) || 0;
+    const newValue = parseFloat(value.replace(/,/g, '')) || 0;
     const convertedValue = convertWeight(newValue, bagSizeUnit, 'kg');
     setBagSize(convertedValue);
   };
 
-  // Calculate volumes when inputs change
-  useEffect(() => {
-    // Calculate dry volume with different ratio for mortar
-    const ratio = selectedMix === 'mortar'
-      ? 1.22 // Fixed ratio for mortar
-      : (isCustomRatio ? parseFloat(customRatio) || 1 : 1.54);
-
-    const calculatedDryVolume = (wetVolume * ratio);
-    setDryVolume(calculatedDryVolume);
-
-    // Calculate total volume with waste
-    const wastePercent = parseFloat(waste) || 0;
-    const calculatedTotalVolume = (wetVolume * (1 + wastePercent / 100));
-    setTotalVolume(calculatedTotalVolume);
-  }, [wetVolume, isCustomRatio, customRatio, waste, selectedMix]);
-
   // Calculate cement quantities
   useEffect(() => {
-    if (selectedMix && dryVolume) {
+    if (selectedMix && dryVolume > 0) {
       let cementRatio = 0;
-      
+      let sandRatio = 0;
+      let gravelRatio = 0;
+      let waterRatio = 0;
+
       if (selectedMix === 'concrete') {
         const [cement, sand, gravel] = concreteMixRatio.split(':').map(Number);
         const totalParts = cement + sand + gravel;
         cementRatio = cement / totalParts;
+        sandRatio = sand / totalParts;
+        gravelRatio = gravel / totalParts;
+        // Water-cement ratio based on standard practice
+        waterRatio = 0.5; // 0.5 is standard for most concrete mixes
       } else if (selectedMix === 'mortar') {
         const [cement, sand] = mortarMixRatio.split(':').map(Number);
-        cementRatio = cement / (cement + sand);
+        const totalParts = cement + sand;
+        cementRatio = cement / totalParts;
+        sandRatio = sand / totalParts;
+        waterRatio = 0.6; // 0.6 is standard for mortar
       } else if (selectedMix === 'cement_and_water') {
         cementRatio = 1;
+        waterRatio = parseFloat(customRatio) || 0.5;
       }
 
-      const calculatedVolumeOfCement = (dryVolume * cementRatio);
+      // Calculate volumes
+      const calculatedVolumeOfCement = dryVolume * cementRatio;
+      const calculatedVolumeOfSand = dryVolume * sandRatio;
+      const calculatedVolumeOfGravel = dryVolume * gravelRatio;
+      
       setVolumeOfCement(calculatedVolumeOfCement);
+      setVolumeOfSand(calculatedVolumeOfSand);
+      setVolumeOfGravel(calculatedVolumeOfGravel);
 
-      // Calculate weight of cement
-      const calculatedWeightOfCement = (calculatedVolumeOfCement * cementDensity);
+      // Calculate cement weight using density
+      const calculatedWeightOfCement = calculatedVolumeOfCement * cementDensity;
       setWeightOfCement(calculatedWeightOfCement);
 
       // Calculate bags of cement
-      const calculatedBags = (calculatedWeightOfCement / bagSize);
+      const calculatedBags = calculatedWeightOfCement / bagSize;
       setBagsOfCement(calculatedBags.toFixed(2));
+
+      // Calculate water quantities
+      const waterWeight = calculatedWeightOfCement * waterRatio;
+      setWeightOfWater(waterWeight);
+      setVolumeOfWater(waterWeight); // 1kg water = 1L
     }
-  }, [dryVolume, selectedMix, concreteMixRatio, mortarMixRatio, cementDensity, bagSize]);
+  }, [
+    selectedMix,
+    dryVolume,
+    concreteMixRatio,
+    mortarMixRatio,
+    cementDensity,
+    bagSize,
+    customRatio
+  ]);
 
   // Calculate other materials
   useEffect(() => {
@@ -357,35 +440,34 @@ export default function CementCalculatorPage() {
 
   // Calculate material costs
   useEffect(() => {
-    if (selectedMix) {
+    if (selectedMix && bagsOfCement) {
       // Calculate cost of cement
-      const bags = parseFloat(bagsOfCement) || 0;
-      const pricePerBag = parseFloat(priceOfCementPerBag) || 0;
-      const calculatedCostOfCement = (bags * pricePerBag);
+      const bags = parseFloat(bagsOfCement);
+      const pricePerBag = parseFloat(priceOfCementPerBag.replace(/,/g, '')) || 0;
+      const calculatedCostOfCement = bags * pricePerBag;
       setCostOfCement(calculatedCostOfCement.toFixed(2));
 
-      let calculatedTotalCost = calculatedCostOfCement || 0;
+      let totalCost = calculatedCostOfCement;
 
+      // Add costs for sand and gravel
       if (selectedMix === 'concrete' || selectedMix === 'mortar') {
-        // Add sand cost
+        const sandPrice = parseFloat(priceOfSandPerVolume.replace(/,/g, '')) || 0;
         const sandVolumeInPriceUnit = convertVolume(volumeOfSand, 'cubic-meters', pricePerVolumeUnit);
-        const priceOfSand = parseFloat(priceOfSandPerVolume) || 0;
-        calculatedTotalCost += sandVolumeInPriceUnit * priceOfSand;
+        totalCost += sandVolumeInPriceUnit * sandPrice;
 
         if (selectedMix === 'concrete') {
-          // Add gravel cost
+          const gravelPrice = parseFloat(priceOfGravelPerVolume.replace(/,/g, '')) || 0;
           const gravelVolumeInPriceUnit = convertVolume(volumeOfGravel, 'cubic-meters', pricePerVolumeUnit);
-          const priceOfGravel = parseFloat(priceOfGravelPerVolume) || 0;
-          calculatedTotalCost += gravelVolumeInPriceUnit * priceOfGravel;
+          totalCost += gravelVolumeInPriceUnit * gravelPrice;
         }
       }
 
-      setTotalCostOfConcreteMix(calculatedTotalCost.toFixed(2));
+      setTotalCostOfConcreteMix(totalCost.toFixed(2));
 
       // Calculate cost per unit volume
-      const totalVolumeInCostUnit = convertVolume(totalVolume, 'cubic-meters', costPerVolumeUnit);
-      const calculatedCostPerUnitVolume = (calculatedTotalCost / totalVolumeInCostUnit);
-      setCostOfConcretePerUnitVolume(calculatedCostPerUnitVolume.toFixed(2));
+      const volumeInCostUnit = convertVolume(totalVolume, 'cubic-meters', costPerVolumeUnit);
+      const costPerUnit = totalCost / volumeInCostUnit;
+      setCostOfConcretePerUnitVolume(costPerUnit.toFixed(2));
     }
   }, [
     selectedMix,
@@ -511,7 +593,7 @@ export default function CementCalculatorPage() {
                             <input
                               type="text"
                               value={wetVolumeDisplay}
-                              onChange={(e) => handleWetVolumeChange(e.target.value)}
+                              onChange={(e) => handleNumberInput(e.target.value, setWetVolumeDisplay)}
                               placeholder="Enter volume"
                               className="flex-1 p-2 border border-gray-300 rounded-md text-left text-gray-600"
                             />
@@ -578,7 +660,7 @@ export default function CementCalculatorPage() {
                                     <input
                                       type="text"
                                       value={customRatio}
-                                      onChange={(e) => handleNumberInput(e.target.value, setCustomRatio)}
+                                      onChange={(e) => handleCustomRatioChange(e.target.value)}
                                       placeholder="Enter ratio"
                                       className="w-full p-2 pr-8 border border-gray-300 rounded-md text-gray-600"
                                     />
@@ -635,7 +717,7 @@ export default function CementCalculatorPage() {
                                       <input
                                         type="text"
                                         value={customRatio}
-                                        onChange={(e) => handleNumberInput(e.target.value, setCustomRatio)}
+                                        onChange={(e) => handleCustomRatioChange(e.target.value)}
                                         placeholder="Enter ratio"
                                         className="w-full p-2 pr-8 border border-gray-300 rounded-md text-gray-600"
                                       />
@@ -689,7 +771,7 @@ export default function CementCalculatorPage() {
                                     <input
                                       type="text"
                                       value={customRatio}
-                                      onChange={(e) => handleNumberInput(e.target.value, setCustomRatio)}
+                                      onChange={(e) => handleCustomRatioChange(e.target.value)}
                                       placeholder="Enter ratio"
                                       className="w-full p-2 pr-8 border border-gray-300 rounded-md text-gray-600"
                                     />
@@ -713,7 +795,7 @@ export default function CementCalculatorPage() {
                             <input
                               type="text"
                               value={dryVolumeDisplay}
-                              onChange={(e) => handleDryVolumeChange(e.target.value)}
+                              onChange={(e) => handleNumberInput(e.target.value, setDryVolumeDisplay)}
                               className="flex-1 p-2 border border-gray-300 rounded-md text-left text-gray-600"
                             />
                             <div className="relative w-32">
@@ -746,7 +828,7 @@ export default function CementCalculatorPage() {
                               <input
                                 type="text"
                                 value={waste}
-                                onChange={(e) => handleNumberInput(e.target.value, setWaste)}
+                                onChange={(e) => handleWasteChange(e.target.value)}
                                 placeholder="Enter percentage"
                                 className="w-full p-2 border border-gray-300 rounded-md text-left text-gray-600 pr-8"
                               />
@@ -844,7 +926,7 @@ export default function CementCalculatorPage() {
                               <label className="flex text-sm text-gray-600 mb-2 items-center">
                                 Concrete mix ratio
                                 <span className="ml-1 text-gray-400 hover:text-gray-600 cursor-help"
-                                  title="Ratio of cement:sand:aggregate">ℹ</span>
+                                  title="Ratio of cement:sand:aggregate">ℵ</span>
                               </label>
                               <div className="relative">
                                 <select
@@ -910,7 +992,7 @@ export default function CementCalculatorPage() {
                             <input
                               type="text"
                               value={cementDensityDisplay}
-                              onChange={(e) => handleCementDensityChange(e.target.value)}
+                              onChange={(e) => handleNumberInput(e.target.value, setCementDensityDisplay)}
                               className="flex-1 p-2 border border-gray-300 rounded-md text-left text-gray-600"
                             />
                             <div className="relative w-56">
@@ -978,7 +1060,7 @@ export default function CementCalculatorPage() {
                             <input
                               type="text"
                               value={bagSizeDisplay}
-                              onChange={(e) => handleBagSizeChange(e.target.value)}
+                              onChange={(e) => handleNumberInput(e.target.value, setBagSizeDisplay)}
                               className="flex-1 p-2 border border-gray-300 rounded-md text-left text-gray-600"
                             />
                             <div className="relative w-40">
@@ -1231,7 +1313,7 @@ export default function CementCalculatorPage() {
                                   <input
                                     type="text"
                                     value={priceOfCementPerBag}
-                                    onChange={(e) => handleNumberInput(e.target.value, setPriceOfCementPerBag)}
+                                    onChange={(e) => handlePriceChange(e.target.value, setPriceOfCementPerBag)}
                                     className="w-full p-2 pl-12 border border-gray-300 rounded-md bg-gray-100 text-left text-gray-600"
                                     placeholder="Enter price"
                                   />
@@ -1273,7 +1355,7 @@ export default function CementCalculatorPage() {
                                   <input
                                     type="text"
                                     value={priceOfCementPerBag}
-                                    onChange={(e) => handleNumberInput(e.target.value, setPriceOfCementPerBag)}
+                                    onChange={(e) => handlePriceChange(e.target.value, setPriceOfCementPerBag)}
                                     className="w-full p-2 pl-12 border border-gray-300 rounded-md bg-gray-100 text-left text-gray-600"
                                     placeholder="Enter price"
                                   />
@@ -1312,7 +1394,7 @@ export default function CementCalculatorPage() {
                                     <input
                                       type="text"
                                       value={priceOfSandPerVolume}
-                                      onChange={(e) => handleNumberInput(e.target.value, setPriceOfSandPerVolume)}
+                                      onChange={(e) => handlePriceChange(e.target.value, setPriceOfSandPerVolume)}
                                       className="w-full p-2 pl-12 border border-gray-300 rounded-md bg-gray-100 text-left text-gray-600"
                                       placeholder="Enter price"
                                     />
@@ -1349,7 +1431,7 @@ export default function CementCalculatorPage() {
                                     <input
                                       type="text"
                                       value={priceOfGravelPerVolume}
-                                      onChange={(e) => handleNumberInput(e.target.value, setPriceOfGravelPerVolume)}
+                                      onChange={(e) => handlePriceChange(e.target.value, setPriceOfGravelPerVolume)}
                                       className="w-full p-2 pl-12 border border-gray-300 rounded-md bg-gray-100 text-left text-gray-600"
                                       placeholder="Enter price"
                                     />

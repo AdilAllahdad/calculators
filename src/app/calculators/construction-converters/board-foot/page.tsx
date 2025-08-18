@@ -2,14 +2,101 @@
 
 import { useState, useEffect } from 'react';
 
+// Update type definitions at the top
+type SingleUnitType = 'mm' | 'cm' | 'm' | 'in' | 'ft';
+type DualUnitType = 'ft/in' | 'm/cm';
+type UnitType = SingleUnitType | DualUnitType;
+type ConversionMap = Record<UnitType, number>;
+
+// Helper functions for type safety
+const isSingleUnit = (unit: UnitType): unit is SingleUnitType => {
+  return ['mm', 'cm', 'm', 'in', 'ft'].includes(unit);
+};
+
+const isDualUnit = (unit: UnitType): unit is DualUnitType => {
+  return unit === 'ft/in' || unit === 'm/cm';
+};
+
+const isUnitType = (value: string): value is UnitType => {
+  return ['mm', 'cm', 'm', 'in', 'ft', 'ft/in', 'm/cm'].includes(value);
+};
+
+// Safe conversion helper
+const getSafeConversionFactor = (unit: UnitType, conversions: ConversionMap): number => {
+  return conversions[unit] || 1;
+};
+
+// Helper function to check if a value is a valid unit type
+const handleUnitConversion = (
+  currentUnit: UnitType,
+  newUnit: UnitType,
+  value: string,
+  conversionTable: ConversionMap
+): number => {
+  if (!value) return 0;
+  const numValue = Number(value);
+  if (isNaN(numValue)) return 0;
+  const standardValue = numValue * conversionTable[currentUnit];
+  return standardValue / conversionTable[newUnit];
+};
+
+// Update conversion objects with proper typing
+const lengthConversions: ConversionMap = {
+  'mm': 0.0393701 / 12,
+  'cm': 0.393701 / 12,
+  'm': 3.28084,
+  'in': 1/12,
+  'ft': 1,
+  'ft/in': 1,
+  'm/cm': 3.28084
+};
+
+const dimensionConversions: ConversionMap = {
+  'mm': 0.0393701,
+  'cm': 0.393701,
+  'm': 39.3701,
+  'in': 1,
+  'ft': 12,
+  'ft/in': 1,
+  'm/cm': 39.3701
+};
+
+// Add these helper functions at the top after type definitions
+const convertFtInToMCm = (feet: string, inches: string) => {
+  const totalFeet = Number(feet || 0);
+  const totalInches = Number(inches || 0);
+  const totalMeters = (totalFeet * 0.3048) + (totalInches * 0.0254);
+  const meters = Math.floor(totalMeters);
+  const centimeters = Math.round((totalMeters - meters) * 100);
+  return { meters, centimeters };
+};
+
+const convertMCmToFtIn = (meters: string, centimeters: string) => {
+  const totalMeters = Number(meters || 0) + (Number(centimeters || 0) / 100);
+  const totalInches = totalMeters * 39.3701;
+  const feet = Math.floor(totalInches / 12);
+  const inches = Number((totalInches % 12).toFixed(2));
+  return { feet, inches };
+};
+
 export default function BoardFootCalculator() {
   const [numPieces, setNumPieces] = useState<string>('');
   const [thickness, setThickness] = useState<string>('');
-  const [thicknessUnit, setThicknessUnit] = useState<string>('in');
+  const [thicknessUnit, setThicknessUnit] = useState<UnitType>('in');
+  // Add for ft/in and m/cm
+  const [thicknessFeet, setThicknessFeet] = useState<string>('');
+  const [thicknessInches, setThicknessInches] = useState<string>('');
+  const [thicknessMeters, setThicknessMeters] = useState<string>('');
+  const [thicknessCentimeters, setThicknessCentimeters] = useState<string>('');
+  // Add for ft/in and m/cm for width
   const [width, setWidth] = useState<string>('');
-  const [widthUnit, setWidthUnit] = useState<string>('in');
+  const [widthUnit, setWidthUnit] = useState<UnitType>('in');
+  const [widthFeet, setWidthFeet] = useState<string>('');
+  const [widthInches, setWidthInches] = useState<string>('');
+  const [widthMeters, setWidthMeters] = useState<string>('');
+  const [widthCentimeters, setWidthCentimeters] = useState<string>('');
   const [length, setLength] = useState<string>('');
-  const [lengthUnit, setLengthUnit] = useState<string>('ft');
+  const [lengthUnit, setLengthUnit] = useState<UnitType>('ft');
   const [lengthFeet, setLengthFeet] = useState<string>('');
   const [lengthInches, setLengthInches] = useState<string>('');
   // For m/cm dual unit
@@ -31,30 +118,15 @@ export default function BoardFootCalculator() {
   const [totalBoardFeet, setTotalBoardFeet] = useState<number>(0);
   const [totalCost, setTotalCost] = useState<number>(0);
 
-  // Conversion factors to inches/feet
-  const lengthConversions = {
-    'mm': 0.0393701 / 12, // mm to feet
-    'cm': 0.393701 / 12,  // cm to feet
-    'm': 3.28084,         // m to feet
-    'in': 1/12,           // inches to feet
-    'ft': 1,              // feet to feet
-    'ft/in': 1,           // feet/inches stays as feet
-    'm/cm': 3.28084       // meters/cm stays as meters for conversion
-  };
-
-  const dimensionConversions = {
-    'mm': 0.0393701,      // mm to inches
-    'cm': 0.393701,       // cm to inches
-    'm': 39.3701,         // m to inches
-    'in': 1,              // inches to inches
-    'ft': 12,             // feet to inches
-    'ft/in': 1,           // feet/inches stays as inches for width/thickness
-    'm/cm': 39.3701       // meters/cm stays as meters for conversion
-  };
-
   useEffect(() => {
     calculateBoardFeet();
-  }, [numPieces, thickness, thicknessUnit, width, widthUnit, length, lengthUnit, lengthFeet, lengthInches, lengthMeters, lengthCentimeters, price]);
+  }, [
+    numPieces, 
+    thickness, thicknessUnit, thicknessFeet, thicknessInches, thicknessMeters, thicknessCentimeters,
+    width, widthUnit, widthFeet, widthInches, widthMeters, widthCentimeters,
+    length, lengthUnit, lengthFeet, lengthInches, lengthMeters, lengthCentimeters, 
+    price
+  ]);
 
   const handleNumberInput = (
     value: string, 
@@ -91,29 +163,24 @@ export default function BoardFootCalculator() {
   // Function to handle unit changes with value conversion
   const handleUnitChange = (
     value: string, 
-    oldUnit: string, 
-    newUnit: string, 
+    oldUnit: UnitType, 
+    newUnitValue: string, 
     setter: (val: string) => void, 
-    conversionTable: Record<string, number>
+    conversionTable: ConversionMap
   ) => {
-    // If there's no value, no need to convert
+    if (!isUnitType(newUnitValue)) return;
+    const newUnit = newUnitValue;
+    
     if (!value || value === '') {
+      setter('');
       return;
     }
-    
+
     const numValue = Number(value);
-    if (isNaN(numValue)) {
-      return;
-    }
-    
-    // Convert to a standardized value first (inches for dimensions, feet for length)
-    const standardValue = numValue * conversionTable[oldUnit];
-    
-    // Then convert from standard to new unit
-    const newValue = standardValue / conversionTable[newUnit];
-    
-    // Format the number to a reasonable precision (4 decimal places max)
-    setter(Number(newValue.toFixed(4)).toString());
+    if (isNaN(numValue)) return;
+
+    const result = handleUnitConversion(oldUnit, newUnit, value, conversionTable);
+    setter(result.toFixed(4));
   };
   
   // Helper function to format numbers with commas
@@ -125,42 +192,58 @@ export default function BoardFootCalculator() {
   };
 
   const calculateBoardFeet = () => {
-    // Parse all input strings to numbers, default to 0 if empty
-    const numPiecesValue = numPieces ? Number(numPieces) : 0;
-    const thicknessValue = thickness ? Number(thickness) : 0;
-    const widthValue = width ? Number(width) : 0;
-    const lengthFeetValue = lengthFeet ? Number(lengthFeet) : 0;
-    const lengthInchesValue = lengthInches ? Number(lengthInches) : 0;
-    const lengthMetersValue = lengthMeters ? Number(lengthMeters) : 0;
-    const lengthCentimetersValue = lengthCentimeters ? Number(lengthCentimeters) : 0;
-    const priceValue = price ? Number(price) : 0;
-    
-    // Convert all dimensions to proper units
-    let lengthInFeet = 0;
-    
-    // Calculate length based on the selected unit
-    if (lengthUnit === 'ft/in') {
-      // Feet + inches format
-      lengthInFeet = lengthFeetValue + (lengthInchesValue / 12);
-    } else if (lengthUnit === 'm/cm') {
-      // Meters + centimeters format
-      const totalMeters = lengthMetersValue + (lengthCentimetersValue / 100);
-      lengthInFeet = totalMeters * lengthConversions['m'];
-    } else {
-      // Standard single unit
-      const lengthValue = length ? Number(length) : 0;
-      lengthInFeet = lengthValue * (lengthConversions[lengthUnit as keyof typeof lengthConversions] || 1);
-    }
-    
-    const widthInInches = widthValue * (dimensionConversions[widthUnit as keyof typeof dimensionConversions] || 1);
-    const thicknessInInches = thicknessValue * (dimensionConversions[thicknessUnit as keyof typeof dimensionConversions] || 1);
+    // Get number of boards
+    const numberOfBoards = numPieces ? Number(numPieces) : 0;
 
-    // Board feet formula: length (ft) × width (in) × thickness (in) / 12
-    const boardFeetPerPiece = (lengthInFeet * widthInInches * thicknessInInches) / 12;
-    const total = numPiecesValue * boardFeetPerPiece;
-    
-    setTotalBoardFeet(total);
-    setTotalCost(total * priceValue);
+    // Convert thickness to inches
+    let thicknessInInches = 0;
+    if (thicknessUnit === 'ft/in') {
+      thicknessInInches = Number(thicknessFeet || 0) * 12 + Number(thicknessInches || 0);
+    } else if (thicknessUnit === 'm/cm') {
+      const totalMeters = Number(thicknessMeters || 0) + (Number(thicknessCentimeters || 0) / 100);
+      thicknessInInches = totalMeters * 39.3701;
+    } else {
+      thicknessInInches = thickness ? 
+        Number(thickness) * (dimensionConversions[thicknessUnit] || 1) : 
+        0;
+    }
+
+    // Convert width to inches
+    let widthInInches = 0;
+    if (widthUnit === 'ft/in') {
+      widthInInches = Number(widthFeet || 0) * 12 + Number(widthInches || 0);
+    } else if (widthUnit === 'm/cm') {
+      const totalMeters = Number(widthMeters || 0) + (Number(widthCentimeters || 0) / 100);
+      widthInInches = totalMeters * 39.3701;
+    } else {
+      widthInInches = width ? 
+        Number(width) * (dimensionConversions[widthUnit] || 1) : 
+        0;
+    }
+
+    // Convert length to feet
+    let lengthInFeet = 0;
+    if (lengthUnit === 'ft/in') {
+      lengthInFeet = Number(lengthFeet || 0) + (Number(lengthInches || 0) / 12);
+    } else if (lengthUnit === 'm/cm') {
+      const totalMeters = Number(lengthMeters || 0) + (Number(lengthCentimeters || 0) / 100);
+      lengthInFeet = totalMeters * 3.28084;
+    } else {
+      lengthInFeet = length ? 
+        Number(length) * (lengthConversions[lengthUnit] || 1) : 
+        0;
+    }
+
+    // Apply the formula: Total Board Feet = (Thickness × Width × Length ÷ 12) × Number of Boards
+    const totalBoardFeetValue = (thicknessInInches * widthInInches * lengthInFeet / 12) * numberOfBoards;
+
+    // Calculate total cost using the formula: Total Cost = (Thickness × Width × Length ÷ 12) × Number of Boards × Price
+    const priceValue = price ? Number(price) : 0;
+    const totalCostValue = totalBoardFeetValue * priceValue;
+
+    // Update state with calculated values (3 decimals for board feet, 2 for cost)
+    setTotalBoardFeet(Number(totalBoardFeetValue.toFixed(3)));
+    setTotalCost(Number(totalCostValue.toFixed(2)));
   };
 
   const unitOptions = [
@@ -238,7 +321,6 @@ export default function BoardFootCalculator() {
           Board Foot Calculator 
           <span className="ml-3 text-2xl">📏</span>
         </h1>
-       
       </div>
 
       <div className="flex justify-center mb-8">
@@ -292,25 +374,154 @@ export default function BoardFootCalculator() {
               Thickness
             </label>
             <div className="flex gap-2">
-              <div className="flex-1">
-                <input
-                  type="number"
-                  value={thickness}
-                  onChange={(e) => handleNumberInput(e.target.value, setThickness, setThicknessError)}
-                  onFocus={(e) => handleFocus(thickness, e)}
-                  className={`w-full px-3 py-2 border ${thicknessError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                  style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                  step="0.01"
-                  min="0"
-                />
-                {thicknessError && <p className="text-red-500 text-xs mt-1">{thicknessError}</p>}
-              </div>
+              {/* Show dual fields for ft/in and m/cm, else single input */}
+              {(thicknessUnit === 'ft/in') ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <input
+                        type="number"
+                        value={thicknessFeet}
+                        onChange={(e) => handleNumberInput(e.target.value, setThicknessFeet, setThicknessError)}
+                        onFocus={(e) => handleFocus(thicknessFeet, e)}
+                        className={`w-20 px-3 py-2 border ${thicknessError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                        step="1"
+                        min="0"
+                        placeholder="ft"
+                      />
+                    </div>
+                    <span className="text-slate-600 text-sm font-medium">ft</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <input
+                        type="number"
+                        value={thicknessInches}
+                        onChange={(e) => handleNumberInput(e.target.value, setThicknessInches, setThicknessError)}
+                        onFocus={(e) => handleFocus(thicknessInches, e)}
+                        className={`w-20 px-3 py-2 border ${thicknessError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                        step="0.01"
+                        min="0"
+                        placeholder="in"
+                      />
+                    </div>
+                    <span className="text-slate-600 text-sm font-medium">in</span>
+                  </div>
+                </>
+              ) : (thicknessUnit === 'm/cm') ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <input
+                        type="number"
+                        value={thicknessMeters}
+                        onChange={(e) => handleNumberInput(e.target.value, setThicknessMeters, setThicknessError)}
+                        onFocus={(e) => handleFocus(thicknessMeters, e)}
+                        className={`w-20 px-3 py-2 border ${thicknessError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                        step="1"
+                        min="0"
+                        placeholder="m"
+                      />
+                    </div>
+                    <span className="text-slate-600 text-sm font-medium">m</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <input
+                        type="number"
+                        value={thicknessCentimeters}
+                        onChange={(e) => handleNumberInput(e.target.value, setThicknessCentimeters, setThicknessError)}
+                        onFocus={(e) => handleFocus(thicknessCentimeters, e)}
+                        className={`w-20 px-3 py-2 border ${thicknessError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                        step="0.01"
+                        min="0"
+                        placeholder="cm"
+                      />
+                    </div>
+                    <span className="text-slate-600 text-sm font-medium">cm</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    value={thickness}
+                    onChange={(e) => handleNumberInput(e.target.value, setThickness, setThicknessError)}
+                    onFocus={(e) => handleFocus(thickness, e)}
+                    className={`w-full px-3 py-2 border ${thicknessError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                    step="0.01"
+                    min="0"
+                    placeholder=""
+                  />
+                </div>
+              )}
               <select
                 value={thicknessUnit}
                 onChange={(e) => {
                   const newUnit = e.target.value;
-                  // Convert the value when unit changes
-                  handleUnitChange(thickness, thicknessUnit, newUnit, setThickness, dimensionConversions);
+                  if (!isUnitType(newUnit)) return;
+                  
+                  // Convert between ft/in and m/cm
+                  if (thicknessUnit === 'ft/in' && newUnit === 'm/cm') {
+                    const { meters, centimeters } = convertFtInToMCm(thicknessFeet, thicknessInches);
+                    setThicknessMeters(meters.toString());
+                    setThicknessCentimeters(centimeters.toString());
+                    setThicknessFeet('');
+                    setThicknessInches('');
+                  } 
+                  else if (thicknessUnit === 'm/cm' && newUnit === 'ft/in') {
+                    const { feet, inches } = convertMCmToFtIn(thicknessMeters, thicknessCentimeters);
+                    setThicknessFeet(feet.toString());
+                    setThicknessInches(inches.toString());
+                    setThicknessMeters('');
+                    setThicknessCentimeters('');
+                  }
+                  // Convert from single unit to ft/in
+                  else if (newUnit === 'ft/in' && isSingleUnit(thicknessUnit)) {
+                    const totalInches = thickness ? Number(thickness) * dimensionConversions[thicknessUnit] : 0;
+                    const feet = Math.floor(totalInches / 12);
+                    const inches = totalInches % 12;
+                    setThicknessFeet(feet.toString());
+                    setThicknessInches(inches.toFixed(2));
+                    setThickness('');
+                  }
+                  // Convert from single unit to m/cm
+                  else if (newUnit === 'm/cm' && isSingleUnit(thicknessUnit)) {
+                    const totalInches = thickness ? Number(thickness) * dimensionConversions[thicknessUnit] : 0;
+                    const totalMeters = totalInches / 39.3701;
+                    const meters = Math.floor(totalMeters);
+                    const centimeters = (totalMeters - meters) * 100;
+                    setThicknessMeters(meters.toString());
+                    setThicknessCentimeters(centimeters.toFixed(2));
+                    setThickness('');
+                  }
+                  // Convert from ft/in to single unit
+                  else if (isSingleUnit(newUnit) && thicknessUnit === 'ft/in') {
+                    const totalInches = Number(thicknessFeet || 0) * 12 + Number(thicknessInches || 0);
+                    const newValue = totalInches / dimensionConversions[newUnit];
+                    setThickness(newValue.toFixed(4));
+                    setThicknessFeet('');
+                    setThicknessInches('');
+                  }
+                  // Convert from m/cm to single unit
+                  else if (isSingleUnit(newUnit) && thicknessUnit === 'm/cm') {
+                    const totalMeters = Number(thicknessMeters || 0) + (Number(thicknessCentimeters || 0) / 100);
+                    const totalInches = totalMeters * 39.3701;
+                    const newValue = totalInches / dimensionConversions[newUnit];
+                    setThickness(newValue.toFixed(4));
+                    setThicknessMeters('');
+                    setThicknessCentimeters('');
+                  }
+                  // Convert between single units
+                  else if (isSingleUnit(thicknessUnit) && isSingleUnit(newUnit)) {
+                    handleUnitChange(thickness, thicknessUnit, newUnit, setThickness, dimensionConversions);
+                  }
+                  
                   setThicknessUnit(newUnit);
                 }}
                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
@@ -323,6 +534,7 @@ export default function BoardFootCalculator() {
                 ))}
               </select>
             </div>
+            {thicknessError && <p className="text-red-500 text-xs mt-1">{thicknessError}</p>}
           </div>
 
           {/* Width */}
@@ -331,25 +543,154 @@ export default function BoardFootCalculator() {
               Width
             </label>
             <div className="flex gap-2">
-              <div className="flex-1">
-                <input
-                  type="number"
-                  value={width}
-                  onChange={(e) => handleNumberInput(e.target.value, setWidth, setWidthError)}
-                  onFocus={(e) => handleFocus(width, e)}
-                  className={`w-full px-3 py-2 border ${widthError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                  style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                  step="0.01"
-                  min="0"
-                />
-                {widthError && <p className="text-red-500 text-xs mt-1">{widthError}</p>}
-              </div>
+              {/* Show dual fields for ft/in and m/cm, else single input */}
+              {(widthUnit === 'ft/in') ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <input
+                        type="number"
+                        value={widthFeet}
+                        onChange={(e) => handleNumberInput(e.target.value, setWidthFeet, setWidthError)}
+                        onFocus={(e) => handleFocus(widthFeet, e)}
+                        className={`w-20 px-3 py-2 border ${widthError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                        step="1"
+                        min="0"
+                        placeholder="ft"
+                      />
+                    </div>
+                    <span className="text-slate-600 text-sm font-medium">ft</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <input
+                        type="number"
+                        value={widthInches}
+                        onChange={(e) => handleNumberInput(e.target.value, setWidthInches, setWidthError)}
+                        onFocus={(e) => handleFocus(widthInches, e)}
+                        className={`w-20 px-3 py-2 border ${widthError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                        step="0.01"
+                        min="0"
+                        placeholder="in"
+                      />
+                    </div>
+                    <span className="text-slate-600 text-sm font-medium">in</span>
+                  </div>
+                </>
+              ) : (widthUnit === 'm/cm') ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <input
+                        type="number"
+                        value={widthMeters}
+                        onChange={(e) => handleNumberInput(e.target.value, setWidthMeters, setWidthError)}
+                        onFocus={(e) => handleFocus(widthMeters, e)}
+                        className={`w-20 px-3 py-2 border ${widthError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                        step="1"
+                        min="0"
+                        placeholder="m"
+                      />
+                    </div>
+                    <span className="text-slate-600 text-sm font-medium">m</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <input
+                        type="number"
+                        value={widthCentimeters}
+                        onChange={(e) => handleNumberInput(e.target.value, setWidthCentimeters, setWidthError)}
+                        onFocus={(e) => handleFocus(widthCentimeters, e)}
+                        className={`w-20 px-3 py-2 border ${widthError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                        step="0.01"
+                        min="0"
+                        placeholder="cm"
+                      />
+                    </div>
+                    <span className="text-slate-600 text-sm font-medium">cm</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    value={width}
+                    onChange={(e) => handleNumberInput(e.target.value, setWidth, setWidthError)}
+                    onFocus={(e) => handleFocus(width, e)}
+                    className={`w-full px-3 py-2 border ${widthError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                    step="0.01"
+                    min="0"
+                    placeholder=""
+                  />
+                </div>
+              )}
               <select
                 value={widthUnit}
                 onChange={(e) => {
                   const newUnit = e.target.value;
-                  // Convert the value when unit changes
-                  handleUnitChange(width, widthUnit, newUnit, setWidth, dimensionConversions);
+                  if (!isUnitType(newUnit)) return;
+                  
+                  // Convert between ft/in and m/cm
+                  if (widthUnit === 'ft/in' && newUnit === 'm/cm') {
+                    const { meters, centimeters } = convertFtInToMCm(widthFeet, widthInches);
+                    setWidthMeters(meters.toString());
+                    setWidthCentimeters(centimeters.toString());
+                    setWidthFeet('');
+                    setWidthInches('');
+                  } 
+                  else if (widthUnit === 'm/cm' && newUnit === 'ft/in') {
+                    const { feet, inches } = convertMCmToFtIn(widthMeters, widthCentimeters);
+                    setWidthFeet(feet.toString());
+                    setWidthInches(inches.toString());
+                    setWidthMeters('');
+                    setWidthCentimeters('');
+                  }
+                  // Convert from single unit to ft/in
+                  else if (newUnit === 'ft/in' && isSingleUnit(widthUnit)) {
+                    const totalInches = width ? Number(width) * dimensionConversions[widthUnit] : 0;
+                    const feet = Math.floor(totalInches / 12);
+                    const inches = totalInches % 12;
+                    setWidthFeet(feet.toString());
+                    setWidthInches(inches.toFixed(2));
+                    setWidth('');
+                  }
+                  // Convert from single unit to m/cm
+                  else if (newUnit === 'm/cm' && isSingleUnit(widthUnit)) {
+                    const totalInches = width ? Number(width) * dimensionConversions[widthUnit] : 0;
+                    const totalMeters = totalInches / 39.3701;
+                    const meters = Math.floor(totalMeters);
+                    const centimeters = (totalMeters - meters) * 100;
+                    setWidthMeters(meters.toString());
+                    setWidthCentimeters(centimeters.toFixed(2));
+                    setWidth('');
+                  }
+                  // Convert from ft/in to single unit
+                  else if (isSingleUnit(newUnit) && widthUnit === 'ft/in') {
+                    const totalInches = Number(widthFeet || 0) * 12 + Number(widthInches || 0);
+                    const newValue = totalInches / dimensionConversions[newUnit];
+                    setWidth(newValue.toFixed(4));
+                    setWidthFeet('');
+                    setWidthInches('');
+                  }
+                  // Convert from m/cm to single unit
+                  else if (isSingleUnit(newUnit) && widthUnit === 'm/cm') {
+                    const totalMeters = Number(widthMeters || 0) + (Number(widthCentimeters || 0) / 100);
+                    const totalInches = totalMeters * 39.3701;
+                    const newValue = totalInches / dimensionConversions[newUnit];
+                    setWidth(newValue.toFixed(4));
+                    setWidthMeters('');
+                    setWidthCentimeters('');
+                  }
+                  // Convert between single units
+                  else if (isSingleUnit(widthUnit) && isSingleUnit(newUnit)) {
+                    handleUnitChange(width, widthUnit, newUnit, setWidth, dimensionConversions);
+                  }
+                  
                   setWidthUnit(newUnit);
                 }}
                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
@@ -362,6 +703,7 @@ export default function BoardFootCalculator() {
                 ))}
               </select>
             </div>
+            {widthError && <p className="text-red-500 text-xs mt-1">{widthError}</p>}
           </div>
 
           {/* Length */}
@@ -370,49 +712,7 @@ export default function BoardFootCalculator() {
               Length
             </label>
             <div className="flex gap-2 items-center">
-              {lengthUnit !== 'ft/in' && lengthUnit !== 'm/cm' && (
-                <>
-                  <div className="flex-1">
-                    <input
-                      type="number"
-                      value={length}
-                      onChange={(e) => handleNumberInput(e.target.value, setLength, setLengthFeetError)}
-                      onFocus={(e) => handleFocus(length, e)}
-                      className={`w-full px-3 py-2 border ${lengthFeetError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                      style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                      step="0.01"
-                      min="0"
-                      placeholder="Enter length"
-                    />
-                    {lengthFeetError && <p className="text-red-500 text-xs mt-1">{lengthFeetError}</p>}
-                  </div>
-                  <select
-                    value={lengthUnit}
-                    onChange={(e) => {
-                      const newUnit = e.target.value;
-                      if (newUnit === 'ft/in' || newUnit === 'm/cm') {
-                        // Special case for switching to dual unit fields
-                        setLengthUnit(newUnit);
-                      } else {
-                        // Normal unit conversion
-                        handleUnitChange(length, lengthUnit, newUnit, setLength, lengthConversions);
-                        setLengthUnit(newUnit);
-                      }
-                    }}
-                    className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                    style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                  >
-                    {unitOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
-
-              {/* Feet/Inches dual fields */}
-              {lengthUnit === 'ft/in' && (
+              {(lengthUnit === 'ft/in') ? (
                 <>
                   <div className="flex items-center gap-2">
                     <div>
@@ -425,7 +725,7 @@ export default function BoardFootCalculator() {
                         style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                         step="1"
                         min="0"
-                        placeholder="2"
+                        placeholder="ft"
                       />
                       {lengthFeetError && <p className="text-red-500 text-xs mt-1">{lengthFeetError}</p>}
                     </div>
@@ -442,32 +742,14 @@ export default function BoardFootCalculator() {
                         style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                         step="0.01"
                         min="0"
-                        placeholder="35"
+                        placeholder="in"
                       />
                       {lengthInchesError && <p className="text-red-500 text-xs mt-1">{lengthInchesError}</p>}
                     </div>
                     <span className="text-slate-600 text-sm font-medium">in</span>
                   </div>
-                  <select
-                    value={lengthUnit}
-                    onChange={(e) => {
-                      const newUnit = e.target.value;
-                      setLengthUnit(newUnit);
-                    }}
-                    className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                    style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                  >
-                    {unitOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
                 </>
-              )}
-
-              {/* Meters/Centimeters dual fields */}
-              {lengthUnit === 'm/cm' && (
+              ) : (lengthUnit === 'm/cm') ? (
                 <>
                   <div className="flex items-center gap-2">
                     <div>
@@ -480,7 +762,7 @@ export default function BoardFootCalculator() {
                         style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                         step="1"
                         min="0"
-                        placeholder="20"
+                        placeholder="m"
                       />
                       {lengthMetersError && <p className="text-red-500 text-xs mt-1">{lengthMetersError}</p>}
                     </div>
@@ -497,29 +779,101 @@ export default function BoardFootCalculator() {
                         style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                         step="0.01"
                         min="0"
-                        placeholder="38"
+                        placeholder="cm"
                       />
                       {lengthCentimetersError && <p className="text-red-500 text-xs mt-1">{lengthCentimetersError}</p>}
                     </div>
                     <span className="text-slate-600 text-sm font-medium">cm</span>
                   </div>
-                  <select
-                    value={lengthUnit}
-                    onChange={(e) => {
-                      const newUnit = e.target.value;
-                      setLengthUnit(newUnit);
-                    }}
-                    className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                    style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                  >
-                    {unitOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
                 </>
+              ) : (
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    value={length}
+                    onChange={(e) => handleNumberInput(e.target.value, setLength, setLengthFeetError)}
+                    onFocus={(e) => handleFocus(length, e)}
+                    className={`w-full px-3 py-2 border ${lengthFeetError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                    step="0.01"
+                    min="0"
+                    placeholder=""
+                  />
+                </div>
               )}
+              <select
+                value={lengthUnit}
+                onChange={(e) => {
+                  const newUnit = e.target.value;
+                  if (!isUnitType(newUnit)) return;
+                  
+                  // Convert between ft/in and m/cm
+                  if (lengthUnit === 'ft/in' && newUnit === 'm/cm') {
+                    const { meters, centimeters } = convertFtInToMCm(lengthFeet, lengthInches);
+                    setLengthMeters(meters.toString());
+                    setLengthCentimeters(centimeters.toString());
+                    setLengthFeet('');
+                    setLengthInches('');
+                  } 
+                  else if (lengthUnit === 'm/cm' && newUnit === 'ft/in') {
+                    const { feet, inches } = convertMCmToFtIn(lengthMeters, lengthCentimeters);
+                    setLengthFeet(feet.toString());
+                    setLengthInches(inches.toString());
+                    setLengthMeters('');
+                    setLengthCentimeters('');
+                  }
+                  // Convert from single unit to ft/in
+                  else if (newUnit === 'ft/in' && isSingleUnit(lengthUnit)) {
+                    const totalFeet = length ? Number(length) * lengthConversions[lengthUnit] : 0;
+                    const feet = Math.floor(totalFeet);
+                    const inches = (totalFeet - feet) * 12;
+                    setLengthFeet(feet.toString());
+                    setLengthInches(inches.toFixed(2));
+                    setLength('');
+                  }
+                  // Convert from single unit to m/cm
+                  else if (newUnit === 'm/cm' && isSingleUnit(lengthUnit)) {
+                    const totalFeet = length ? Number(length) * lengthConversions[lengthUnit] : 0;
+                    const totalMeters = totalFeet / 3.28084;
+                    const meters = Math.floor(totalMeters);
+                    const centimeters = (totalMeters - meters) * 100;
+                    setLengthMeters(meters.toString());
+                    setLengthCentimeters(centimeters.toFixed(2));
+                    setLength('');
+                  }
+                  // Convert from ft/in to single unit
+                  else if (isSingleUnit(newUnit) && lengthUnit === 'ft/in') {
+                    const totalFeet = Number(lengthFeet || 0) + (Number(lengthInches || 0) / 12);
+                    const newValue = totalFeet / lengthConversions[newUnit];
+                    setLength(newValue.toFixed(4));
+                    setLengthFeet('');
+                    setLengthInches('');
+                  }
+                  // Convert from m/cm to single unit
+                  else if (isSingleUnit(newUnit) && lengthUnit === 'm/cm') {
+                    const totalMeters = Number(lengthMeters || 0) + (Number(lengthCentimeters || 0) / 100);
+                    const totalFeet = totalMeters * 3.28084;
+                    const newValue = totalFeet / lengthConversions[newUnit];
+                    setLength(newValue.toFixed(4));
+                    setLengthMeters('');
+                    setLengthCentimeters('');
+                  }
+                  // Convert between single units
+                  else if (isSingleUnit(lengthUnit) && isSingleUnit(newUnit)) {
+                    handleUnitChange(length, lengthUnit, newUnit, setLength, lengthConversions);
+                  }
+                  
+                  setLengthUnit(newUnit);
+                }}
+                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+              >
+                {unitOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -546,17 +900,9 @@ export default function BoardFootCalculator() {
                 Price
               </label>
               <div className="flex gap-2">
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                  style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                >
-                  <option value="USD">USD</option>
-                  <option value="PKR">PKR</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
-                </select>
+                <div className="px-3 py-2 border border-slate-300 rounded-lg bg-gray-50 text-slate-700">
+                  PKR
+                </div>
                 <div className="flex-1">
                   <input
                     type="number"
@@ -602,8 +948,6 @@ export default function BoardFootCalculator() {
             </button>
           </div>
         </div>
-
-       
       </div>
     </div>
   );
