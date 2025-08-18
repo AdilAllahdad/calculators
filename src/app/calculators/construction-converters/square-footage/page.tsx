@@ -250,41 +250,85 @@ export default function SquareFootageCalculator() {
     
     // Convert values when switching to compound unit modes
     if (newUnit === 'ft-in' && lengthUnit !== 'ft-in') {
-      const numLength = typeof length === 'string' ? parseFloat(length) || 0 : length;
-      // First convert to base unit (meters), then to feet for better precision
-      const valueInMeters = convertValue(numLength, lengthUnit, 'm');
-      const valueInFeet = convertValue(valueInMeters, 'm', 'ft');
-      
-      // Properly separate feet and inches with higher precision
-      const feet = Math.floor(valueInFeet);
-      // Use higher precision calculation for inches to prevent rounding errors
-      const inchesExact = (valueInFeet - feet) * 12;
-      const inches = parseFloat(inchesExact.toFixed(4));
-      
-      setLengthFeet(feet);
-      setLengthInches(inches);
-      setLengthUnit(newUnit);
-      // Calculate area after unit change
-      setTimeout(() => calculateRealTimeArea(), 0);
-      return;
+      // Special handling for m-cm to ft-in conversion
+      if (lengthUnit === 'm-cm') {
+        const meters = typeof lengthMeters === 'string' ? parseFloat(lengthMeters) || 0 : lengthMeters;
+        const centimeters = typeof lengthCentimeters === 'string' ? parseFloat(lengthCentimeters) || 0 : lengthCentimeters;
+        
+        // Convert to meters with proper precision
+        const valueInMeters = parseFloat((meters + (centimeters / 100)).toFixed(6));
+        // Convert to feet with full precision
+        const valueInFeet = convertValue(valueInMeters, 'm', 'ft');
+        
+        // Properly separate feet and inches
+        const feet = Math.floor(valueInFeet);
+        const inchesExact = (valueInFeet - feet) * 12;
+        const inches = parseFloat(inchesExact.toFixed(5));  // Using 5 decimal places for more precision
+        
+        setLengthFeet(feet);
+        setLengthInches(inches);
+        setLengthUnit(newUnit);
+        return;
+      } else {
+        // Regular unit to ft-in conversion
+        const numLength = typeof length === 'string' ? parseFloat(length) || 0 : length;
+        // First convert to base unit (meters), then to feet for better precision
+        const valueInMeters = convertValue(numLength, lengthUnit, 'm');
+        const valueInFeet = convertValue(valueInMeters, 'm', 'ft');
+        
+        // Properly separate feet and inches with higher precision
+        const feet = Math.floor(valueInFeet);
+        // Use higher precision calculation for inches to prevent rounding errors
+        const inchesExact = (valueInFeet - feet) * 12;
+        const inches = parseFloat(inchesExact.toFixed(4));
+        
+        setLengthFeet(feet);
+        setLengthInches(inches);
+        setLengthUnit(newUnit);
+        // Calculate area after unit change
+        setTimeout(() => calculateRealTimeArea(), 0);
+        return;
+      }
     }
     if (newUnit === 'm-cm' && lengthUnit !== 'm-cm') {
-      const numLength = typeof length === 'string' ? parseFloat(length) || 0 : length;
-      // Convert to meters with full precision
-      const valueInMeters = convertValue(numLength, lengthUnit, 'm');
-      
-      // Properly separate meters and centimeters
-      const meters = Math.floor(valueInMeters);
-      // Use higher precision calculation for centimeters
-      const centimetersExact = (valueInMeters - meters) * 100;
-      const centimeters = parseFloat(centimetersExact.toFixed(4));
-      
-      setLengthMeters(meters);
-      setLengthCentimeters(centimeters);
-      setLengthUnit(newUnit);
-      // Calculate area after unit change
-      setTimeout(() => calculateRealTimeArea(), 0);
-      return;
+      // Special handling for ft-in to m-cm conversion
+      if (lengthUnit === 'ft-in') {
+        const feet = typeof lengthFeet === 'string' ? parseFloat(lengthFeet) || 0 : lengthFeet;
+        const inches = typeof lengthInches === 'string' ? parseFloat(lengthInches) || 0 : lengthInches;
+        
+        // Convert to feet first with proper precision
+        const valueInFeet = parseFloat((feet + (inches / 12)).toFixed(6));
+        // Convert to meters with full precision
+        const valueInMeters = convertValue(valueInFeet, 'ft', 'm');
+        
+        // Properly separate meters and centimeters
+        const meters = Math.floor(valueInMeters);
+        const centimetersExact = (valueInMeters - meters) * 100;
+        const centimeters = parseFloat(centimetersExact.toFixed(4));
+        
+        setLengthMeters(meters);
+        setLengthCentimeters(centimeters);
+        setLengthUnit(newUnit);
+        return;
+      } else {
+        // Regular unit to m-cm conversion
+        const numLength = typeof length === 'string' ? parseFloat(length) || 0 : length;
+        // Convert to meters with full precision
+        const valueInMeters = convertValue(numLength, lengthUnit, 'm');
+        
+        // Properly separate meters and centimeters
+        const meters = Math.floor(valueInMeters);
+        // Use higher precision calculation for centimeters
+        const centimetersExact = (valueInMeters - meters) * 100;
+        const centimeters = parseFloat(centimetersExact.toFixed(4));
+        
+        setLengthMeters(meters);
+        setLengthCentimeters(centimeters);
+        setLengthUnit(newUnit);
+        // Calculate area after unit change
+        setTimeout(() => calculateRealTimeArea(), 0);
+        return;
+      }
     }
     // Converting from ft/in to a regular unit
     else if (lengthUnit === 'ft-in' && newUnit !== 'ft-in') {
@@ -323,41 +367,85 @@ export default function SquareFootageCalculator() {
     
     // Convert values when switching to compound unit modes
     if (newUnit === 'ft-in' && widthUnit !== 'ft-in') {
-      const numWidth = typeof width === 'string' ? parseFloat(width) || 0 : width;
-      // First convert to base unit (meters), then to feet for better precision
-      const valueInMeters = convertValue(numWidth, widthUnit, 'm');
-      const valueInFeet = convertValue(valueInMeters, 'm', 'ft');
-      
-      // Properly separate feet and inches with higher precision
-      const feet = Math.floor(valueInFeet);
-      // Use higher precision calculation for inches to prevent rounding errors
-      const inchesExact = (valueInFeet - feet) * 12;
-      const inches = parseFloat(inchesExact.toFixed(4));
-      
-      setWidthFeet(feet);
-      setWidthInches(inches);
-      setWidthUnit(newUnit);
-      // Calculate area after unit change
-      setTimeout(() => calculateRealTimeArea(), 0);
-      return;
+      // Special handling for m-cm to ft-in conversion
+      if (widthUnit === 'm-cm') {
+        const meters = typeof widthMeters === 'string' ? parseFloat(widthMeters) || 0 : widthMeters;
+        const centimeters = typeof widthCentimeters === 'string' ? parseFloat(widthCentimeters) || 0 : widthCentimeters;
+        
+        // Convert to meters with proper precision
+        const valueInMeters = parseFloat((meters + (centimeters / 100)).toFixed(6));
+        // Convert to feet with full precision
+        const valueInFeet = convertValue(valueInMeters, 'm', 'ft');
+        
+        // Properly separate feet and inches
+        const feet = Math.floor(valueInFeet);
+        const inchesExact = (valueInFeet - feet) * 12;
+        const inches = parseFloat(inchesExact.toFixed(5));  // Using 5 decimal places for more precision
+        
+        setWidthFeet(feet);
+        setWidthInches(inches);
+        setWidthUnit(newUnit);
+        return;
+      } else {
+        // Regular unit to ft-in conversion
+        const numWidth = typeof width === 'string' ? parseFloat(width) || 0 : width;
+        // First convert to base unit (meters), then to feet for better precision
+        const valueInMeters = convertValue(numWidth, widthUnit, 'm');
+        const valueInFeet = convertValue(valueInMeters, 'm', 'ft');
+        
+        // Properly separate feet and inches with higher precision
+        const feet = Math.floor(valueInFeet);
+        // Use higher precision calculation for inches to prevent rounding errors
+        const inchesExact = (valueInFeet - feet) * 12;
+        const inches = parseFloat(inchesExact.toFixed(4));
+        
+        setWidthFeet(feet);
+        setWidthInches(inches);
+        setWidthUnit(newUnit);
+        // Calculate area after unit change
+        setTimeout(() => calculateRealTimeArea(), 0);
+        return;
+      }
     }
     if (newUnit === 'm-cm' && widthUnit !== 'm-cm') {
-      const numWidth = typeof width === 'string' ? parseFloat(width) || 0 : width;
-      // Convert to meters with full precision
-      const valueInMeters = convertValue(numWidth, widthUnit, 'm');
-      
-      // Properly separate meters and centimeters
-      const meters = Math.floor(valueInMeters);
-      // Use higher precision calculation for centimeters
-      const centimetersExact = (valueInMeters - meters) * 100;
-      const centimeters = parseFloat(centimetersExact.toFixed(4));
-      
-      setWidthMeters(meters);
-      setWidthCentimeters(centimeters);
-      setWidthUnit(newUnit);
-      // Calculate area after unit change
-      setTimeout(() => calculateRealTimeArea(), 0);
-      return;
+      // Special handling for ft-in to m-cm conversion
+      if (widthUnit === 'ft-in') {
+        const feet = typeof widthFeet === 'string' ? parseFloat(widthFeet) || 0 : widthFeet;
+        const inches = typeof widthInches === 'string' ? parseFloat(widthInches) || 0 : widthInches;
+        
+        // Convert to feet first with proper precision
+        const valueInFeet = parseFloat((feet + (inches / 12)).toFixed(6));
+        // Convert to meters with full precision
+        const valueInMeters = convertValue(valueInFeet, 'ft', 'm');
+        
+        // Properly separate meters and centimeters
+        const meters = Math.floor(valueInMeters);
+        const centimetersExact = (valueInMeters - meters) * 100;
+        const centimeters = parseFloat(centimetersExact.toFixed(4));
+        
+        setWidthMeters(meters);
+        setWidthCentimeters(centimeters);
+        setWidthUnit(newUnit);
+        return;
+      } else {
+        // Regular unit to m-cm conversion
+        const numWidth = typeof width === 'string' ? parseFloat(width) || 0 : width;
+        // Convert to meters with full precision
+        const valueInMeters = convertValue(numWidth, widthUnit, 'm');
+        
+        // Properly separate meters and centimeters
+        const meters = Math.floor(valueInMeters);
+        // Use higher precision calculation for centimeters
+        const centimetersExact = (valueInMeters - meters) * 100;
+        const centimeters = parseFloat(centimetersExact.toFixed(4));
+        
+        setWidthMeters(meters);
+        setWidthCentimeters(centimeters);
+        setWidthUnit(newUnit);
+        // Calculate area after unit change
+        setTimeout(() => calculateRealTimeArea(), 0);
+        return;
+      }
     }
     // Converting from ft/in to a regular unit
     else if (widthUnit === 'ft-in' && newUnit !== 'ft-in') {
@@ -869,13 +957,6 @@ export default function SquareFootageCalculator() {
           className="flex-1 bg-gray-200 text-gray-800 py-3 rounded font-medium hover:bg-gray-300 transition"
         >
           Reset
-        </button>
-        <button
-          type="button"
-          onClick={calculateRealTimeArea}
-          className="flex-1 bg-blue-500 text-white py-3 rounded font-medium hover:bg-blue-600 transition"
-        >
-          Calculate Total
         </button>
       </div>
     </div>
