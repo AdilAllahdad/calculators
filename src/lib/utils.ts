@@ -27,7 +27,9 @@ const conversionFactors = {
     'in': 0.0254,
     'ft': 0.3048,
     'yd': 0.9144,
-    'mi': 1609.344
+    'mi': 1609.344,
+    'ft in': 0.0254,
+    'm cm': 0.01
   },
   // Area (base: square meters)
   area: {
@@ -40,7 +42,20 @@ const conversionFactors = {
     'ft2': 0.092903,
     'yd2': 0.836127,
     'ac': 4046.86,
+    'sf': 7142.857142857143,
     'mi2': 2589988.11
+  },
+  // Perimeter (base: meters)
+  perimeter: {
+    'cm': 0.01,
+    'm': 1,
+    'km': 1000,
+    'in': 0.0254,
+    'ft': 0.3048,
+    'yd': 0.9144,
+    'mi': 1609.344,
+    'ft in': 0.0254,
+    'm cm': 0.01
   },
   // Volume (base: cubic meters)
   volume: {

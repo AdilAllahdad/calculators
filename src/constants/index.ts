@@ -28,6 +28,18 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'yd2', label: 'square yards (yd²)', type: 'area' },
   { value: 'ac', label: 'acres (ac)', type: 'area' },
   { value: 'mi2', label: 'square miles (mi²)', type: 'area' },
+  { value: 'sf', label: 'soccer fields (sf)', type: 'area' },
+
+  // Perimeter units
+  { value: 'cm', label: 'centimeters (cm)', type: 'perimeter' },
+  { value: 'm', label: 'meters (m)', type: 'perimeter' },
+  { value: 'km', label: 'kilometers (km)', type: 'perimeter' },
+  { value: 'in', label: 'inches (in)', type: 'perimeter' },
+  { value: 'ft', label: 'feet (ft)', type: 'perimeter' },
+  { value: 'yd', label: 'yards (yd)', type: 'perimeter' },
+  { value: 'mi', label: 'miles (mi)', type: 'perimeter' },
+  { value: 'ft-in', label: 'feet / inches (ft / in)', type: 'perimeter' },
+  { value: 'm-cm', label: 'meters / centimeters (m / cm)', type: 'perimeter' },
   
   // Volume units
   { value: 'mm3', label: 'cubic millimeters (mm³)', type: 'volume' },

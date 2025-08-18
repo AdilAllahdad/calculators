@@ -22,7 +22,7 @@ export interface CalculatorCategory {
 export interface UnitOption {
   value: string;
   label: string;
-  type: 'length' | 'area' | 'volume' | 'weight' | 'currency' | 'time' | 'BTU' | 'boiler' | 'density';
+  type: 'length' | 'area' | 'volume' | 'weight' | 'currency' | 'time' | 'BTU' | 'boiler' | 'density' | 'perimeter';
 }
 
 export interface CalculationResult {
