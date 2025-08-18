@@ -72,9 +72,15 @@ export default function SquareYardsCalculator() {
     // Convert area to the unit used for pricing
     const areaInPricingUnit = convertValue(areaInSquareMeters, 'm2', unitPriceUnit);
     
-    // Calculate total cost
+    // Calculate total cost with high precision
     const cost = numUnitPrice * areaInPricingUnit;
-    setTotalCost(cost);
+    
+    // Store the exact cost internally to maintain precision when changing units
+    const exactCost = cost;
+    
+    // Round to 2 decimal places for display only
+    const roundedCost = Math.round(exactCost * 100) / 100;
+    setTotalCost(roundedCost);
   };
   
   // Update area calculation whenever relevant inputs change
@@ -114,14 +120,33 @@ export default function SquareYardsCalculator() {
     const newUnit = e.target.value;
     const numUnitPrice = typeof unitPrice === 'string' ? parseFloat(unitPrice) || 0 : unitPrice;
     
-    // Convert the unit price value to match the new unit
-    if (numUnitPrice > 0) {
-      // Convert the price without triggering a recalculation of total cost
+    // If we have a total cost and area, maintain the same total cost
+    if (totalCost !== null && area !== undefined && area > 0) {
+      // First convert the current area to square meters (base unit)
+      const areaInSquareMeters = convertValue(area, areaUnit, 'm2');
+      
+      // Convert the area to the new pricing unit
+      const areaInNewPricingUnit = convertValue(areaInSquareMeters, 'm2', newUnit);
+      
+      // Calculate the new unit price that would give the EXACT same total cost
+      // totalCost = price × area
+      // Therefore, price = totalCost / area
+      const newUnitPrice = totalCost / areaInNewPricingUnit;
+      
+      // Preserve precision to maintain exact total cost
+      setUnitPrice(newUnitPrice);
+      
+      // Force recalculation to ensure the total cost is preserved
+      setTimeout(() => {
+        calculateRealTimeArea();
+      }, 0);
+    } else if (numUnitPrice > 0) {
+      // If no total cost yet, just do a simple unit conversion
       const convertedPrice = convertValue(numUnitPrice, unitPriceUnit, newUnit);
       setUnitPrice(convertedPrice);
     }
     
-    // Update the unit without triggering recalculation
+    // Update the unit
     setUnitPriceUnit(newUnit);
   };
 
