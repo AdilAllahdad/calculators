@@ -36,8 +36,8 @@ export default function ArchCalculator() {
         const archHeightInM = convertValue(archHeightNum, archHeightUnit, 'm');
         const archLengthInM = convertValue(archLengthNum, archLengthUnit, 'm');
 
-        if (archLengthInM <= archHeightInM) {
-            setError('Base length must be greater than the arch height');
+        if (archLengthInM <= 2 * archHeightInM) {
+            setError('Base length should be greater than twice the arch height for a proper elliptical arch');
             return false;
         }
 
@@ -65,32 +65,41 @@ export default function ArchCalculator() {
         const archHeightInM = convertValue(archHeightNum, archHeightUnit, 'm');
         const archLengthInM = convertValue(archLengthNum, archLengthUnit, 'm');
 
-        // Calculate the value under the square root
-        const underSqrt = Math.pow(archHeightInM, 2) - Math.pow(archLengthInM / 2, 2);
+        // For elliptical arch: focal distance = sqrt(a² - b²)
+        // where a = half the base length, b = rise/height
+        const a = archLengthInM / 2;  // half the base length
+        const b = archHeightInM;      // rise/height
 
-        // Calculate foci positions (allow negative values)
-        let fociValue;
+        // Calculate the value under the square root: a² - b²
+        const underSqrt = Math.pow(b, 2) - Math.pow(a, 2);  
+
+        // Calculate focal distance (always positive)
+        let focalDistance;
         if (underSqrt < 0) {
-            // For negative values under square root, calculate as imaginary and return negative
-            fociValue = -Math.sqrt(Math.abs(underSqrt));
+            // For cases where height > half-base, focal points are imaginary
+            focalDistance = Math.sqrt(Math.abs(underSqrt));
         } else {
-            fociValue = Math.sqrt(underSqrt);
+            focalDistance = Math.sqrt(underSqrt);
         }
 
         // Check if the result is NaN or invalid (shouldn't happen)
-        if (isNaN(fociValue) || !isFinite(fociValue)) {
+        if (isNaN(focalDistance) || !isFinite(focalDistance)) {
             setF1(0);
             setF2(0);
             return;
         }
 
-        // Convert to selected units
-        const f1Display = convertValue(fociValue, 'm', f1Unit);
-        const f2Display = convertValue(fociValue, 'm', f2Unit);
+        // F1 is to the left of center (negative), F2 is to the right of center (positive)
+        const f1Value = -focalDistance;  // Left focus point (negative)
+        const f2Value = focalDistance;   // Right focus point (positive)
 
-        // Ensure the converted values are valid numbers and round them
-        setF1(isNaN(f1Display) || !isFinite(f1Display) ? 0 : Math.round(f1Display * 100) / 100);
-        setF2(isNaN(f2Display) || !isFinite(f2Display) ? 0 : Math.round(f2Display * 100) / 100);
+        // Convert to selected units
+        const f1Display = convertValue(f1Value, 'm', f1Unit);
+        const f2Display = convertValue(f2Value, 'm', f2Unit);
+
+        // Ensure the converted values are valid numbers
+        setF1(isNaN(f1Display) || !isFinite(f1Display) ? 0 : f1Display);
+        setF2(isNaN(f2Display) || !isFinite(f2Display) ? 0 : f2Display);
     };
 
     // Check if focus sections should be visible
