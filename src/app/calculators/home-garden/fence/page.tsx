@@ -7,11 +7,11 @@ import { convertValue, formatNumber } from '@/lib/utils';
 
 // Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
 const lengthUnitValues = ['m', 'ft', 'in', 'cm', 'km', 'yd', 'ft in', 'm cm'];
-const spaceUnitvalues = ['m', 'ft', 'in', 'cm', 'km', 'yd', 'ft in', 'm cm'];
 const heightUnitvalues = ['m', 'ft', 'in', 'cm', 'km', 'yd', 'ft in', 'm cm'];
 const widthUnitvalues = ['m', 'ft', 'in', 'cm', 'mm', 'ft in', 'm cm'];
 const spacingUnitvalues = ['m', 'ft', 'in', 'cm', 'mm', 'ft in', 'm cm'];
 const thicknessUnitvalues = ['m', 'ft', 'in', 'cm', 'mm', 'ft in', 'm cm'];
+const concreteVolumeUnitValues = ['m3', 'dm3', 'cm3', 'cu ft', 'cu in', 'cu yd'];
 
 export default function FenceCalculator() {
     const [length, setLength] = useState<string>('');
@@ -34,7 +34,7 @@ export default function FenceCalculator() {
     const [shape, setShape] = useState<string>('');
     const [postDiameter, setPostDiameter] = useState<string>('');
     const [postDiameterUnit, setPostDiameterUnit] = useState<string>('m');
-    const [postDepth, setPostDepth] = useState<string>('0.5');
+    const [postDepth, setPostDepth] = useState<string>('5');
     const [postDepthUnit, setPostDepthUnit] = useState<string>('m');
     const [postWidth, setPostWidth] = useState<string>('');
     const [postWidthUnit, setPostWidthUnit] = useState<string>('m');
@@ -46,6 +46,8 @@ export default function FenceCalculator() {
     const [showNumRails, setShowNumRails] = useState<boolean>(true);
     const [showNumPickets, setShowNumPickets] = useState<boolean>(true);
     const [showConcrete, setShowConcrete] = useState<boolean>(true);
+    const [showCuboid, setShowCuboid] = useState<boolean>(false);
+    const [showCylinder, setShowCylinder] = useState<boolean>(false);
     
 
     const handleNumberInput = (value: string, setter: (val: string) => void) => {
@@ -73,7 +75,7 @@ export default function FenceCalculator() {
         }
         const lengthInMeters = convertValue(lengthNum, lengthUnit, 'm');
         const spaceInMeters = convertValue(spaceNum, spaceUnit, 'm');
-        const numPosts = Math.floor((lengthInMeters / spaceInMeters)+1) + 1;
+        const numPosts = Math.ceil((lengthInMeters / spaceInMeters)) + 1;
         setNumPosts(numPosts);
     };
 
@@ -94,7 +96,7 @@ export default function FenceCalculator() {
             return;
         }
         const heightInMeters = convertValue(heightNum, heightUnit, 'm');
-        const postLength = heightInMeters + 1.5; // Add 0.5m for ground
+        const postLength = heightInMeters * 1.5;
         setPostLength(postLength);
     };
 
@@ -123,11 +125,11 @@ export default function FenceCalculator() {
         setNumPickets(numPickets);
     };
 
-    const calculateConcreteVolume = () => {   
+    const calculateConcreteVolume = () => {
         const postDiameterNum = parseFloat(postDiameter) || 0;
         const postWidthNum = parseFloat(postWidth) || 0;
         const postThicknessNum = parseFloat(postThickness) || 0;
-        const postDepthNum = parseFloat(postDepth) || 0;        
+        const postDepthNum = parseFloat(postDepth) || 0;
         if (postDiameterNum <= 0 && (postWidthNum <= 0 || postThicknessNum <= 0)) {
             setConcreteVolume(0);
             return;
@@ -136,25 +138,35 @@ export default function FenceCalculator() {
         // Calculate volume for cylindrical posts
         if (postDiameterNum > 0) {
             const postDiameterInMeters = convertValue(postDiameterNum, postDiameterUnit, 'm');
-            volume = (2 * Math.PI * Math.pow(postDiameterInMeters, 2) * postDepthNum) * (parseFloat(numPosts as unknown as string) || 0);
+            const postDepthInMeters = convertValue(postDepthNum, postDepthUnit, 'm');
+            volume = (2 * Math.PI * Math.pow(postDiameterInMeters, 2) * postDepthInMeters) * (parseFloat(numPosts as unknown as string) || 0);
         }
         // Calculate volume for Cuboid posts
         else if (postWidthNum > 0 && postThicknessNum > 0) {
             const postWidthInMeters = convertValue(postWidthNum, postWidthUnit, 'm');
             const postThicknessInMeters = convertValue(postThicknessNum, postThicknessUnit, 'm');
-            const postDepthInMeters = convertValue(postDepthNum, 'm', 'm');
-            volume =( 8 * postWidthInMeters * postThicknessInMeters * postDepthInMeters) * (parseFloat(numPosts as unknown as string) || 0);
-        } 
+            const postDepthInMeters = convertValue(postDepthNum, postDepthUnit, 'm');
+            volume = (8 * postWidthInMeters * postThicknessInMeters * postDepthInMeters) * (parseFloat(numPosts as unknown as string) || 0);
+        }
+
+        // Convert volume to selected unit and set it
+        const volumeInSelectedUnit = convertValue(volume, 'm3', concreteVolumeUnit);
+        setConcreteVolume(volumeInSelectedUnit);
     };
 
     useEffect(() => {
         calculateNumPosts();
         calculateNumSections();
-        calculatePostLength();  
-        calculateRailsPerSection();  
-        calculateNumPickets();  
-        calculateConcreteVolume();  
-    }, [length, lengthUnit, space, spaceUnit]);
+        calculatePostLength();
+        calculateRailsPerSection();
+        calculateNumPickets();
+        calculateConcreteVolume();
+    }, [
+        length, lengthUnit, space, spaceUnit, numPosts, numSections,
+        height, heightUnit, railsPerSection, width, widthUnit, spacing, spacingUnit,
+        postDiameter, postDiameterUnit, postWidth, postWidthUnit, postThickness, postThicknessUnit,
+        postDepth, postDepthUnit, concreteVolumeUnit
+    ]);
 
     const reloadCalculator = () => {
         setLength('');
@@ -223,15 +235,17 @@ export default function FenceCalculator() {
                     <img src="/fencetransparent.png" alt="fence" />
                 </div>
                 <div className='bg-white rounded-xl p-6 mb-4 shadow-lg border border-slate-200 w-full max-w-lg'>
-                    <h2 className="text-xl font-semibold mb-6 text-slate-800">Fence Length and Post Space</h2>
-                    <a onClick={() => setShowNumLPosts(!showNumLPosts)}>
-                {showNumLPosts ? (
-                  <ChevronUp className="text-blue-500 hover:scale-110 transition-transform duration-200" />
-                ) : (
-                  <ChevronDown className="text-blue-500 hover:scale-110 transition-transform duration-200" />
-                )}
-              </a>
-              {showNumLPosts && (
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-semibold text-slate-800">Fence Dimensions</h2>
+                        <button onClick={() => setShowNumLPosts(!showNumLPosts)} className="text-blue-500 hover:text-blue-600 transition-colors">
+                            {showNumLPosts ? (
+                                <ChevronUp className="hover:scale-110 transition-transform duration-200" />
+                            ) : (
+                                <ChevronDown className="hover:scale-110 transition-transform duration-200" />
+                            )}
+                        </button>
+                    </div>
+                    {showNumLPosts && (
                 <div>
                     <div className="mb-6">
                         <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -272,12 +286,417 @@ export default function FenceCalculator() {
                             <UnitDropdown
                                 value={spaceUnit}
                                 onChange={(e) => setSpaceUnit(e.target.value)}
-                                unitValues={spaceUnitvalues}
+                                unitValues={lengthUnitValues}
+                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                            />
+                        </div>
+                    </div>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Number of posts
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={formatNumber(Number(numPosts))}
+                                readOnly
+                                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                                style={{ color: '#1e293b' }}
+                            />
+                        </div>
+                    </div>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Number of sections
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={formatNumber(numSections)}
+                                readOnly
+                                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                                style={{ color: '#1e293b' }}
+                            />
+                        </div>
+                    </div>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Fence height
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="number"
+                                value={height}
+                                onChange={(e) => handleNumberInput(e.target.value, setHeight)}
+                                onFocus={(e) => handleFocus(height, e)}
+                                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                min="0"
+                            />
+                            <UnitDropdown
+                                value={heightUnit}
+                                onChange={(e) => setHeightUnit(e.target.value)}
+                                unitValues={heightUnitvalues}
+                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                            />
+                        </div>
+                    </div>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Post length
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={formatNumber(postLength)}
+                                readOnly
+                                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                                style={{ color: '#1e293b' }}
+                            />
+                            <UnitDropdown
+                                value={postLengthUnit}
+                                onChange={(e) => setPostLengthUnit(e.target.value)}
+                                unitValues={lengthUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
                         </div>
                     </div>
                 </div>
+              )}
+                </div>
+                <div className='bg-white rounded-xl p-6 mb-4 shadow-lg border border-slate-200 w-full max-w-lg'>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-semibold text-slate-800">Number of Rails needed</h2>
+                        <button
+                            onClick={() => setShowNumRails(!showNumRails)}
+                            className="text-blue-500 hover:text-blue-600 transition-colors"
+                        >
+                            {showNumRails ? (
+                                <ChevronUp className="hover:scale-110 transition-transform duration-200" />
+                            ) : (
+                                <ChevronDown className="hover:scale-110 transition-transform duration-200" />
+                            )}
+                        </button>
+                    </div>
+                    {showNumRails && (
+                <div>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Rails per section
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="number"
+                                value={railsPerSection}
+                                onChange={(e) => handleNumberInput(e.target.value, setRailsPerSection)}
+                                onFocus={(e) => handleFocus(railsPerSection, e)}
+                                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                min="0"
+                            />
+                        </div>
+                    </div>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Number of Rails
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={formatNumber(numRails)}
+                                readOnly
+                                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                                style={{ color: '#1e293b' }}
+                            />
+                        </div>
+                    </div>
+                </div>
+              )}
+                </div>
+                <div className='bg-white rounded-xl p-6 mb-4 shadow-lg border border-slate-200 w-full max-w-lg'>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-semibold text-slate-800">Number of Pickets needed</h2>
+                        <button
+                            onClick={() => setShowNumPickets(!showNumPickets)}
+                            className="text-blue-500 hover:text-blue-600 transition-colors"
+                        >
+                            {showNumPickets ? (
+                                <ChevronUp className="hover:scale-110 transition-transform duration-200" />
+                            ) : (
+                                <ChevronDown className="hover:scale-110 transition-transform duration-200" />
+                            )}
+                        </button>
+                    </div>
+                    {showNumPickets && (
+                <div>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Picket width
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="number"
+                                value={width}
+                                onChange={(e) => handleNumberInput(e.target.value, setWidth)}
+                                onFocus={(e) => handleFocus(width, e)}
+                                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                min="0"
+                            />
+                            <UnitDropdown
+                                value={widthUnit}
+                                onChange={(e) => setWidthUnit(e.target.value)}
+                                unitValues={widthUnitvalues}
+                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                            />
+                        </div>
+                    </div>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Picket spacing
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="number"
+                                value={spacing}
+                                onChange={(e) => handleNumberInput(e.target.value, setSpacing)}
+                                onFocus={(e) => handleFocus(spacing, e)}
+                                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                min="0"
+                            />  
+                            <UnitDropdown
+                                value={spacingUnit}
+                                onChange={(e) => setSpacingUnit(e.target.value)}
+                                unitValues={spacingUnitvalues}
+                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                            />
+                        </div>
+                    </div>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Number of Pickets
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={formatNumber(numPickets)}
+                                readOnly
+                                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                                style={{ color: '#1e293b' }}
+                            />
+                        </div>  
+                    </div>  
+                </div>  
+              )}  
+            </div>  
+            <div className='bg-white rounded-xl p-6 mb-4 shadow-lg border border-slate-200 w-full max-w-lg'>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-slate-800">Concrete for post footing</h2>
+                    <button
+                        onClick={() => setShowConcrete(!showConcrete)}
+                        className="text-blue-500 hover:text-blue-600 transition-colors"
+                    >
+                        {showConcrete ? (
+                            <ChevronUp className="hover:scale-110 transition-transform duration-200" />
+                        ) : (
+                            <ChevronDown className="hover:scale-110 transition-transform duration-200" />
+                        )}
+                    </button>
+                </div>
+                {showConcrete && (
+                <div>  
+                    <div className="mb-6">  
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-slate-700 mb-3">
+                                Post Shape
+                            </label>
+                            <div className="flex gap-6">
+                                <label className="flex items-center cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        value="Cuboid"
+                                        checked={shape === 'Cuboid'}
+                                        onChange={(e) => setShape(e.target.value)}
+                                        className="form-radio text-blue-500 transition-all duration-200 ease-in-out transform scale-100 hover:scale-110"
+                                    />
+                                    <span className="ml-2 text-slate-700">Cuboid</span>
+                                </label>
+                                <label className="flex items-center cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        value="Cylinderical"
+                                        checked={shape === 'Cylinderical'}
+                                        onChange={(e) => setShape(e.target.value)}
+                                        className="form-radio text-blue-500 transition-all duration-200 ease-in-out transform scale-100 hover:scale-110"
+                                    />
+                                    <span className="ml-2 text-slate-700">Cylinder</span>
+                                </label>
+                            </div>
+                        </div>
+                </div>
+                    {shape === 'Cuboid' && (  
+                        <div>  
+                            <div className="mb-6">  
+                                <label className="block text-sm font-medium text-slate-700 mb-2">  
+                                    Post Width 
+                                </label>  
+                                <div className="flex gap-2">  
+                                    <input  
+                                        type="number"  
+                                        value={postWidth}  
+                                        onChange={(e) => handleNumberInput(e.target.value, setPostWidth)}  
+                                        onFocus={(e) => handleFocus(postWidth, e)}  
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"  
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}  
+                                        min="0"  
+                                    />  
+                                    <UnitDropdown   
+                                        value={postWidthUnit}  
+                                        onChange={(e) => setPostWidthUnit(e.target.value)}  
+                                        unitValues={lengthUnitValues}     
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"  
+                                    />  
+                                </div>  
+                            </div>  
+                            <div className="mb-6">  
+                                <label className="block text-sm font-medium text-slate-700 mb-2">  
+                                    Post thickness  
+                                </label>  
+                                <div className="flex gap-2">  
+                                    <input  
+                                        type="number"  
+                                        value={postThickness}  
+                                        onChange={(e) => handleNumberInput(e.target.value, setPostThickness)}  
+                                        onFocus={(e) => handleFocus(postThickness, e)}  
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"  
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}  
+                                        min="0"  
+                                    />  
+                                    <UnitDropdown   
+                                        value={postThicknessUnit}  
+                                        onChange={(e) => setPostThicknessUnit(e.target.value)}  
+                                        unitValues={thicknessUnitvalues}    
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"  
+                                    />  
+                                </div>  
+                            </div>  
+                            <div className="mb-6">  
+                                <label className="block text-sm font-medium text-slate-700 mb-2">  
+                                    Concrete Volume
+                                </label>  
+                                <div className="flex gap-2">  
+                                    <input
+                                        type="text"
+                                        value={formatNumber(concreteVolume)}
+                                        readOnly
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                                        style={{ color: '#1e293b' }}
+                                    />
+                                    <UnitDropdown   
+                                        value={concreteVolumeUnit}  
+                                        onChange={(e) => setConcreteVolumeUnit(e.target.value)}  
+                                        unitValues={concreteVolumeUnitValues}    
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"  
+                                    />
+                                </div>  
+                            </div>  
+                        </div>  
+                    )}
+                    {shape === 'Cylinderical' && (  
+                        <div>   
+                            <div className="mb-6">  
+                                <label className="block text-sm font-medium text-slate-700 mb-2">  
+                                    Post Diameter    
+                                </label>  
+                                <div className="flex gap-2">  
+                                    <input  
+                                        type="number"  
+                                        value={postDiameter}  
+                                        onChange={(e) => handleNumberInput(e.target.value, setPostDiameter)}  
+                                        onFocus={(e) => handleFocus(postDiameter, e)}  
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"  
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}  
+                                        min="0"  
+                                    />  
+                                    <UnitDropdown   
+                                        value={postDiameterUnit}  
+                                        onChange={(e) => setPostDiameterUnit(e.target.value)}  
+                                        unitValues={lengthUnitValues}    
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"  
+                                    />  
+                                </div>  
+                            </div>  
+                            <div className="mb-6">  
+                                <label className="block text-sm font-medium text-slate-700 mb-2">  
+                                    Post Depth  
+                                </label>  
+                                <div className="flex gap-2">  
+                                    <input  
+                                        type="number"  
+                                        value={postDepth}  
+                                        onChange={(e) => handleNumberInput(e.target.value, setPostDepth)}  
+                                        onFocus={(e) => handleFocus(postDepth, e)}  
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"  
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}  
+                                        min="0"  
+                                    />  
+                                    <UnitDropdown   
+                                        value={postDepthUnit}  
+                                        onChange={(e) => setPostDepthUnit(e.target.value)}  
+                                        unitValues={lengthUnitValues}    
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"  
+                                    />  
+                                </div>  
+                            </div>  
+                            <div className="mb-6">  
+                                <label className="block text-sm font-medium text-slate-700 mb-2">  
+                                    Concrete Volume  
+                                </label>  
+                                <div className="flex gap-2">  
+                                    <input
+                                        type="text"
+                                        value={formatNumber(concreteVolume)}
+                                        readOnly
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                                        style={{ color: '#1e293b' }}
+                                    />
+                                    <UnitDropdown   
+                                        value={concreteVolumeUnit}  
+                                        onChange={(e) => setConcreteVolumeUnit(e.target.value)}  
+                                        unitValues={concreteVolumeUnitValues}    
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"  
+                                    />  
+                                </div>  
+                            </div>  
+                        </div>  
+                    )}  
+                </div>
+              )}
+              <hr className='border-black opacity-10 m-8' />
+              <div className="grid grid-cols-1 gap-4">    
+                        <div className="grid grid-cols-2 gap-4">    
+                            <button
+                                onClick={shareResult}
+                                className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                            >
+                                <span className="text-white">🔗</span>
+                                Share result
+                            </button>
+                            <button
+                                onClick={reloadCalculator}
+                                className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                            >
+                                Reload calculator
+                            </button>
+                        </div>
+                        <button
+                            onClick={clearAll}
+                            className="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                        >
+                            Clear all changes
+                        </button>
+                    </div>    
                 </div>
             </div>
         </div>
