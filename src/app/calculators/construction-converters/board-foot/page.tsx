@@ -26,7 +26,6 @@ const getSafeConversionFactor = (unit: UnitType, conversions: ConversionMap): nu
   return conversions[unit] || 1;
 };
 
-// Helper function to check if a value is a valid unit type
 const handleUnitConversion = (
   currentUnit: UnitType,
   newUnit: UnitType,
@@ -40,7 +39,6 @@ const handleUnitConversion = (
   return standardValue / conversionTable[newUnit];
 };
 
-// Update conversion objects with proper typing
 const lengthConversions: ConversionMap = {
   'mm': 0.0393701 / 12,
   'cm': 0.393701 / 12,
@@ -61,7 +59,6 @@ const dimensionConversions: ConversionMap = {
   'm/cm': 39.3701
 };
 
-// Add these helper functions at the top after type definitions
 const convertFtInToMCm = (feet: string, inches: string) => {
   const totalFeet = Number(feet || 0);
   const totalInches = Number(inches || 0);
