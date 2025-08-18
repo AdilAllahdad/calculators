@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown,ChevronUp } from '@/components/icons';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue } from '@/lib/utils';
+import { convertValue, formatNumber } from '@/lib/utils';
 
 // Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
 const archHeightUnitValues = ['m', 'mm', 'ft', 'in', 'cm'];
@@ -13,9 +13,9 @@ const f1UnitValues = ['m', 'mm', 'ft', 'in', 'cm'];
 const f2UnitValues = ['m', 'mm', 'ft', 'in', 'cm'];
 
 export default function ArchCalculator() {
-    const [archHeight, setArchHeight] = useState<number>(0);
+    const [archHeight, setArchHeight] = useState<string>('');
     const [archHeightUnit, setArchHeightUnit] = useState<string>('m');
-    const [archLength, setArchLength] = useState<number>(0);
+    const [archLength, setArchLength] = useState<string>('');
     const [archLengthUnit, setArchLengthUnit] = useState<string>('m');
     const [showFocus, setShowFocus] = useState<boolean>(false);
     const [f1, setF1] = useState<number>(0);
@@ -25,13 +25,16 @@ export default function ArchCalculator() {
     const [error, setError] = useState<string>('');
 
     const validateDimensions = () => {
-        const archHeightInM = convertValue(archHeight, archHeightUnit, 'm');
-        const archLengthInM = convertValue(archLength, archLengthUnit, 'm');
+        const archHeightNum = parseFloat(archHeight);
+        const archLengthNum = parseFloat(archLength);
 
-        if (archLengthInM <= 0 || archHeightInM <= 0) {
+        if (isNaN(archHeightNum) || isNaN(archLengthNum) || archHeightNum <= 0 || archLengthNum <= 0) {
             setError('Both length and height must be greater than 0');
             return false;
         }
+
+        const archHeightInM = convertValue(archHeightNum, archHeightUnit, 'm');
+        const archLengthInM = convertValue(archLengthNum, archLengthUnit, 'm');
 
         if (archLengthInM <= archHeightInM) {
             setError('Base length must be greater than the arch height');
@@ -43,8 +46,11 @@ export default function ArchCalculator() {
     };
 
     const calculateFoci = () => {
+        const archHeightNum = parseFloat(archHeight);
+        const archLengthNum = parseFloat(archLength);
+
         // Only calculate if both height and length are greater than 0
-        if (archHeight <= 0 || archLength <= 0) {
+        if (isNaN(archHeightNum) || isNaN(archLengthNum) || archHeightNum <= 0 || archLengthNum <= 0) {
             setF1(0);
             setF2(0);
             return;
@@ -56,8 +62,8 @@ export default function ArchCalculator() {
             return;
         }
 
-        const archHeightInM = convertValue(archHeight, archHeightUnit, 'm');
-        const archLengthInM = convertValue(archLength, archLengthUnit, 'm');
+        const archHeightInM = convertValue(archHeightNum, archHeightUnit, 'm');
+        const archLengthInM = convertValue(archLengthNum, archLengthUnit, 'm');
 
         // Calculate the value under the square root
         const underSqrt = Math.pow(archHeightInM, 2) - Math.pow(archLengthInM / 2, 2);
@@ -88,14 +94,26 @@ export default function ArchCalculator() {
     };
 
     // Check if focus sections should be visible
-    const shouldShowFocusSections = archHeight > 0 && archLength > 0 && showFocus;
+    const shouldShowFocusSections = parseFloat(archHeight) > 0 && parseFloat(archLength) > 0 && !error;
+
+    const handleNumberInput = (value: string, setter: (val: string) => void) => {
+        // Allow only digits and a single dot
+        let sanitized = value.replace(/[^0-9.]/g, '');
+        const firstDot = sanitized.indexOf('.');
+        if (firstDot !== -1) {
+          sanitized = sanitized.slice(0, firstDot + 1) + sanitized.slice(firstDot + 1).replace(/\./g, '');
+        }
+        setter(sanitized);
+    };
+
+    const handleFocus = (currentValue: string, e: React.FocusEvent<HTMLInputElement>) => {
+        if (currentValue === '' || currentValue === '0') {
+          e.target.select();
+        }
+    };
 
     const handleArchHeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const inputValue = e.target.value;
-        // Allow empty string or valid numbers (including decimals)
-        if (inputValue === '' || (!isNaN(Number(inputValue)) && inputValue !== '.')) {
-            setArchHeight(inputValue === '' ? 0 : Number(inputValue));
-        }
+        handleNumberInput(e.target.value, setArchHeight);
     };
 
     const handleArchHeightUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -103,11 +121,7 @@ export default function ArchCalculator() {
     };
 
     const handleArchLengthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const inputValue = e.target.value;
-        // Allow empty string or valid numbers (including decimals)
-        if (inputValue === '' || (!isNaN(Number(inputValue)) && inputValue !== '.')) {
-            setArchLength(inputValue === '' ? 0 : Number(inputValue));
-        }
+        handleNumberInput(e.target.value, setArchLength);
     };
 
     const handleArchLengthUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -122,24 +136,20 @@ export default function ArchCalculator() {
         setF2Unit(e.target.value);
     };
 
-    const handleFocus = (currentValue: number, e: React.FocusEvent<HTMLInputElement>) => {
-        if (currentValue === 0) {
-          e.target.select();
-        }
-    };
-
     const reloadCalculator = () => {
-        setArchHeight(0);
-        setArchLength(0);
+        setArchHeight('');
+        setArchLength('');
         setF1(0);
         setF2(0);
+        setError('');
     };
 
     const clearAll = () => {
-        setArchHeight(0);
-        setArchLength(0);
+        setArchHeight('');
+        setArchLength('');
         setF1(0);
         setF2(0);
+        setError('');
     };
 
     const shareResult = () => {
@@ -181,13 +191,14 @@ export default function ArchCalculator() {
                         </label>
                         <div className="flex gap-2">
                             <input
-                                type="number"
-                                value={isNaN(archLength) || !isFinite(archLength) ? '' : archLength}
+                                type="text"
+                                inputMode="decimal"
+                                pattern="[0-9]*[.,]?[0-9]*"
+                                value={archLength}
                                 onChange={handleArchLengthChange}
                                 onFocus={(e) => handleFocus(archLength, e)}
                                 className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                                step="0.01"
                                 placeholder='Enter Length'
                             />
                             <UnitDropdown
@@ -204,13 +215,14 @@ export default function ArchCalculator() {
                         </label>
                         <div className="flex gap-2">
                             <input
-                                type="number"
-                                value={isNaN(archHeight) || !isFinite(archHeight) ? '' : archHeight}
+                                type="text"
+                                inputMode="decimal"
+                                pattern="[0-9]*[.,]?[0-9]*"
+                                value={archHeight}
                                 onChange={handleArchHeightChange}
                                 onFocus={(e) => handleFocus(archHeight, e)}
                                 className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                                step="0.01"
                                 placeholder='Enter Height'
                             />
                             <UnitDropdown
@@ -243,7 +255,7 @@ export default function ArchCalculator() {
                             <div className="flex gap-2 mb-4">
                                 <input
                                     type="number"
-                                    value={isNaN(f1) || !isFinite(f1) ? 0 : f1}
+                                    value={isNaN(f1) || !isFinite(f1) ? '' : formatNumber(f1)}
                                     readOnly
                                     className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50"
                                     style={{ color: '#1e293b' }}
@@ -261,7 +273,7 @@ export default function ArchCalculator() {
                             <div className="flex gap-2">
                                 <input
                                     type="number"
-                                    value={isNaN(f2) || !isFinite(f2) ? 0 : f2}
+                                    value={isNaN(f2) || !isFinite(f2) ? '' : formatNumber(f2)}
                                     readOnly
                                     className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50"
                                     style={{ color: '#1e293b' }}

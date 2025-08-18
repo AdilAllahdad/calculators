@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue } from '@/lib/utils';
+import { convertValue, formatNumber } from '@/lib/utils';
 
 // Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
 const coopSizeUnitValues = ['m2', 'ft2', 'yd2'];
@@ -11,31 +11,45 @@ export default function ChickenCoopSizeCalculator() {
     const [coopSize,setCoopSize] = useState<number>(0);
     const [chickenLocation, setChickenLocation] = useState<string>('Run'); // Default to Run for now
     const [coopSizeUnit,setCoopSizeUnit] = useState<string>('m2');
-    const [numRegularChickens,setNumRegularChickens] = useState<number>(0);
-    const [numBantamChickens,setNumBantamChickens] = useState<number>(0);
+    const [numRegularChickens,setNumRegularChickens] = useState<string>('');
+    const [numBantamChickens,setNumBantamChickens] = useState<string>('');
     const [recommendedCoopSizeDisplay, setRecommendedCoopSizeDisplay] = useState<boolean>(false);
 
     const calculateCoopSize = () => {
-        if (numRegularChickens <= 0 && numBantamChickens <= 0) {
+        const regularCount = parseFloat(numRegularChickens) || 0;
+        const bantamCount = parseFloat(numBantamChickens) || 0;
+
+        if (regularCount <= 0 && bantamCount <= 0) {
             setCoopSize(0);
             return;
         }
         // Updated space requirements: 0.37161 m² (4 ft²) for regular chickens and 0.18581 m² (2 ft²) for bantams
-        const coopSizeInSquareMeters = (numRegularChickens * 0.37161) + (numBantamChickens * 0.18581);
+        const coopSizeInSquareMeters = (regularCount * 0.37161) + (bantamCount * 0.18581);
         const coopSizeDisplay = convertValue(coopSizeInSquareMeters, 'm2', coopSizeUnit);
         setCoopSize(coopSizeDisplay);
     };
 
     const recCoopSizeDisplay = () => {
-        if (numRegularChickens > 0 || numBantamChickens > 0) {  // Changed to show if either type of chicken is present
+        const regularCount = parseFloat(numRegularChickens) || 0;
+        const bantamCount = parseFloat(numBantamChickens) || 0;
+
+        if (regularCount > 0 || bantamCount > 0) {  // Changed to show if either type of chicken is present
             setRecommendedCoopSizeDisplay(true);
         } else {
             setRecommendedCoopSizeDisplay(false);
         }
     };
 
-    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-        e.target.select();
+    const handleNumberInput = (value: string, setter: (val: string) => void) => {
+        // Allow only digits
+        const digitsOnly = value.replace(/[^0-9]/g, '');
+        setter(digitsOnly);
+    };
+
+    const handleFocus = (currentValue: string, e: React.FocusEvent<HTMLInputElement>) => {
+        if (currentValue === '' || currentValue === '0') {
+            e.target.select();
+        }
     };
 
     const clearAll = () => {
@@ -118,13 +132,15 @@ export default function ChickenCoopSizeCalculator() {
                         How many regular chickens do you have?
                     </label>
                     <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={numRegularChickens}
-                        onChange={(e) => setNumRegularChickens(Number(e.target.value) || 0)}
-                        onFocus={(e) => { if (numRegularChickens === 0) e.target.select(); }}
+                        onChange={(e) => handleNumberInput(e.target.value, setNumRegularChickens)}
+                        onFocus={(e) => handleFocus(numRegularChickens, e)}
                         className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                        min="0"
+                        placeholder="Enter number of regular chickens"
                     />
                 </div>
                 <div className="mb-6">
@@ -132,13 +148,15 @@ export default function ChickenCoopSizeCalculator() {
                         How many bantam chickens do you have?
                     </label>
                     <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={numBantamChickens}
-                        onChange={(e) => setNumBantamChickens(Number(e.target.value) || 0)}
-                        onFocus={(e) => { if (numBantamChickens === 0) e.target.select(); }}
+                        onChange={(e) => handleNumberInput(e.target.value, setNumBantamChickens)}
+                        onFocus={(e) => handleFocus(numBantamChickens, e)}
                         className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                        min="0"
+                        placeholder="Enter number of bantam chickens"
                     />
                 </div>
                 {recommendedCoopSizeDisplay && (
@@ -150,7 +168,7 @@ export default function ChickenCoopSizeCalculator() {
                         <div className="flex gap-2">
                             <input
                                 type="number"
-                                value={coopSize.toFixed(coopSizeUnit === 'm2' ? 2 : 0)}
+                                value={formatNumber(coopSize, coopSizeUnit === 'm2' ? 2 : 0)}
                                 readOnly
                                 className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-700"
                                 style={{ color: '#374151', backgroundColor: '#f8fafc' }}

@@ -219,9 +219,17 @@ export const convertUnit = (value: number, fromUnit: string, toUnit: string): nu
   return value; // No conversion needed
 };
 
-// Format number with proper decimals
+// Format number with proper decimals (removes unnecessary trailing zeros)
 export const formatNumber = (num: number, decimals: number = 2): string => {
-  return num.toFixed(decimals);
+  if (isNaN(num) || !isFinite(num)) return '0';
+
+  // If it's a whole number, return without decimals
+  if (num % 1 === 0) {
+    return num.toString();
+  }
+
+  // Otherwise, use toFixed but remove trailing zeros
+  return parseFloat(num.toFixed(decimals)).toString();
 };
 
 // Validate positive number input

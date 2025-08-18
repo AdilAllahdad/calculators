@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue } from '@/lib/utils';
+import { convertValue, formatNumber } from '@/lib/utils';
 
 // Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
 
@@ -11,22 +11,22 @@ const areaUnitvalues = ['cm2', 'dm2', 'm2', 'yd2', 'ft2', 'in2'];
 const priceUnitvalues = ['cm2', 'dm2', 'm2', 'yd2', 'ft2', 'in2'];
 
 export default function CarpetCalculator() {
-    const [length,setLength] = useState<number>(0);
-    const [width,setWidth] = useState<number>(0);
+    const [length,setLength] = useState<string>('');
+    const [width,setWidth] = useState<string>('');
     const [lengthUnit,setLengthUnit] = useState<string>('m');
     const [widthUnit,setWidthUnit] = useState<string>('m');
-    const [radius, setRadius] = useState<number>(0);
+    const [radius, setRadius] = useState<string>('');
     const [radiusUnit, setRadiusUnit] = useState<string>('m');
-    const [axisA, setAxisA] = useState<number>(0);
+    const [axisA, setAxisA] = useState<string>('');
     const [axisAUnit, setAxisAUnit] = useState<string>('m');
-    const [axisB, setAxisB] = useState<number>(0);
+    const [axisB, setAxisB] = useState<string>('');
     const [axisBUnit, setAxisBUnit] = useState<string>('m');
-    const [side,setSide] = useState<number>(0);
+    const [side,setSide] = useState<string>('');
     const [shape, setShape] = useState<string>('square');
     const [sideUnit,setSideUnit] = useState<string>('m');
     const [area,setArea] = useState<number>(0);
     const [areaUnit,setAreaUnit] = useState<string>('m2');
-    const [price,setPrice] = useState<number>(0);
+    const [price,setPrice] = useState<string>('');
     const [priceUnit,setPriceUnit] = useState<string>('m2');
     const [totalCost,setTotalCost] = useState<number>(0);
 
@@ -47,43 +47,49 @@ export default function CarpetCalculator() {
         };
 
         if (shape === 'rectangle') {
-            if (length <= 0 || width <= 0) {
+            const lengthNum = parseFloat(length) || 0;
+            const widthNum = parseFloat(width) || 0;
+            if (lengthNum <= 0 || widthNum <= 0) {
                 setArea(0);
                 return;
             }
-            const lengthInMeters = convertValue(length, lengthUnit, 'm');
-            const widthInMeters = convertValue(width, widthUnit, 'm');
+            const lengthInMeters = convertValue(lengthNum, lengthUnit, 'm');
+            const widthInMeters = convertValue(widthNum, widthUnit, 'm');
             const areaInSquareMeters = roundToThreeDecimals(lengthInMeters * widthInMeters);
             const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
             setArea(areaDisplay);
         };
         if (shape === 'circle') {
-            if (radius <= 0) {
+            const radiusNum = parseFloat(radius) || 0;
+            if (radiusNum <= 0) {
                 setArea(0);
                 return;
             }
-            const radiusInMeters = convertValue(radius, radiusUnit, 'm');
+            const radiusInMeters = convertValue(radiusNum, radiusUnit, 'm');
             const areaInSquareMeters = roundToThreeDecimals(Math.PI * radiusInMeters * radiusInMeters);
             const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
             setArea(areaDisplay);
         };
         if (shape === 'ellipse') {
-            if (axisA <= 0 || axisB <= 0) {
+            const axisANum = parseFloat(axisA) || 0;
+            const axisBNum = parseFloat(axisB) || 0;
+            if (axisANum <= 0 || axisBNum <= 0) {
                 setArea(0);
                 return;
             }
-            const axisAInMeters = convertValue(axisA, axisAUnit, 'm');
-            const axisBInMeters = convertValue(axisB, axisBUnit, 'm');
+            const axisAInMeters = convertValue(axisANum, axisAUnit, 'm');
+            const axisBInMeters = convertValue(axisBNum, axisBUnit, 'm');
             const areaInSquareMeters = roundToThreeDecimals(Math.PI * axisAInMeters * axisBInMeters);
             const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
             setArea(areaDisplay);
         };
         if (shape === 'pentagon') {
-            if (side <= 0) {
+            const sideNum = parseFloat(side) || 0;
+            if (sideNum <= 0) {
                 setArea(0);
                 return;
             }
-            const sideInMeters = convertValue(side, sideUnit, 'm');
+            const sideInMeters = convertValue(sideNum, sideUnit, 'm');
             const areaInSquareMeters = roundToThreeDecimals((Math.sqrt(5 * (5 + 2 * Math.sqrt(5))) / 4) * Math.pow(sideInMeters, 2));
             const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
             setArea(areaDisplay);
@@ -141,43 +147,54 @@ export default function CarpetCalculator() {
       const roundToThreeDecimals = (num: number) => {
             return Math.round(num * 1000) / 1000;
         };
-        if (price <= 0) {
+        const priceNum = parseFloat(price) || 0;
+        if (priceNum <= 0) {
             setTotalCost(0);
             return;
         }
         const areaInPricingUnit = convertValue(area, areaUnit, priceUnit);
-        const cost = roundToThreeDecimals(price * areaInPricingUnit);
+        const cost = roundToThreeDecimals(priceNum * areaInPricingUnit);
         setTotalCost(cost);
     };
 
-    const handleNumberInput = (value: string, setValue: React.Dispatch<React.SetStateAction<number>>) => {
-        if (value === '' || value === '0') {
-          setValue(0);
-        } else {
-          // Remove leading zeros and convert to number
-          const cleanValue = value.replace(/^0+/, '') || '0';
-          setValue(Number(cleanValue) || 0);
+    const handleNumberInput = (value: string, setter: (val: string) => void) => {
+        // Allow only digits and a single dot
+        let sanitized = value.replace(/[^0-9.]/g, '');
+        const firstDot = sanitized.indexOf('.');
+        if (firstDot !== -1) {
+          sanitized = sanitized.slice(0, firstDot + 1) + sanitized.slice(firstDot + 1).replace(/\./g, '');
         }
+        setter(sanitized);
       };
 
-      const handleFocus = (currentValue: number, e: React.FocusEvent<HTMLInputElement>) => {
-        if (currentValue === 0) {
+      const handleFocus = (currentValue: string, e: React.FocusEvent<HTMLInputElement>) => {
+        if (currentValue === '' || currentValue === '0') {
           e.target.select();
         }
       };
 
       const clearAll = () => {
-        setSide(0);
+        setSide('');
         setArea(0);
-        setPrice(0);
+        setPrice('');
         setTotalCost(0);
+        setLength('');
+        setWidth('');
+        setRadius('');
+        setAxisA('');
+        setAxisB('');
       };
 
       const reloadCalculator = () => {
-        setSide(0);
+        setSide('');
         setArea(0);
-        setPrice(0);
+        setPrice('');
         setTotalCost(0);
+        setLength('');
+        setWidth('');
+        setRadius('');
+        setAxisA('');
+        setAxisB('');
       };
 
       const shareResult = () => {

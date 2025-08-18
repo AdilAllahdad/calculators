@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue } from '@/lib/utils';
+import { convertValue, formatNumber } from '@/lib/utils';
 
 // Define the unit values needed for each dropdown
 const areaUnitValues = ['m2', 'ft2', 'yd2'];
@@ -11,11 +11,11 @@ const airflowUnitValues = ['m3', 'cm3', 'cu ft', 'cu in', 'cu yd', 'l'];
 const timeUnitValues = ['min', 'sec', 'hr'];
 
 export default function AirChangesCalculator() {
-    const [area,setArea] = useState<number>(0);
+    const [area,setArea] = useState<string>('');
     const [areaUnit,setAreaUnit] = useState<string>('m2');
-    const [height,setHeight] = useState<number>(0);
+    const [height,setHeight] = useState<string>('');
     const [heightUnit,setHeightUnit] = useState<string>('m');
-    const [airflow,setAirflow] = useState<number>(0);
+    const [airflow,setAirflow] = useState<string>('');
     const [airflowUnit,setAirflowUnit] = useState<string>('m3');
     const [airflowtimeUnit,setAirflowtimeUnit] = useState<string>('min');
     const [airChanges,setAirChanges] = useState<number>(0);
@@ -28,17 +28,26 @@ export default function AirChangesCalculator() {
     };
 
     const calculateAirChanges = () => {
+        const areaNum = parseFloat(area);
+        const heightNum = parseFloat(height);
+        const airflowNum = parseFloat(airflow);
+
+        if (isNaN(areaNum) || isNaN(heightNum) || isNaN(airflowNum) || areaNum <= 0 || heightNum <= 0 || airflowNum <= 0) {
+            setAirChanges(0);
+            return;
+        }
+
         // Convert area to square meters using convertValue
-        const areaInSqM = convertValue(area, areaUnit, 'm2');
+        const areaInSqM = convertValue(areaNum, areaUnit, 'm2');
 
         // Convert height to meters using convertValue
-        const heightInM = convertValue(height, heightUnit, 'm');
+        const heightInM = convertValue(heightNum, heightUnit, 'm');
 
         // Calculate volume in cubic meters
         const volumeInCubicM = areaInSqM * heightInM;
 
         // Convert airflow to cubic meters using convertValue
-        const airflowInCubicM = convertValue(airflow, airflowUnit, 'm3');
+        const airflowInCubicM = convertValue(airflowNum, airflowUnit, 'm3');
 
         // Convert time to minutes using simple conversion
         const timeInMin = timeConversions[airflowtimeUnit as keyof typeof timeConversions] || 1;
@@ -56,38 +65,38 @@ export default function AirChangesCalculator() {
         calculateAirChanges();
     }, [area, areaUnit, height, heightUnit, airflow, airflowUnit, airflowtimeUnit]);
 
-    const handleNumberInput = (value: string, setter: (val: number) => void) => {
-        if (value === '' || value === '0') {
-          setter(0);
-        } else {
-          // Remove leading zeros and convert to number
-          const cleanValue = value.replace(/^0+/, '') || '0';
-          setter(Number(cleanValue) || 0);
+    const handleNumberInput = (value: string, setter: (val: string) => void) => {
+        // Allow only digits and a single dot
+        let sanitized = value.replace(/[^0-9.]/g, '');
+        const firstDot = sanitized.indexOf('.');
+        if (firstDot !== -1) {
+          sanitized = sanitized.slice(0, firstDot + 1) + sanitized.slice(firstDot + 1).replace(/\./g, '');
         }
+        setter(sanitized);
       };
 
-      const handleFocus = (currentValue: number, e: React.FocusEvent<HTMLInputElement>) => {
-        if (currentValue === 0) {
+      const handleFocus = (currentValue: string, e: React.FocusEvent<HTMLInputElement>) => {
+        if (currentValue === '' || currentValue === '0') {
           e.target.select();
         }
       };
 
       const clearAll = () => {
-        setArea(0);
-        setHeight(0);
-        setAirflow(0);
+        setArea('');
+        setHeight('');
+        setAirflow('');
         setAirChanges(0);
       };
 
       const reloadCalculator = () => {
-        setArea(0);
-        setHeight(0);
-        setAirflow(0);
+        setArea('');
+        setHeight('');
+        setAirflow('');
         setAirChanges(0);
       };
 
       const shareResult = () => {
-        const result = `Area: ${area} ${areaUnit}\nHeight: ${height} ${heightUnit}\nAirflow: ${airflow} ${airflowUnit} / ${airflowtimeUnit}\nAir Changes per Hour: ${airChanges.toFixed(2)}`;
+        const result = `Area: ${area} ${areaUnit}\nHeight: ${height} ${heightUnit}\nAirflow: ${airflow} ${airflowUnit} / ${airflowtimeUnit}\nAir Changes per Hour: ${formatNumber(airChanges)}`;
         if (navigator.share) {
           navigator.share({
             title: 'Air Changes Calculator Result',
@@ -119,14 +128,15 @@ export default function AirChangesCalculator() {
                   </label>
                   <div className="flex gap-2">
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.,]?[0-9]*"
                       value={area}
-                      onChange={(e) => handleNumberInput(e.target.value, setArea)}
+                      onChange={(e) => handleNumberInput(e.target.value.replace(',', '.'), setArea)}
                       onFocus={(e) => handleFocus(area, e)}
                       className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                      step="0.01"
-                      min="0"
+                      placeholder="Enter area"
                     />
                     <UnitDropdown
                       value={areaUnit}
@@ -142,14 +152,15 @@ export default function AirChangesCalculator() {
                   </label>
                   <div className="flex gap-2">
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.,]?[0-9]*"
                       value={height}
-                      onChange={(e) => handleNumberInput(e.target.value, setHeight)}
+                      onChange={(e) => handleNumberInput(e.target.value.replace(',', '.'), setHeight)}
                       onFocus={(e) => handleFocus(height, e)}
                       className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                      step="0.01"
-                      min="0"
+                      placeholder="Enter height"
                     />
                     <UnitDropdown
                       value={heightUnit}
@@ -165,14 +176,15 @@ export default function AirChangesCalculator() {
                   </label>
                   <div className="flex gap-2">
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
+                        pattern="[0-9]*[.,]?[0-9]*"
                         value={airflow}
-                        onChange={(e) => handleNumberInput(e.target.value, setAirflow)}
+                        onChange={(e) => handleNumberInput(e.target.value.replace(',', '.'), setAirflow)}
                         onFocus={(e) => handleFocus(airflow, e)}
                         className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                        step="0.01"
-                        min="0"
+                        placeholder="Enter airflow"
                       />
                       <UnitDropdown
                         value={airflowUnit}
@@ -195,7 +207,7 @@ export default function AirChangesCalculator() {
                   <div className="flex gap-2">
                     <input
                       type="number"
-                      value={airChanges.toFixed(4)}
+                      value={formatNumber(airChanges, 4)}
                       readOnly
                       className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50"
                       style={{ color: '#1e293b', backgroundColor: '#f8fafc' }}

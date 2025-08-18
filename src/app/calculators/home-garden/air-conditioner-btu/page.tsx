@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown,ChevronUp } from '@/components/icons';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue } from '@/lib/utils';
+import { convertValue, formatNumber } from '@/lib/utils';
 
 // Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
 const lengthUnitValues = ['m', 'ft', 'cm'];
@@ -444,7 +444,7 @@ export default function AirConditionerBTUCalculator() {
                 <div className="flex gap-2">
                   <input
                     type="number"
-                    value={floorArea.toFixed(2)}
+                    value={formatNumber(floorArea)}
                     readOnly
                     className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-700"
                     style={{ color: '#374151', backgroundColor: '#f8fafc' }}
@@ -495,7 +495,7 @@ export default function AirConditionerBTUCalculator() {
                   <div className="flex gap-2">
                     <input
                       type="number"
-                      value={btu.toFixed(btuUnit === 'BTU' ? 0 : 2)}
+                      value={formatNumber(btu, btuUnit === 'BTU' ? 0 : 2)}
                       readOnly
                       className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-700"
                       style={{ color: '#374151', backgroundColor: '#f8fafc' }}

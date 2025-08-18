@@ -292,7 +292,10 @@ export default function BoilerSizeCalculator() {
                     </p>
                     <div className='bg-slate-100 p-4 rounded-lg mb-4'>
                         <p className='text-lg font-bold text-slate-800'>
-                            {getBoilerSizeKw(boilerSize)}-{getBoilerSizeKw(boilerSize) + 2} kW
+                            {isCombiSelected
+                                ? `${getBoilerSizeKw(boilerSize)}-${getBoilerSizeKw(boilerSize) + 2} kW`
+                                : `${getBoilerSizeKw(boilerSize)} kW`
+                            }
                         </p>
                     </div>
                         </>
