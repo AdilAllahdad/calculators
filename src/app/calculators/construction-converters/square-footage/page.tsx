@@ -76,30 +76,33 @@ export default function SquareFootageCalculator() {
     if (lengthUnit === 'ft-in') {
       const feet = typeof lengthFeet === 'string' ? parseFloat(lengthFeet) || 0 : lengthFeet;
       const inches = typeof lengthInches === 'string' ? parseFloat(lengthInches) || 0 : lengthInches;
-      // Convert to feet first
-      const valueInFeet = feet + (inches / 12);
-      // Then convert to meters
-      lengthInMeters = convertValue(valueInFeet, 'ft', 'm');
       
       // Return if both fields are zero or empty
       if (feet <= 0 && inches <= 0) {
         return;
       }
+      
+      // Convert to feet first with proper precision
+      const valueInFeet = parseFloat((feet + (inches / 12)).toFixed(6));
+      // Then convert to meters with full precision
+      lengthInMeters = convertValue(valueInFeet, 'ft', 'm');
     } else if (lengthUnit === 'm-cm') {
       const meters = typeof lengthMeters === 'string' ? parseFloat(lengthMeters) || 0 : lengthMeters;
       const centimeters = typeof lengthCentimeters === 'string' ? parseFloat(lengthCentimeters) || 0 : lengthCentimeters;
-      // Convert to meters first
-      lengthInMeters = meters + (centimeters / 100);
       
       // Return if both fields are zero or empty
       if (meters <= 0 && centimeters <= 0) {
         return;
       }
+      
+      // Convert to meters with proper precision
+      lengthInMeters = parseFloat((meters + (centimeters / 100)).toFixed(6));
     } else {
       const numLength = typeof length === 'string' ? parseFloat(length) || 0 : length;
       if (numLength <= 0) {
         return;
       }
+      // Always convert to meters with full precision
       lengthInMeters = convertValue(numLength, lengthUnit, 'm');
     }
     
@@ -107,30 +110,33 @@ export default function SquareFootageCalculator() {
     if (widthUnit === 'ft-in') {
       const feet = typeof widthFeet === 'string' ? parseFloat(widthFeet) || 0 : widthFeet;
       const inches = typeof widthInches === 'string' ? parseFloat(widthInches) || 0 : widthInches;
-      // Convert to feet first
-      const valueInFeet = feet + (inches / 12);
-      // Then convert to meters
-      widthInMeters = convertValue(valueInFeet, 'ft', 'm');
       
       // Return if both fields are zero or empty
       if (feet <= 0 && inches <= 0) {
         return;
       }
+      
+      // Convert to feet first with proper precision
+      const valueInFeet = parseFloat((feet + (inches / 12)).toFixed(6));
+      // Then convert to meters with full precision
+      widthInMeters = convertValue(valueInFeet, 'ft', 'm');
     } else if (widthUnit === 'm-cm') {
       const meters = typeof widthMeters === 'string' ? parseFloat(widthMeters) || 0 : widthMeters;
       const centimeters = typeof widthCentimeters === 'string' ? parseFloat(widthCentimeters) || 0 : widthCentimeters;
-      // Convert to meters first
-      widthInMeters = meters + (centimeters / 100);
       
       // Return if both fields are zero or empty
       if (meters <= 0 && centimeters <= 0) {
         return;
       }
+      
+      // Convert to meters with proper precision
+      widthInMeters = parseFloat((meters + (centimeters / 100)).toFixed(6));
     } else {
       const numWidth = typeof width === 'string' ? parseFloat(width) || 0 : width;
       if (numWidth <= 0) {
         return;
       }
+      // Always convert to meters with full precision
       widthInMeters = convertValue(numWidth, widthUnit, 'm');
     }
     
@@ -140,9 +146,10 @@ export default function SquareFootageCalculator() {
     // Calculate area in square meters
     const areaInSquareMeters = lengthInMeters * widthInMeters * numQuantity;
     
-    // Convert to selected display unit
+    // Convert to selected display unit and keep full precision
     const areaDisplay = convertValue(areaInSquareMeters, 'm2', areaUnit);
     
+    // Set area with full precision (don't round here)
     setArea(areaDisplay);
     
     // Calculate cost based on unit price and unit
@@ -154,10 +161,14 @@ export default function SquareFootageCalculator() {
     // Convert area to the unit used for pricing
     const areaInPricingUnit = convertValue(areaInSquareMeters, 'm2', unitPriceUnit);
     
-    // Calculate total cost with more precision
+    // Calculate total cost with high precision
     const cost = numUnitPrice * areaInPricingUnit;
-    // Round to 2 decimal places for currency
-    const roundedCost = Math.round(cost * 100) / 100;
+    
+    // Store the exact cost internally to maintain precision when changing units
+    const exactCost = cost;
+    
+    // Round to 2 decimal places for display only
+    const roundedCost = Math.round(exactCost * 100) / 100;
     setTotalCost(roundedCost);
   };
   
@@ -240,9 +251,16 @@ export default function SquareFootageCalculator() {
     // Convert values when switching to compound unit modes
     if (newUnit === 'ft-in' && lengthUnit !== 'ft-in') {
       const numLength = typeof length === 'string' ? parseFloat(length) || 0 : length;
-      const valueInFeet = convertValue(numLength, lengthUnit, 'ft');
+      // First convert to base unit (meters), then to feet for better precision
+      const valueInMeters = convertValue(numLength, lengthUnit, 'm');
+      const valueInFeet = convertValue(valueInMeters, 'm', 'ft');
+      
+      // Properly separate feet and inches with higher precision
       const feet = Math.floor(valueInFeet);
-      const inches = Math.round((valueInFeet - feet) * 12 * 100) / 100;
+      // Use higher precision calculation for inches to prevent rounding errors
+      const inchesExact = (valueInFeet - feet) * 12;
+      const inches = parseFloat(inchesExact.toFixed(4));
+      
       setLengthFeet(feet);
       setLengthInches(inches);
       setLengthUnit(newUnit);
@@ -252,9 +270,15 @@ export default function SquareFootageCalculator() {
     }
     if (newUnit === 'm-cm' && lengthUnit !== 'm-cm') {
       const numLength = typeof length === 'string' ? parseFloat(length) || 0 : length;
+      // Convert to meters with full precision
       const valueInMeters = convertValue(numLength, lengthUnit, 'm');
+      
+      // Properly separate meters and centimeters
       const meters = Math.floor(valueInMeters);
-      const centimeters = Math.round((valueInMeters - meters) * 100 * 100) / 100;
+      // Use higher precision calculation for centimeters
+      const centimetersExact = (valueInMeters - meters) * 100;
+      const centimeters = parseFloat(centimetersExact.toFixed(4));
+      
       setLengthMeters(meters);
       setLengthCentimeters(centimeters);
       setLengthUnit(newUnit);
@@ -266,24 +290,27 @@ export default function SquareFootageCalculator() {
     else if (lengthUnit === 'ft-in' && newUnit !== 'ft-in') {
       const feet = typeof lengthFeet === 'string' ? parseFloat(lengthFeet) || 0 : lengthFeet;
       const inches = typeof lengthInches === 'string' ? parseFloat(lengthInches) || 0 : lengthInches;
-      // Convert to feet first
-      const valueInFeet = feet + (inches / 12);
-      // Then convert to the target unit
-      setLength(convertValue(valueInFeet, 'ft', newUnit));
+      // Convert to feet first with proper precision
+      const valueInFeet = parseFloat((feet + (inches / 12)).toFixed(6));
+      // Convert to base unit (meters) first, then to target unit for better accuracy
+      const valueInMeters = convertValue(valueInFeet, 'ft', 'm');
+      setLength(convertValue(valueInMeters, 'm', newUnit));
     } 
     // Converting from m/cm to a regular unit
     else if (lengthUnit === 'm-cm' && newUnit !== 'm-cm') {
       const meters = typeof lengthMeters === 'string' ? parseFloat(lengthMeters) || 0 : lengthMeters;
       const centimeters = typeof lengthCentimeters === 'string' ? parseFloat(lengthCentimeters) || 0 : lengthCentimeters;
-      // Convert to meters first
-      const valueInMeters = meters + (centimeters / 100);
+      // Convert to meters first with proper precision
+      const valueInMeters = parseFloat((meters + (centimeters / 100)).toFixed(6));
       // Then convert to the target unit
       setLength(convertValue(valueInMeters, 'm', newUnit));
     } 
     // Regular unit to regular unit conversion
     else if (newUnit !== 'ft-in' && newUnit !== 'm-cm') {
       if (currentValue) {
-        setLength(convertValue(currentValue, lengthUnit, newUnit));
+        // Convert through base unit (meters) for consistent conversions
+        const valueInMeters = convertValue(currentValue, lengthUnit, 'm');
+        setLength(convertValue(valueInMeters, 'm', newUnit));
       }
     }
     
@@ -297,9 +324,16 @@ export default function SquareFootageCalculator() {
     // Convert values when switching to compound unit modes
     if (newUnit === 'ft-in' && widthUnit !== 'ft-in') {
       const numWidth = typeof width === 'string' ? parseFloat(width) || 0 : width;
-      const valueInFeet = convertValue(numWidth, widthUnit, 'ft');
+      // First convert to base unit (meters), then to feet for better precision
+      const valueInMeters = convertValue(numWidth, widthUnit, 'm');
+      const valueInFeet = convertValue(valueInMeters, 'm', 'ft');
+      
+      // Properly separate feet and inches with higher precision
       const feet = Math.floor(valueInFeet);
-      const inches = Math.round((valueInFeet - feet) * 12 * 100) / 100;
+      // Use higher precision calculation for inches to prevent rounding errors
+      const inchesExact = (valueInFeet - feet) * 12;
+      const inches = parseFloat(inchesExact.toFixed(4));
+      
       setWidthFeet(feet);
       setWidthInches(inches);
       setWidthUnit(newUnit);
@@ -309,9 +343,15 @@ export default function SquareFootageCalculator() {
     }
     if (newUnit === 'm-cm' && widthUnit !== 'm-cm') {
       const numWidth = typeof width === 'string' ? parseFloat(width) || 0 : width;
+      // Convert to meters with full precision
       const valueInMeters = convertValue(numWidth, widthUnit, 'm');
+      
+      // Properly separate meters and centimeters
       const meters = Math.floor(valueInMeters);
-      const centimeters = Math.round((valueInMeters - meters) * 100 * 100) / 100;
+      // Use higher precision calculation for centimeters
+      const centimetersExact = (valueInMeters - meters) * 100;
+      const centimeters = parseFloat(centimetersExact.toFixed(4));
+      
       setWidthMeters(meters);
       setWidthCentimeters(centimeters);
       setWidthUnit(newUnit);
@@ -323,24 +363,27 @@ export default function SquareFootageCalculator() {
     else if (widthUnit === 'ft-in' && newUnit !== 'ft-in') {
       const feet = typeof widthFeet === 'string' ? parseFloat(widthFeet) || 0 : widthFeet;
       const inches = typeof widthInches === 'string' ? parseFloat(widthInches) || 0 : widthInches;
-      // Convert to feet first
-      const valueInFeet = feet + (inches / 12);
-      // Then convert to the target unit
-      setWidth(convertValue(valueInFeet, 'ft', newUnit));
+      // Convert to feet first with proper precision
+      const valueInFeet = parseFloat((feet + (inches / 12)).toFixed(6));
+      // Convert to base unit (meters) first, then to target unit for better accuracy
+      const valueInMeters = convertValue(valueInFeet, 'ft', 'm');
+      setWidth(convertValue(valueInMeters, 'm', newUnit));
     } 
     // Converting from m/cm to a regular unit
     else if (widthUnit === 'm-cm' && newUnit !== 'm-cm') {
       const meters = typeof widthMeters === 'string' ? parseFloat(widthMeters) || 0 : widthMeters;
       const centimeters = typeof widthCentimeters === 'string' ? parseFloat(widthCentimeters) || 0 : widthCentimeters;
-      // Convert to meters first
-      const valueInMeters = meters + (centimeters / 100);
+      // Convert to meters first with proper precision
+      const valueInMeters = parseFloat((meters + (centimeters / 100)).toFixed(6));
       // Then convert to the target unit
       setWidth(convertValue(valueInMeters, 'm', newUnit));
     } 
     // Regular unit to regular unit conversion
     else if (newUnit !== 'ft-in' && newUnit !== 'm-cm') {
       if (currentValue) {
-        setWidth(convertValue(currentValue, widthUnit, newUnit));
+        // Convert through base unit (meters) for consistent conversions
+        const valueInMeters = convertValue(currentValue, widthUnit, 'm');
+        setWidth(convertValue(valueInMeters, 'm', newUnit));
       }
     }
     
@@ -355,26 +398,43 @@ export default function SquareFootageCalculator() {
     }
     setAreaUnit(newUnit);
     
-    // Recalculate the total cost since area unit changed
-    // This ensures total cost remains consistent with the current area and unit price
-    setTimeout(() => calculateRealTimeArea(), 0);
+    // Don't recalculate the total cost when area unit changes
+    // This will keep the total cost stable
   };
   
   const handleUnitPriceUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newUnit = e.target.value;
     const numUnitPrice = typeof unitPrice === 'string' ? parseFloat(unitPrice) || 0 : unitPrice;
     
-    if (numUnitPrice > 0) {
-      // Use the universal conversion function to update the price
+    // If we have a total cost and area, maintain the same total cost
+    if (totalCost !== null && area !== undefined && area > 0) {
+      // First convert the current area to square meters (base unit)
+      const areaInSquareMeters = convertValue(area, areaUnit, 'm2');
+      
+      // Convert the area to the new pricing units
+      const areaInNewPricingUnit = convertValue(areaInSquareMeters, 'm2', newUnit);
+      
+      // Calculate the new unit price that would give the EXACT same total cost
+      // totalCost = price × area
+      // Therefore, price = totalCost / area
+      const newUnitPrice = totalCost / areaInNewPricingUnit;
+      
+      // Instead of rounding to 2 decimal places, we keep more precision
+      // to ensure the total cost remains exactly the same
+      setUnitPrice(newUnitPrice);
+      
+      // Force recalculation to ensure the total cost is preserved
+      setTimeout(() => {
+        calculateRealTimeArea();
+      }, 0);
+    } else if (numUnitPrice > 0) {
+      // If no total cost yet, just do a simple unit conversion
       const convertedPrice = convertValue(numUnitPrice, unitPriceUnit, newUnit);
       setUnitPrice(convertedPrice);
     }
     
-    // Update the unit first, then recalculate after state is updated
+    // Update the unit
     setUnitPriceUnit(newUnit);
-    
-    // Use setTimeout to ensure state changes are processed before recalculating
-    setTimeout(() => calculateRealTimeArea(), 0);
   };
 
   const handleCalculate = (e: React.FormEvent) => {
@@ -706,19 +766,12 @@ export default function SquareFootageCalculator() {
                 <input 
                   type="text" 
                   className="flex-1 px-3 py-2 border rounded-l-md bg-gray-50 focus:outline-none"
-                  value={area !== undefined ? formatNumberWithCommas(area) : ""}
+                  value={area !== undefined ? formatNumberWithCommas(area, 5) : ""}
                   readOnly
                 />
                 <UnitDropdown
                   value={areaUnit}
-                  onChange={(e) => {
-                    const newUnit = e.target.value;
-                    if (area !== undefined && area > 0) {
-                      // Use the universal conversion function
-                      setArea(convertValue(area, areaUnit, newUnit));
-                    }
-                    setAreaUnit(newUnit);
-                  }}
+                  onChange={handleAreaUnitChange}
                   unitValues={areaUnitValues}
                   className="w-24 rounded-l-none rounded-r-md border-l-0"
                 />
@@ -766,32 +819,14 @@ export default function SquareFootageCalculator() {
                     const value = rawValue === '' ? '' : Number(rawValue);
                     setUnitPrice(value);
                     setUnitPriceError(value !== '' && Number(value) < 0 ? "Unit price cannot be negative." : null);
-                    // Recalculate the total cost after updating the unit price
-                    if (value !== '' && Number(value) >= 0) {
-                      setTimeout(() => calculateRealTimeArea(), 0);
-                    }
+                    // Don't automatically recalculate the total cost when unit price changes
                   }}
                   placeholder="0"
                 />
                 <div className="flex items-center px-2 border-t border-b border-slate-300 bg-slate-50">/</div>
                 <UnitDropdown
                   value={unitPriceUnit}
-                  onChange={(e) => {
-                    const newUnit = e.target.value;
-                    const numUnitPrice = typeof unitPrice === 'string' ? parseFloat(unitPrice) || 0 : unitPrice;
-                    
-                    if (numUnitPrice > 0) {
-                      // Use the universal conversion function to convert the price
-                      const convertedPrice = convertValue(numUnitPrice, unitPriceUnit, newUnit);
-                      setUnitPrice(convertedPrice);
-                    }
-                    
-                    // Update the unit and recalculate
-                    setUnitPriceUnit(newUnit);
-                    
-                    // Recalculate after state update
-                    setTimeout(() => calculateRealTimeArea(), 0);
-                  }}
+                  onChange={handleUnitPriceUnitChange}
                   unitValues={costAreaUnitValues}
                   className="w-24 rounded-l-none rounded-r-md border-l-0"
                 />
@@ -838,9 +873,9 @@ export default function SquareFootageCalculator() {
         <button
           type="button"
           onClick={calculateRealTimeArea}
-          className="flex-1 bg-blue-600 text-white py-3 rounded font-medium hover:bg-blue-700 transition"
+          className="flex-1 bg-blue-500 text-white py-3 rounded font-medium hover:bg-blue-600 transition"
         >
-          Calculate
+          Calculate Total
         </button>
       </div>
     </div>
