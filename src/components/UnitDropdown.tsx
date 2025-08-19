@@ -42,7 +42,7 @@ const UnitDropdown: React.FC<UnitDropdownProps> = ({
     >
       {units.map(unit => (
         <option key={unit.value} value={unit.value}>
-          {unit.label}
+          {unit.value}
         </option>
       ))}
     </select>

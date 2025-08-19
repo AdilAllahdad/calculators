@@ -90,12 +90,24 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'lb/ft3', label: 'pounds per cubic feet (lb/cu ft)', type: 'density' },
   { value: 'lb/yd3', label: 'pounds per cubic yard (lb/cu yd)', type: 'density' },
   { value: 'lb/US gal', label: 'pounds per gallon (US) (lb/US gal)', type: 'density' },
-  { value: 'lb/UK gal', label: 'pounds per gallon (UK) (lb/UK gal)', type: 'density' }
+  { value: 'lb/UK gal', label: 'pounds per gallon (UK) (lb/UK gal)', type: 'density' },
+  
+  // Price units
+  { value: 'USD/ft2', label: 'USD per square foot', type: 'price' },
+  { value: 'USD/m2', label: 'USD per square meter', type: 'price' },
+  { value: 'USD/yd2', label: 'USD per square yard', type: 'price' },
+  { value: 'USD/ft3', label: 'USD per cubic foot', type: 'price' },
+  { value: 'USD/m3', label: 'USD per cubic meter', type: 'price' },
+  { value: 'USD/yd3', label: 'USD per cubic yard', type: 'price' },
+  { value: 'USD/lb', label: 'USD per pound', type: 'price' },
+  { value: 'USD/kg', label: 'USD per kilogram', type: 'price' },
+  { value: 'USD/ton', label: 'USD per ton (US)', type: 'price' },
+  { value: 'USD/t', label: 'USD per metric ton', type: 'price' }
 ];
 
 export const CURRENCY_OPTIONS = [
   { value: 'USD', label: 'US Dollar', symbol: '$' },
-  { value: 'PKR', label: 'Pakistani Rupee', symbol: '₨' },
+  { value: 'PKR', label: 'Pakistani Rupee', symbol: 'PKR' },
   { value: 'EUR', label: 'Euro', symbol: '€' },
   { value: 'GBP', label: 'British Pound', symbol: '£' }
 ];
@@ -162,3 +174,12 @@ export const DEFAULT_BOARD_FOOT_VALUES = {
   price: 4.15,
   currency: 'USD'
 };
+
+export const CALCULATOR_UNITS = {
+  squareFootage: {
+    length: ['cm', 'm', 'in', 'ft', 'yd', 'ft-in', 'm-cm'],
+    area: ['cm2', 'm2', 'in2', 'ft2', 'yd2'],
+    costArea: ['m2', 'ft2', 'yd2']
+  }
+};
+
