@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   convertArea, 
   convertLength, 
@@ -27,6 +27,15 @@ export default function GallonsPerSquareFootCalculator() {
   const [widthValue, setWidthValue] = useState<string>('0');
   const [widthUnit, setWidthUnit] = useState<string>('ft');
   
+  // For composite unit fields (feet/inches and meters/centimeters) - like cubic yard calculator
+  const [compositeUnits, setCompositeUnits] = useState<{
+    [key: string]: { whole: string; fraction: string }
+  }>({
+    length: { whole: '', fraction: '' },
+    width: { whole: '', fraction: '' },
+    height: { whole: '', fraction: '' },
+  });
+  
   // Error states
   const [lengthError, setLengthError] = useState<string>('');
   const [widthError, setWidthError] = useState<string>('');
@@ -34,13 +43,7 @@ export default function GallonsPerSquareFootCalculator() {
   const [heightError, setHeightError] = useState<string>('');
   const [volumeError, setVolumeError] = useState<string>('');
 
-  // Add useEffect to calculate area when component mounts or when length/width values change
-  // Note: We only recalculate when the values change, not when units change
-  useEffect(() => {
-    if (lengthValue !== '0' && widthValue !== '0') {
-      calculateArea();
-    }
-  }, [lengthValue, widthValue]); // Removed lengthUnit, widthUnit from dependencies
+  // We'll add the useEffect after calculateArea is defined to avoid circular dependency
 
   // Add useEffect to calculate volume when area or height values change
   // Note: We only recalculate when the values change, not when units change
@@ -106,375 +109,412 @@ export default function GallonsPerSquareFootCalculator() {
     setter(value);
   };
  
-  // Helper function to handle unit changes with proper conversion
-  const handleUnitChange = (
-    value: string, 
-    fromUnit: string, 
-    toUnit: string, 
-    setter: (val: string) => void, 
-    conversionFunc: (val: number, from: string, to: string) => number,
-    shouldRecalculateArea: boolean = false
+  // Handle unit conversions for length and width using ONLY the conversion utility functions from conversion folder (like cubic yard calculator)
+  const handleLengthWidthUnitChange = (
+    field: string,
+    oldUnit: string,
+    newUnit: string
   ) => {
-    // If the units are the same, no conversion needed
-    if (fromUnit === toUnit) {
+    // Don't do anything if units are the same
+    if (oldUnit === newUnit) return;
+
+    // Update the unit first
+    if (field === 'length') {
+      setLengthUnit(newUnit);
+    } else if (field === 'width') {
+      setWidthUnit(newUnit);
+    }
+
+    // Clear any errors
+    if (field === 'length') {
+      setLengthError('');
+    } else if (field === 'width') {
+      setWidthError('');
+    }
+
+    // Check if we have any value to convert
+    const currentValue = field === 'length' ? lengthValue : widthValue;
+    const hasRegularValue = currentValue && !isNaN(parseFloat(currentValue));
+    const hasCompositeValue = (compositeUnits[field]?.whole && !isNaN(parseFloat(compositeUnits[field].whole))) || 
+                             (compositeUnits[field]?.fraction && !isNaN(parseFloat(compositeUnits[field].fraction)));
+
+    // If no value exists, just return (unit is already updated)
+    if (!hasRegularValue && !hasCompositeValue) {
       return;
     }
-    
-    // If there's no value or it's 0, just set 0 and return
-    if (!value || value === '0') {
-      setter('0');
+
+    try {
+      // Case 1: Converting FROM single unit TO composite unit
+      if ((oldUnit !== 'ft / in' && oldUnit !== 'm / cm') && (newUnit === 'ft / in' || newUnit === 'm / cm')) {
+        if (!hasRegularValue) return;
+        
+        const value = parseFloat(currentValue);
+        const targetCompositeUnit = newUnit;
+        
+        const result = convertToComposite(value, oldUnit, targetCompositeUnit);
+        
+        setCompositeUnits(prev => ({
+          ...prev,
+          [field]: {
+            whole: Math.floor(result.whole).toString(),
+            fraction: formatNumber(result.fraction, { maximumFractionDigits: 2, useCommas: false })
+          }
+        }));
+        
+        // Clear the regular dimension field
+        if (field === 'length') {
+          setLengthValue('');
+        } else if (field === 'width') {
+          setWidthValue('');
+        }
+      }
+      
+      // Case 2: Converting FROM composite unit TO single unit
+      else if ((oldUnit === 'ft / in' || oldUnit === 'm / cm') && (newUnit !== 'ft / in' && newUnit !== 'm / cm')) {
+        if (!hasCompositeValue) return;
+        
+        const whole = parseFloat(compositeUnits[field]?.whole || '0');
+        const fraction = parseFloat(compositeUnits[field]?.fraction || '0');
+        const sourceCompositeUnit = oldUnit;
+        
+        const convertedValue = convertFromComposite(whole, fraction, sourceCompositeUnit, newUnit);
+        const formattedValue = formatNumber(convertedValue, { maximumFractionDigits: 4, useCommas: false });
+        
+        if (field === 'length') {
+          setLengthValue(formattedValue);
+        } else if (field === 'width') {
+          setWidthValue(formattedValue);
+        }
+        
+        // Clear composite units
+        setCompositeUnits(prev => ({
+          ...prev,
+          [field]: { whole: '', fraction: '' }
+        }));
+      }
+      
+      // Case 3: Converting BETWEEN composite units (ft/in ↔ m/cm)
+      else if ((oldUnit === 'ft / in' || oldUnit === 'm / cm') && (newUnit === 'ft / in' || newUnit === 'm / cm')) {
+        if (!hasCompositeValue) return;
+        
+        const whole = parseFloat(compositeUnits[field]?.whole || '0');
+        const fraction = parseFloat(compositeUnits[field]?.fraction || '0');
+        const sourceCompositeUnit = oldUnit;
+        const targetCompositeUnit = newUnit;
+        
+        const result = convertBetweenComposites(whole, fraction, sourceCompositeUnit, targetCompositeUnit);
+        
+        setCompositeUnits(prev => ({
+          ...prev,
+          [field]: {
+            whole: Math.floor(result.whole).toString(),
+            fraction: formatNumber(result.fraction, { maximumFractionDigits: 2, useCommas: false })
+          }
+        }));
+      }
+      
+      // Case 4: Converting BETWEEN single units
+      else if ((oldUnit !== 'ft / in' && oldUnit !== 'm / cm') && (newUnit !== 'ft / in' && newUnit !== 'm / cm')) {
+        if (!hasRegularValue) return;
+        
+        const value = parseFloat(currentValue);
+        const convertedValue = convertLength(value, oldUnit, newUnit);
+        const formattedValue = formatNumber(convertedValue, { maximumFractionDigits: 4, useCommas: false });
+        
+        if (field === 'length') {
+          setLengthValue(formattedValue);
+        } else if (field === 'width') {
+          setWidthValue(formattedValue);
+        }
+      }
+
+    } catch (error) {
+      console.error('Conversion error:', error);
+      // Reset to original unit on error
+      if (field === 'length') {
+        setLengthUnit(oldUnit);
+      } else if (field === 'width') {
+        setWidthUnit(oldUnit);
+      }
+    }
+
+    // Recalculate area after conversion
+    setTimeout(() => calculateArea(), 0);
+  };
+
+  // Handle unit conversions for height using the same system as length/width
+  const handleHeightUnitChange = (
+    oldUnit: string,
+    newUnit: string
+  ) => {
+    // Don't do anything if units are the same
+    if (oldUnit === newUnit) return;
+
+    // Update the unit first
+    setHeightUnit(newUnit);
+
+    // Clear any errors
+    setHeightError('');
+
+    // Check if we have any value to convert
+    const hasRegularValue = heightValue && !isNaN(parseFloat(heightValue));
+    const hasCompositeValue = (compositeUnits.height?.whole && !isNaN(parseFloat(compositeUnits.height.whole))) || 
+                             (compositeUnits.height?.fraction && !isNaN(parseFloat(compositeUnits.height.fraction)));
+
+    // If no value exists, just return (unit is already updated)
+    if (!hasRegularValue && !hasCompositeValue) {
+      return;
+    }
+
+    try {
+      // Case 1: Converting FROM single unit TO composite unit
+      if ((oldUnit !== 'ft / in' && oldUnit !== 'm / cm') && (newUnit === 'ft / in' || newUnit === 'm / cm')) {
+        if (!hasRegularValue) return;
+        
+        const value = parseFloat(heightValue);
+        const targetCompositeUnit = newUnit;
+        
+        const result = convertToComposite(value, oldUnit, targetCompositeUnit);
+        
+        setCompositeUnits(prev => ({
+          ...prev,
+          height: {
+            whole: Math.floor(result.whole).toString(),
+            fraction: formatNumber(result.fraction, { maximumFractionDigits: 2, useCommas: false })
+          }
+        }));
+        
+        // Clear the regular height field
+        setHeightValue('');
+      }
+      
+      // Case 2: Converting FROM composite unit TO single unit
+      else if ((oldUnit === 'ft / in' || oldUnit === 'm / cm') && (newUnit !== 'ft / in' && newUnit !== 'm / cm')) {
+        if (!hasCompositeValue) return;
+        
+        const whole = parseFloat(compositeUnits.height?.whole || '0');
+        const fraction = parseFloat(compositeUnits.height?.fraction || '0');
+        const sourceCompositeUnit = oldUnit;
+        
+        const convertedValue = convertFromComposite(whole, fraction, sourceCompositeUnit, newUnit);
+        const formattedValue = formatNumber(convertedValue, { maximumFractionDigits: 4, useCommas: false });
+        
+        setHeightValue(formattedValue);
+        
+        // Clear composite units
+        setCompositeUnits(prev => ({
+          ...prev,
+          height: { whole: '', fraction: '' }
+        }));
+      }
+      
+      // Case 3: Converting BETWEEN composite units (ft/in ↔ m/cm)
+      else if ((oldUnit === 'ft / in' || oldUnit === 'm / cm') && (newUnit === 'ft / in' || newUnit === 'm / cm')) {
+        if (!hasCompositeValue) return;
+        
+        const whole = parseFloat(compositeUnits.height?.whole || '0');
+        const fraction = parseFloat(compositeUnits.height?.fraction || '0');
+        const sourceCompositeUnit = oldUnit;
+        const targetCompositeUnit = newUnit;
+        
+        const result = convertBetweenComposites(whole, fraction, sourceCompositeUnit, targetCompositeUnit);
+        
+        setCompositeUnits(prev => ({
+          ...prev,
+          height: {
+            whole: Math.floor(result.whole).toString(),
+            fraction: formatNumber(result.fraction, { maximumFractionDigits: 2, useCommas: false })
+          }
+        }));
+      }
+      
+      // Case 4: Converting BETWEEN single units
+      else if ((oldUnit !== 'ft / in' && oldUnit !== 'm / cm') && (newUnit !== 'ft / in' && newUnit !== 'm / cm')) {
+        if (!hasRegularValue) return;
+        
+        const value = parseFloat(heightValue);
+        const convertedValue = convertLength(value, oldUnit, newUnit);
+        const formattedValue = formatNumber(convertedValue, { maximumFractionDigits: 4, useCommas: false });
+        
+        setHeightValue(formattedValue);
+      }
+
+    } catch (error) {
+      console.error('Height conversion error:', error);
+      // Reset to original unit on error
+      setHeightUnit(oldUnit);
+    }
+  };
+
+  // Simple unit change handler for other fields (not length/width)
+  const handleOtherUnitChange = (
+    value: string,
+    fromUnit: string,
+    toUnit: string,
+    setter: (val: string) => void,
+    conversionFunc: (val: number, from: string, to: string) => number
+  ) => {
+    if (fromUnit === toUnit || !value || value === '0') {
       return;
     }
     
     try {
-      // Special case: From m/cm to any other unit
-      if (fromUnit === 'm / cm') {
-        // Parse the composite value correctly
-        const parts = value.split('.');
-        let meters = 0;
-        let centimeters = 0;
-        
-        if (parts.length === 2) {
-          meters = parseFloat(parts[0] || '0');
-          centimeters = parseFloat(parts[1] || '0');
-        } else if (parts.length === 1) {
-          meters = parseFloat(parts[0] || '0');
-        }
-        
-        // Convert to total meters
-        const totalMeters = meters + (centimeters / 100);
-        
-        if (toUnit === 'ft / in') {
-          // Convert from m/cm to ft/in
-          const result = convertToComposite(totalMeters, 'm', 'ft / in');
-          const wholeFormatted = formatNumber(result.whole, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-          });
-          
-          const fractionFormatted = formatNumber(result.fraction, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2
-          });
-          
-          setter(`${wholeFormatted}.${fractionFormatted}`);
+      const numValue = parseFloat(value);
+      const convertedValue = conversionFunc(numValue, fromUnit, toUnit);
+      const formattedValue = formatNumber(convertedValue, { maximumFractionDigits: 4, useCommas: false });
+      setter(formattedValue);
+    } catch (error) {
+      console.error('Conversion error:', error);
+    }
+  };
+
+  // Helper function to handle input changes
+  const handleLengthChange = (value: string) => {
+    handleNumberInput(value, setLengthValue, setLengthError);
+  };
+
+  const handleWidthChange = (value: string) => {
+    handleNumberInput(value, setWidthValue, setWidthError);
+  };
+
+  // Calculate the area based on length and width (simplified like cubic yard calculator)
+  const calculateArea = useCallback(() => {
+    console.log('calculateArea called with:', { lengthValue, widthValue, lengthUnit, widthUnit });
+    
+    // Check if we have values for both length and width
+    const hasLengthValue = lengthValue && !isNaN(parseFloat(lengthValue));
+    const hasWidthValue = widthValue && !isNaN(parseFloat(widthValue));
+    const hasLengthComposite = (compositeUnits.length?.whole && !isNaN(parseFloat(compositeUnits.length.whole))) || 
+                              (compositeUnits.length?.fraction && !isNaN(parseFloat(compositeUnits.length.fraction)));
+    const hasWidthComposite = (compositeUnits.width?.whole && !isNaN(parseFloat(compositeUnits.width.whole))) || 
+                             (compositeUnits.width?.fraction && !isNaN(parseFloat(compositeUnits.width.fraction)));
+
+    console.log('Has values:', { hasLengthValue, hasWidthValue, hasLengthComposite, hasWidthComposite });
+
+    if ((!hasLengthValue && !hasLengthComposite) || (!hasWidthValue && !hasWidthComposite)) {
+      console.log('Early return - missing values');
+      return;
+    }
+
+    try {
+      let lengthInFt, widthInFt;
+      
+      // Convert length to feet
+      if (lengthUnit === 'ft / in' || lengthUnit === 'm / cm') {
+        if (hasLengthComposite) {
+          const whole = parseFloat(compositeUnits.length?.whole || '0');
+          const fraction = parseFloat(compositeUnits.length?.fraction || '0');
+          lengthInFt = convertFromComposite(whole, fraction, lengthUnit, 'ft');
         } else {
-          // Convert to the target unit from meters
-          const convertedValue = conversionFunc(totalMeters, 'm', toUnit);
-          
-          if (Number.isInteger(convertedValue) || convertedValue > 100) {
-            setter(convertedValue.toString());
-          } else {
-            setter(formatNumber(convertedValue, {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 8  // Use same precision as ft/in conversion
-            }));
-          }
+          lengthInFt = 0;
         }
-        
-        // If this is a length or width unit change, recalculate area
-        if (shouldRecalculateArea) {
-          setTimeout(() => calculateArea(), 0);
+      } else {
+        if (hasLengthValue) {
+          lengthInFt = convertLength(parseFloat(lengthValue), lengthUnit, 'ft');
+        } else {
+          lengthInFt = 0;
         }
-        return;
       }
       
-      // Case 1: From composite unit (ft / in) to any unit
-      if (fromUnit === 'ft / in') {
-        // Parse the composite value
-        const parts = value.split('.');
-        let wholeValue = 0;
-        let fractionValue = 0;
-        
-        if (parts.length === 2) {
-          wholeValue = parseFloat(parts[0] || '0');
-          fractionValue = parseFloat(parts[1] || '0');
-        } else if (parts.length === 1) {
-          wholeValue = parseFloat(parts[0] || '0');
+      // Convert width to feet
+      if (widthUnit === 'ft / in' || widthUnit === 'm / cm') {
+        if (hasWidthComposite) {
+          const whole = parseFloat(compositeUnits.width?.whole || '0');
+          const fraction = parseFloat(compositeUnits.width?.fraction || '0');
+          widthInFt = convertFromComposite(whole, fraction, widthUnit, 'ft');
+        } else {
+          widthInFt = 0;
         }
-        
-        // Case 1a: From composite to another composite unit
-        if (toUnit === 'ft / in' || toUnit === 'm / cm') {
-          const result = convertBetweenComposites(
-            wholeValue, 
-            fractionValue, 
-            fromUnit as 'ft / in' | 'm / cm', 
-            toUnit as 'ft / in' | 'm / cm'
-          );
-          
-          // Format the whole and fraction parts
-          const wholeFormatted = formatNumber(result.whole, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-          });
-          
-          const fractionFormatted = formatNumber(result.fraction, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2
-          });
-          
-          // Set the value in the format "whole.fraction"
-          setter(`${wholeFormatted}.${fractionFormatted}`);
-          
-          // If this is a length or width unit change, recalculate area
-          if (shouldRecalculateArea) {
-            setTimeout(() => calculateArea(), 0);
-          }
-        } 
-        // Case 1b: From composite to single unit
-        else {
-          const convertedValue = convertFromComposite(
-            wholeValue, 
-            fractionValue, 
-            fromUnit as 'ft / in' | 'm / cm', 
-            toUnit
-          );
-          
-          // Format the number for display
-          if (Number.isInteger(convertedValue) || convertedValue > 100) {
-            setter(convertedValue.toString());
-          } else if (convertedValue < 0.0001 && convertedValue > 0) {
-            // For very small numbers, use enough decimal places to show the actual value
-            const decimalPlaces = Math.abs(Math.floor(Math.log10(convertedValue))) + 6;
-            setter(convertedValue.toFixed(decimalPlaces));
-          } else {
-            setter(formatNumber(convertedValue, {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 8  // Increased precision
-            }));
-          }
-          
-          // If this is a length or width unit change, recalculate area
-          if (shouldRecalculateArea) {
-            setTimeout(() => calculateArea(), 0);
-          }
+      } else {
+        if (hasWidthValue) {
+          widthInFt = convertLength(parseFloat(widthValue), widthUnit, 'ft');
+        } else {
+          widthInFt = 0;
         }
       }
-      // Case 2: From any unit to composite unit (ft / in or m / cm)
-      else if (toUnit === 'ft / in' || toUnit === 'm / cm') {
-        // Parse the value to ensure it's a number
-        const numValue = parseFloat(value);
-        if (isNaN(numValue)) {
-          setter('0');
-          return;
-        }
-        
-        const result = convertToComposite(numValue, fromUnit, toUnit as 'ft / in' | 'm / cm');
-        
-        // Format the whole and fraction parts
-        const wholeFormatted = formatNumber(result.whole, {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0
-        });
-        
-        const fractionFormatted = formatNumber(result.fraction, {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 2
-        });
-        
-        // Set the value in the format "whole.fraction"
-        setter(`${wholeFormatted}.${fractionFormatted}`);
-        
-        // If this is a length or width unit change, recalculate area
-        if (shouldRecalculateArea) {
-          setTimeout(() => calculateArea(), 0);
-        }
-      } 
-      // Case 3: Regular conversion between single units
-      else {
-        // Parse the value to ensure it's a number
-        const numValue = parseFloat(value);
-        if (isNaN(numValue)) {
-          setter('0');
-          return;
-        }
-        
-        // Perform the conversion using the appropriate conversion function
-        const convertedValue = conversionFunc(numValue, fromUnit, toUnit);
-        
-        // Format the number to a reasonable precision
-        if (Number.isInteger(convertedValue) || convertedValue > 100) {
-          setter(convertedValue.toString());
-        } else if (convertedValue < 0.0001 && convertedValue > 0) {
-          // For very small numbers, use enough decimal places to show the actual value
-          const decimalPlaces = Math.abs(Math.floor(Math.log10(convertedValue))) + 6;
-          setter(convertedValue.toFixed(decimalPlaces));
-        } else {
-          setter(formatNumber(convertedValue, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 8  // Increased precision
-          }));
-        }
-        
-        // If this is a length or width unit change, recalculate area
-        if (shouldRecalculateArea) {
-          setTimeout(() => calculateArea(), 0);
-        }
+      
+      // Calculate area in square feet
+      const areaInSqFt = lengthInFt * widthInFt;
+      
+      // Debug: Log the calculation for troubleshooting
+      console.log('Area calculation debug:', {
+        lengthValue,
+        lengthUnit,
+        lengthInFt,
+        widthValue,
+        widthUnit,
+        widthInFt,
+        areaInSqFt,
+        areaUnit
+      });
+      
+      // Convert to the selected area unit
+      const convertedArea = convertArea(areaInSqFt, 'ft²', areaUnit);
+      const formattedValue = formatNumber(convertedArea, { maximumFractionDigits: 4, useCommas: false });
+      setAreaValue(formattedValue);
+      
+      // If we have a height value, also recalculate gallons and volume
+      if (heightValue && heightValue !== '0') {
+        calculateFromAreaAndHeight();
       }
     } catch (error) {
-      console.error("Conversion error:", error);
-      // In case of error, keep the original value
-      setter(value);
+      console.error('Error calculating area:', error);
     }
-  };
+  }, [lengthValue, widthValue, lengthUnit, widthUnit, compositeUnits, areaUnit, heightValue, setAreaValue]);
 
-  // Calculate the area based on length and width
-  const calculateArea = () => {
-    if (lengthValue && widthValue) {
-      try {
-        let lengthInFt, widthInFt;
-        
-        // Check if length is in composite unit
-        if (lengthUnit === 'm / cm') {
-          // Special handling for m/cm
-          const parts = lengthValue.split('.');
-          let meters = 0;
-          let centimeters = 0;
-          
-          if (parts.length === 2) {
-            meters = parseFloat(parts[0] || '0');
-            centimeters = parseFloat(parts[1] || '0');
-          } else if (parts.length === 1) {
-            meters = parseFloat(parts[0] || '0');
-          }
-          
-          // Convert to total meters then to feet
-          const totalMeters = meters + (centimeters / 100);
-          lengthInFt = convertLength(totalMeters, 'm', 'ft');
-        }
-        else if (lengthUnit === 'ft / in') {
-          // For ft/in composite unit
-          const parts = lengthValue.split('.');
-          if (parts.length === 2) {
-            const whole = parseFloat(parts[0] || '0');
-            const fraction = parseFloat(parts[1] || '0');
-            lengthInFt = convertFromComposite(whole, fraction, lengthUnit as 'ft / in', 'ft');
-          } else {
-            // If it's a composite unit but doesn't have a decimal point,
-            // treat it as a whole number only
-            lengthInFt = convertFromComposite(parseFloat(lengthValue), 0, lengthUnit as 'ft / in', 'ft');
-          }
-        } else {
-          lengthInFt = convertLength(parseFloat(lengthValue), lengthUnit, 'ft');
-        }
-        
-        // Check if width is in composite unit
-        if (widthUnit === 'm / cm') {
-          // Special handling for m/cm
-          const parts = widthValue.split('.');
-          let meters = 0;
-          let centimeters = 0;
-          
-          if (parts.length === 2) {
-            meters = parseFloat(parts[0] || '0');
-            centimeters = parseFloat(parts[1] || '0');
-          } else if (parts.length === 1) {
-            meters = parseFloat(parts[0] || '0');
-          }
-          
-          // Convert to total meters then to feet
-          const totalMeters = meters + (centimeters / 100);
-          widthInFt = convertLength(totalMeters, 'm', 'ft');
-        }
-        else if (widthUnit === 'ft / in') {
-          // For ft/in composite unit
-          const parts = widthValue.split('.');
-          if (parts.length === 2) {
-            const whole = parseFloat(parts[0] || '0');
-            const fraction = parseFloat(parts[1] || '0');
-            widthInFt = convertFromComposite(whole, fraction, widthUnit as 'ft / in', 'ft');
-          } else {
-            // If it's a composite unit but doesn't have a decimal point,
-            // treat it as a whole number only
-            widthInFt = convertFromComposite(parseFloat(widthValue), 0, widthUnit as 'ft / in', 'ft');
-          }
-        } else {
-          widthInFt = convertLength(parseFloat(widthValue), widthUnit, 'ft');
-        }
-        
-        // Area = Length × Width (formula as specified)
-        const areaInSqFt = lengthInFt * widthInFt;
-        const convertedArea = convertArea(areaInSqFt, 'ft²', areaUnit);
-        
-        // For integers or large numbers, don't add decimal places to avoid confusion
-        if (Number.isInteger(convertedArea) || convertedArea > 100) {
-          setAreaValue(convertedArea.toString());
-        } else {
-          setAreaValue(formatNumber(convertedArea, {maximumFractionDigits: 8})); // Increased precision
-        }
-        
-        // If we have a height value, also recalculate gallons and volume
-        if (heightValue && heightValue !== '0') {
-          calculateFromAreaAndHeight(formatNumber(convertedArea, {maximumFractionDigits: 8})); // Increased precision
-        }
-      } catch (error) {
-        console.error('Error calculating area:', error);
-      }
+  // Add useEffect to calculate area when component mounts or when length/width values change
+  useEffect(() => {
+    console.log('useEffect triggered:', { lengthValue, widthValue });
+    const lengthNum = parseFloat(lengthValue || '0');
+    const widthNum = parseFloat(widthValue || '0');
+    console.log('Parsed values:', { lengthNum, widthNum });
+    
+    if (lengthNum > 0 && widthNum > 0) {
+      console.log('Calling calculateArea');
+      calculateArea();
+    } else {
+      console.log('Not calling calculateArea - values not both > 0');
     }
-  };
+  }, [lengthValue, widthValue, calculateArea]);
 
   const calculateFromAreaAndHeight = (optionalArea?: string) => {
-    // Use the provided area or the current state
     const areaToUse = optionalArea || areaValue;
     
-    if (areaToUse !== null && heightValue !== null) {
+    if (areaToUse) {
       try {
         // Convert area to square feet for calculation
-        const areaInSqFt = areaToUse ? convertArea(parseFloat(areaToUse), areaUnit, 'ft²') : 0;
+        const areaInSqFt = convertArea(parseFloat(areaToUse), areaUnit, 'ft²');
         
-        // Get height in feet
+        // Convert height to feet using the same logic as length/width
         let heightInFt = 0;
-        if (heightValue) {
-          if (heightUnit === 'm / cm') {
-            // Special handling for m/cm
-            const parts = heightValue.split('.');
-            let meters = 0;
-            let centimeters = 0;
-            
-            if (parts.length === 2) {
-              meters = parseFloat(parts[0] || '0');
-              centimeters = parseFloat(parts[1] || '0');
-            } else if (parts.length === 1) {
-              meters = parseFloat(parts[0] || '0');
-            }
-            
-            // Convert to total meters then to feet
-            const totalMeters = meters + (centimeters / 100);
-            heightInFt = convertLength(totalMeters, 'm', 'ft');
+        
+        // Check if height is in composite unit
+        if (heightUnit === 'ft / in' || heightUnit === 'm / cm') {
+          const hasCompositeValue = (compositeUnits.height?.whole && !isNaN(parseFloat(compositeUnits.height.whole))) || 
+                                   (compositeUnits.height?.fraction && !isNaN(parseFloat(compositeUnits.height.fraction)));
+          if (hasCompositeValue) {
+            const whole = parseFloat(compositeUnits.height?.whole || '0');
+            const fraction = parseFloat(compositeUnits.height?.fraction || '0');
+            heightInFt = convertFromComposite(whole, fraction, heightUnit, 'ft');
           }
-          else if (heightUnit === 'ft / in') {
-            const parts = heightValue.split('.');
-            if (parts.length === 2) {
-              const whole = parseFloat(parts[0] || '0');
-              const fraction = parseFloat(parts[1] || '0');
-              heightInFt = convertFromComposite(whole, fraction, heightUnit as 'ft / in', 'ft');
-            } else {
-              // If it's a composite unit but doesn't have a decimal point,
-              // treat it as a whole number only
-              heightInFt = convertFromComposite(parseFloat(heightValue), 0, heightUnit as 'ft / in', 'ft');
-            }
-          } else {
+        } else {
+          // For regular units
+          if (heightValue && !isNaN(parseFloat(heightValue))) {
             heightInFt = convertLength(parseFloat(heightValue), heightUnit, 'ft');
           }
         }
         
         // Calculate gallons per square foot: height in feet × 7.48052
-        const gallonsPerSqFt = heightInFt * 7.48052; // US gallons per cubic foot conversion factor
+        const gallonsPerSqFt = heightInFt * 7.48052;
         const convertedGallonsPerSqFt = convertVolume(gallonsPerSqFt, 'US gal', gallonsPerSqFtUnit);
-        setGallonsPerSqFtValue(formatNumber(convertedGallonsPerSqFt, {maximumFractionDigits: 8})); // Increased precision
+        const formattedGallonsPerSqFt = formatNumber(convertedGallonsPerSqFt, { maximumFractionDigits: 4, useCommas: false });
+        setGallonsPerSqFtValue(formattedGallonsPerSqFt);
         
         // Calculate total volume: area (in sq ft) × gallons per square foot
         const totalVolumeInGallons = areaInSqFt * gallonsPerSqFt;
-        
-        // Convert to the selected volume unit
         const convertedVolume = convertVolume(totalVolumeInGallons, 'US gal', volumeUnit);
-        
-        // Use appropriate formatting for the volume
-        if (Number.isInteger(convertedVolume) || convertedVolume > 100) {
-          setVolumeValue(convertedVolume.toString());
-        } else {
-          setVolumeValue(formatNumber(convertedVolume, {maximumFractionDigits: 8})); // Increased precision
-        }
+        const formattedVolume = formatNumber(convertedVolume, { maximumFractionDigits: 4, useCommas: false });
+        setVolumeValue(formattedVolume);
       } catch (error) {
         console.error('Error calculating from area and height:', error);
       }
@@ -482,50 +522,34 @@ export default function GallonsPerSquareFootCalculator() {
   };
 
   const calculateFromVolumeAndHeight = () => {
-    if (volumeValue && heightValue) {
+    if (volumeValue) {
       try {
         const volumeInGallons = convertVolume(parseFloat(volumeValue), volumeUnit, 'US gal');
         
-        let heightInFt;
+        // Convert height to feet using the same logic as length/width
+        let heightInFt = 0;
+        
         // Check if height is in composite unit
-        if (heightUnit === 'm / cm') {
-          // Special handling for m/cm
-          const parts = heightValue.split('.');
-          let meters = 0;
-          let centimeters = 0;
-          
-          if (parts.length === 2) {
-            meters = parseFloat(parts[0] || '0');
-            centimeters = parseFloat(parts[1] || '0');
-          } else if (parts.length === 1) {
-            meters = parseFloat(parts[0] || '0');
-          }
-          
-          // Convert to total meters then to feet
-          const totalMeters = meters + (centimeters / 100);
-          heightInFt = convertLength(totalMeters, 'm', 'ft');
-        }
-        else if (heightUnit === 'ft / in') {
-          // For ft/in composite unit
-          const parts = heightValue.split('.');
-          if (parts.length === 2) {
-            const whole = parseFloat(parts[0] || '0');
-            const fraction = parseFloat(parts[1] || '0');
-            heightInFt = convertFromComposite(whole, fraction, heightUnit as 'ft / in', 'ft');
-          } else {
-            // If it's a composite unit but doesn't have a decimal point,
-            // treat it as a whole number only
-            heightInFt = convertFromComposite(parseFloat(heightValue), 0, heightUnit as 'ft / in', 'ft');
+        if (heightUnit === 'ft / in' || heightUnit === 'm / cm') {
+          const hasCompositeValue = (compositeUnits.height?.whole && !isNaN(parseFloat(compositeUnits.height.whole))) || 
+                                   (compositeUnits.height?.fraction && !isNaN(parseFloat(compositeUnits.height.fraction)));
+          if (hasCompositeValue) {
+            const whole = parseFloat(compositeUnits.height?.whole || '0');
+            const fraction = parseFloat(compositeUnits.height?.fraction || '0');
+            heightInFt = convertFromComposite(whole, fraction, heightUnit, 'ft');
           }
         } else {
-          heightInFt = convertLength(parseFloat(heightValue), heightUnit, 'ft');
+          // For regular units
+          if (heightValue && !isNaN(parseFloat(heightValue))) {
+            heightInFt = convertLength(parseFloat(heightValue), heightUnit, 'ft');
+          }
         }
         
         // Always calculate gallons per square foot, even if height is 0
         // Gallons per square foot = height in feet × 7.48052 US gallons per cubic foot
         const gallonsPerSqFt = heightInFt * 7.48052;
         const convertedGallonsPerSqFt = convertVolume(gallonsPerSqFt, 'US gal', gallonsPerSqFtUnit);
-        setGallonsPerSqFtValue(formatNumber(convertedGallonsPerSqFt, {maximumFractionDigits: 8})); // Increased precision
+        setGallonsPerSqFtValue(formatNumber(convertedGallonsPerSqFt, {maximumFractionDigits: 8, useCommas: false})); // Increased precision, no commas
         
         // Only calculate area if we have valid values to avoid division by zero
         if (volumeInGallons > 0 && heightInFt > 0) {
@@ -533,7 +557,7 @@ export default function GallonsPerSquareFootCalculator() {
           // This is equivalent to: volume (in gallons) / (height (in ft) × 7.48052)
           const areaInSqFt = volumeInGallons / gallonsPerSqFt;
           const convertedArea = convertArea(areaInSqFt, 'ft²', areaUnit);
-          setAreaValue(formatNumber(convertedArea, {maximumFractionDigits: 8})); // Increased precision
+          setAreaValue(formatNumber(convertedArea, {maximumFractionDigits: 8, useCommas: false})); // Increased precision, no commas
         }
       } catch (error) {
         console.error('Error calculating from volume and height:', error);
@@ -557,23 +581,45 @@ export default function GallonsPerSquareFootCalculator() {
     handleNumberInput(value, setVolumeValue, setVolumeError);
     // No automatic recalculation
   };
-  
-  const handleLengthChange = (value: string) => {
-    handleNumberInput(value, setLengthValue, setLengthError);
-    // We only calculate area automatically as it's a direct calculation
-    // This is expected behavior when entering dimensions
-    if (value && widthValue && !isNaN(Number(value)) && Number(value) >= 0) {
-      calculateArea();
+
+  // Handle composite unit input changes (like cubic yard calculator)
+  const handleCompositeChange = (field: string, part: 'whole' | 'fraction', value: string) => {
+    // Clear any errors
+    if (field === 'length') {
+      setLengthError('');
+    } else if (field === 'width') {
+      setWidthError('');
+    } else if (field === 'height') {
+      setHeightError('');
     }
+
+    // Update the composite value
+    setCompositeUnits(prev => ({
+      ...prev,
+      [field]: {
+        ...prev[field],
+        [part]: value
+      }
+    }));
+
+    // Note: Area calculation is handled by useEffect automatically
   };
 
-  const handleWidthChange = (value: string) => {
-    handleNumberInput(value, setWidthValue, setWidthError);
-    // We only calculate area automatically as it's a direct calculation
-    // This is expected behavior when entering dimensions
-    if (lengthValue && value && !isNaN(Number(value)) && Number(value) >= 0) {
-      calculateArea();
+  // Handle regular unit input changes (like cubic yard calculator)
+  const handleRegularUnitChange = (field: string, value: string) => {
+    // Clear any errors
+    if (field === 'length') {
+      setLengthError('');
+      handleNumberInput(value, setLengthValue, setLengthError);
+    } else if (field === 'width') {
+      setWidthError('');
+      handleNumberInput(value, setWidthValue, setWidthError);
+    } else if (field === 'height') {
+      setHeightError('');
+      handleNumberInput(value, setHeightValue, setHeightError);
     }
+
+    // Note: Area calculation is handled by useEffect, no need for setTimeout
   };
 
   const reloadCalculator = () => {
@@ -590,6 +636,13 @@ export default function GallonsPerSquareFootCalculator() {
     setGallonsPerSqFtUnit('US gal');
     setLengthUnit('ft');
     setWidthUnit('ft');
+    
+    // Reset composite units
+    setCompositeUnits({
+      length: { whole: '', fraction: '' },
+      width: { whole: '', fraction: '' },
+      height: { whole: '', fraction: '' },
+    });
     
     // Reset error states
     setLengthError('');
@@ -625,11 +678,6 @@ export default function GallonsPerSquareFootCalculator() {
           Gallons per Square Foot Calculator 
           <span className="ml-3 text-2xl">💧</span>
         </h1>
-        <p className="text-slate-600 max-w-2xl mx-auto">
-          Calculate how many gallons of water (or any liquid) per square foot you need for your tank, pool, or container. 
-          This calculator converts between area units and volume units including US/UK gallons and fluid ounces.
-          The formula used is: 1 cubic foot = 7.48052 US gallons.
-        </p>
       </div>
 
       <div className="flex justify-center">
@@ -646,11 +694,9 @@ export default function GallonsPerSquareFootCalculator() {
                 <div className="flex-1 flex">
                   <input
                     type="number"
-                    value={lengthValue.includes('.') ? lengthValue.split('.')[0] : lengthValue}
+                    value={compositeUnits.length?.whole || ''}
                     onChange={(e) => {
-                      const whole = e.target.value;
-                      const fraction = lengthValue.includes('.') ? lengthValue.split('.')[1] : '0';
-                      handleLengthChange(`${whole}.${fraction}`);
+                      handleCompositeChange('length', 'whole', e.target.value);
                     }}
                     className={`flex-1 px-3 py-2 border ${lengthError ? 'border-red-500' : 'border-slate-300'} rounded-lg rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
@@ -665,11 +711,9 @@ export default function GallonsPerSquareFootCalculator() {
                 <div className="flex-1 flex">
                   <input
                     type="number"
-                    value={lengthValue.includes('.') ? lengthValue.split('.')[1] : '0'}
+                    value={compositeUnits.length?.fraction || ''}
                     onChange={(e) => {
-                      const whole = lengthValue.includes('.') ? lengthValue.split('.')[0] : lengthValue;
-                      const fraction = e.target.value;
-                      handleLengthChange(`${whole}.${fraction}`);
+                      handleCompositeChange('length', 'fraction', e.target.value);
                     }}
                     className={`flex-1 px-3 py-2 border ${lengthError ? 'border-red-500' : 'border-slate-300'} rounded-lg rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
@@ -687,22 +731,21 @@ export default function GallonsPerSquareFootCalculator() {
                     value={lengthUnit}
                     onChange={(e) => {
                       const newUnit = e.target.value;
-                      handleUnitChange(lengthValue, lengthUnit, newUnit, setLengthValue, convertLength, true);
-                      setLengthUnit(newUnit);
+                      handleLengthWidthUnitChange('length', lengthUnit, newUnit);
                     }}
                     className="w-full h-full px-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none"
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                   >
-                    <option value="ft / in" className="text-blue-600">ft / in</option>
-                    <option value="m / cm" className="text-blue-600">m / cm</option>
-                    <option value="mm" className="text-blue-600">mm</option>
-                    <option value="cm" className="text-blue-600">cm</option>
-                    <option value="m" className="text-blue-600">m</option>
-                    <option value="km" className="text-blue-600">km</option>
-                    <option value="in" className="text-blue-600">in</option>
-                    <option value="ft" className="text-blue-600">ft</option>
-                    <option value="yd" className="text-blue-600">yd</option>
-                    <option value="mi" className="text-blue-600">mi</option>
+                    <option value="ft / in" className="text-blue-600">feet / inches (ft / in)</option>
+                    <option value="m / cm" className="text-blue-600">meters / centimeters (m / cm)</option>
+                    <option value="mm" className="text-blue-600">millimeters (mm)</option>
+                    <option value="cm" className="text-blue-600">centimeters (cm)</option>
+                    <option value="m" className="text-blue-600">meters (m)</option>
+                    <option value="km" className="text-blue-600">kilometers (km)</option>
+                    <option value="in" className="text-blue-600">inches (in)</option>
+                    <option value="ft" className="text-blue-600">feet (ft)</option>
+                    <option value="yd" className="text-blue-600">yards (yd)</option>
+                    <option value="mi" className="text-blue-600">miles (mi)</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-1 pointer-events-none">
                     <span className="text-slate-500">▼</span>
@@ -714,11 +757,9 @@ export default function GallonsPerSquareFootCalculator() {
                 <div className="flex-1 flex">
                   <input
                     type="number"
-                    value={lengthValue.includes('.') ? lengthValue.split('.')[0] : lengthValue}
+                    value={compositeUnits.length?.whole || ''}
                     onChange={(e) => {
-                      const whole = e.target.value;
-                      const fraction = lengthValue.includes('.') ? lengthValue.split('.')[1] : '0';
-                      handleLengthChange(`${whole}.${fraction}`);
+                      handleCompositeChange('length', 'whole', e.target.value);
                     }}
                     className={`flex-1 px-3 py-2 border ${lengthError ? 'border-red-500' : 'border-slate-300'} rounded-lg rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
@@ -733,11 +774,9 @@ export default function GallonsPerSquareFootCalculator() {
                 <div className="flex-1 flex">
                   <input
                     type="number"
-                    value={lengthValue.includes('.') ? lengthValue.split('.')[1] : '0'}
+                    value={compositeUnits.length?.fraction || ''}
                     onChange={(e) => {
-                      const whole = lengthValue.includes('.') ? lengthValue.split('.')[0] : lengthValue;
-                      const fraction = e.target.value;
-                      handleLengthChange(`${whole}.${fraction}`);
+                      handleCompositeChange('length', 'fraction', e.target.value);
                     }}
                     className={`flex-1 px-3 py-2 border ${lengthError ? 'border-red-500' : 'border-slate-300'} rounded-lg rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
@@ -755,22 +794,21 @@ export default function GallonsPerSquareFootCalculator() {
                     value={lengthUnit}
                     onChange={(e) => {
                       const newUnit = e.target.value;
-                      handleUnitChange(lengthValue, lengthUnit, newUnit, setLengthValue, convertLength, true);
-                      setLengthUnit(newUnit);
+                      handleLengthWidthUnitChange('length', lengthUnit, newUnit);
                     }}
                     className="w-full h-full px-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none"
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                   >
-                    <option value="m / cm" className="text-blue-600">m / cm</option>
-                    <option value="ft / in" className="text-blue-600">ft / in</option>
-                    <option value="mm" className="text-blue-600">mm</option>
-                    <option value="cm" className="text-blue-600">cm</option>
-                    <option value="m" className="text-blue-600">m</option>
-                    <option value="km" className="text-blue-600">km</option>
-                    <option value="in" className="text-blue-600">in</option>
-                    <option value="ft" className="text-blue-600">ft</option>
-                    <option value="yd" className="text-blue-600">yd</option>
-                    <option value="mi" className="text-blue-600">mi</option>
+                    <option value="m / cm" className="text-blue-600">meters / centimeters (m / cm)</option>
+                    <option value="ft / in" className="text-blue-600">feet / inches (ft / in)</option>
+                    <option value="mm" className="text-blue-600">millimeters (mm)</option>
+                    <option value="cm" className="text-blue-600">centimeters (cm)</option>
+                    <option value="m" className="text-blue-600">meters (m)</option>
+                    <option value="km" className="text-blue-600">kilometers (km)</option>
+                    <option value="in" className="text-blue-600">inches (in)</option>
+                    <option value="ft" className="text-blue-600">feet (ft)</option>
+                    <option value="yd" className="text-blue-600">yards (yd)</option>
+                    <option value="mi" className="text-blue-600">miles (mi)</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-1 pointer-events-none">
                     <span className="text-slate-500">▼</span>
@@ -782,7 +820,7 @@ export default function GallonsPerSquareFootCalculator() {
                 <input
                   type="number"
                   value={lengthValue}
-                  onChange={(e) => handleLengthChange(e.target.value)}
+                  onChange={(e) => handleRegularUnitChange('length', e.target.value)}
                   className={`flex-1 px-3 py-2 border ${lengthError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                   style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                   step="0.01"
@@ -794,8 +832,7 @@ export default function GallonsPerSquareFootCalculator() {
                     value={lengthUnit}
                     onChange={(e) => {
                       const newUnit = e.target.value;
-                      handleUnitChange(lengthValue, lengthUnit, newUnit, setLengthValue, convertLength, true);
-                      setLengthUnit(newUnit);
+                      handleLengthWidthUnitChange('length', lengthUnit, newUnit);
                     }}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none pr-8"
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
@@ -830,12 +867,8 @@ export default function GallonsPerSquareFootCalculator() {
                 <div className="flex-1 flex">
                   <input
                     type="number"
-                    value={widthValue.includes('.') ? widthValue.split('.')[0] : widthValue}
-                    onChange={(e) => {
-                      const whole = e.target.value;
-                      const fraction = widthValue.includes('.') ? widthValue.split('.')[1] : '0';
-                      handleWidthChange(`${whole}.${fraction}`);
-                    }}
+                    value={compositeUnits.width.whole}
+                    onChange={(e) => handleCompositeChange('width', 'whole', e.target.value)}
                     className={`flex-1 px-3 py-2 border ${widthError ? 'border-red-500' : 'border-slate-300'} rounded-lg rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                     step="1"
@@ -849,12 +882,8 @@ export default function GallonsPerSquareFootCalculator() {
                 <div className="flex-1 flex">
                   <input
                     type="number"
-                    value={widthValue.includes('.') ? widthValue.split('.')[1] : '0'}
-                    onChange={(e) => {
-                      const whole = widthValue.includes('.') ? widthValue.split('.')[0] : widthValue;
-                      const fraction = e.target.value;
-                      handleWidthChange(`${whole}.${fraction}`);
-                    }}
+                    value={compositeUnits.width.fraction}
+                    onChange={(e) => handleCompositeChange('width', 'fraction', e.target.value)}
                     className={`flex-1 px-3 py-2 border ${widthError ? 'border-red-500' : 'border-slate-300'} rounded-lg rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                     step="1"
@@ -871,22 +900,21 @@ export default function GallonsPerSquareFootCalculator() {
                     value={widthUnit}
                     onChange={(e) => {
                       const newUnit = e.target.value;
-                      handleUnitChange(widthValue, widthUnit, newUnit, setWidthValue, convertLength, true);
-                      setWidthUnit(newUnit);
+                      handleLengthWidthUnitChange('width', widthUnit, newUnit);
                     }}
                     className="w-full h-full px-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none"
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                   >
-                    <option value="ft / in" className="text-blue-600">ft / in</option>
-                    <option value="m / cm" className="text-blue-600">m / cm</option>
-                    <option value="mm" className="text-blue-600">mm</option>
-                    <option value="cm" className="text-blue-600">cm</option>
-                    <option value="m" className="text-blue-600">m</option>
-                    <option value="km" className="text-blue-600">km</option>
-                    <option value="in" className="text-blue-600">in</option>
-                    <option value="ft" className="text-blue-600">ft</option>
-                    <option value="yd" className="text-blue-600">yd</option>
-                    <option value="mi" className="text-blue-600">mi</option>
+                    <option value="ft / in" className="text-blue-600">feet / inches (ft / in)</option>
+                    <option value="m / cm" className="text-blue-600">meters / centimeters (m / cm)</option>
+                    <option value="mm" className="text-blue-600">millimeters (mm)</option>
+                    <option value="cm" className="text-blue-600">centimeters (cm)</option>
+                    <option value="m" className="text-blue-600">meters (m)</option>
+                    <option value="km" className="text-blue-600">kilometers (km)</option>
+                    <option value="in" className="text-blue-600">inches (in)</option>
+                    <option value="ft" className="text-blue-600">feet (ft)</option>
+                    <option value="yd" className="text-blue-600">yards (yd)</option>
+                    <option value="mi" className="text-blue-600">miles (mi)</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-1 pointer-events-none">
                     <span className="text-slate-500">▼</span>
@@ -898,12 +926,8 @@ export default function GallonsPerSquareFootCalculator() {
                 <div className="flex-1 flex">
                   <input
                     type="number"
-                    value={widthValue.includes('.') ? widthValue.split('.')[0] : widthValue}
-                    onChange={(e) => {
-                      const whole = e.target.value;
-                      const fraction = widthValue.includes('.') ? widthValue.split('.')[1] : '0';
-                      handleWidthChange(`${whole}.${fraction}`);
-                    }}
+                    value={compositeUnits.width.whole}
+                    onChange={(e) => handleCompositeChange('width', 'whole', e.target.value)}
                     className={`flex-1 px-3 py-2 border ${widthError ? 'border-red-500' : 'border-slate-300'} rounded-lg rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                     step="1"
@@ -917,12 +941,8 @@ export default function GallonsPerSquareFootCalculator() {
                 <div className="flex-1 flex">
                   <input
                     type="number"
-                    value={widthValue.includes('.') ? widthValue.split('.')[1] : '0'}
-                    onChange={(e) => {
-                      const whole = widthValue.includes('.') ? widthValue.split('.')[0] : widthValue;
-                      const fraction = e.target.value;
-                      handleWidthChange(`${whole}.${fraction}`);
-                    }}
+                    value={compositeUnits.width.fraction}
+                    onChange={(e) => handleCompositeChange('width', 'fraction', e.target.value)}
                     className={`flex-1 px-3 py-2 border ${widthError ? 'border-red-500' : 'border-slate-300'} rounded-lg rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                     step="1"
@@ -939,22 +959,21 @@ export default function GallonsPerSquareFootCalculator() {
                     value={widthUnit}
                     onChange={(e) => {
                       const newUnit = e.target.value;
-                      handleUnitChange(widthValue, widthUnit, newUnit, setWidthValue, convertLength, true);
-                      setWidthUnit(newUnit);
+                      handleLengthWidthUnitChange('width', widthUnit, newUnit);
                     }}
                     className="w-full h-full px-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none"
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                   >
-                    <option value="m / cm" className="text-blue-600">m / cm</option>
-                    <option value="ft / in" className="text-blue-600">ft / in</option>
-                    <option value="mm" className="text-blue-600">mm</option>
-                    <option value="cm" className="text-blue-600">cm</option>
-                    <option value="m" className="text-blue-600">m</option>
-                    <option value="km" className="text-blue-600">km</option>
-                    <option value="in" className="text-blue-600">in</option>
-                    <option value="ft" className="text-blue-600">ft</option>
-                    <option value="yd" className="text-blue-600">yd</option>
-                    <option value="mi" className="text-blue-600">mi</option>
+                    <option value="m / cm" className="text-blue-600">meters / centimeters (m / cm)</option>
+                    <option value="ft / in" className="text-blue-600">feet / inches (ft / in)</option>
+                    <option value="mm" className="text-blue-600">millimeters (mm)</option>
+                    <option value="cm" className="text-blue-600">centimeters (cm)</option>
+                    <option value="m" className="text-blue-600">meters (m)</option>
+                    <option value="km" className="text-blue-600">kilometers (km)</option>
+                    <option value="in" className="text-blue-600">inches (in)</option>
+                    <option value="ft" className="text-blue-600">feet (ft)</option>
+                    <option value="yd" className="text-blue-600">yards (yd)</option>
+                    <option value="mi" className="text-blue-600">miles (mi)</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-1 pointer-events-none">
                     <span className="text-slate-500">▼</span>
@@ -966,7 +985,7 @@ export default function GallonsPerSquareFootCalculator() {
                 <input
                   type="number"
                   value={widthValue}
-                  onChange={(e) => handleWidthChange(e.target.value)}
+                  onChange={(e) => handleRegularUnitChange('width', e.target.value)}
                   className={`flex-1 px-3 py-2 border ${widthError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                   style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                   step="0.01"
@@ -978,8 +997,7 @@ export default function GallonsPerSquareFootCalculator() {
                     value={widthUnit}
                     onChange={(e) => {
                       const newUnit = e.target.value;
-                      handleUnitChange(widthValue, widthUnit, newUnit, setWidthValue, convertLength, true);
-                      setWidthUnit(newUnit);
+                      handleLengthWidthUnitChange('width', widthUnit, newUnit);
                     }}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none pr-8"
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
@@ -1025,7 +1043,7 @@ export default function GallonsPerSquareFootCalculator() {
                   value={areaUnit}
                   onChange={(e) => {
                     const newUnit = e.target.value;
-                    handleUnitChange(areaValue, areaUnit, newUnit, setAreaValue, convertArea, false);
+                    handleOtherUnitChange(areaValue, areaUnit, newUnit, setAreaValue, convertArea);
                     setAreaUnit(newUnit);
                   }}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none pr-8"
@@ -1044,7 +1062,7 @@ export default function GallonsPerSquareFootCalculator() {
                   <option value="da" className="text-blue-600">decares (da)</option>
                   <option value="ha" className="text-blue-600">hectares (ha)</option>
                   <option value="ac" className="text-blue-600">acres (ac)</option>
-                  <option value="sf" className="text-blue-600">square feet (sf)</option>
+                  <option value="sf" className="text-blue-600">soccer fields (sf)</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                   <span className="text-slate-500">▼</span>
@@ -1064,11 +1082,9 @@ export default function GallonsPerSquareFootCalculator() {
                 <div className="flex-1 flex">
                   <input
                     type="number"
-                    value={heightValue.includes('.') ? heightValue.split('.')[0] : heightValue}
+                    value={compositeUnits.height?.whole || ''}
                     onChange={(e) => {
-                      const whole = e.target.value;
-                      const fraction = heightValue.includes('.') ? heightValue.split('.')[1] : '0';
-                      handleHeightChange(`${whole}.${fraction}`);
+                      handleCompositeChange('height', 'whole', e.target.value);
                     }}
                     className={`flex-1 px-3 py-2 border ${heightError ? 'border-red-500' : 'border-slate-300'} rounded-lg rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
@@ -1083,11 +1099,9 @@ export default function GallonsPerSquareFootCalculator() {
                 <div className="flex-1 flex">
                   <input
                     type="number"
-                    value={heightValue.includes('.') ? heightValue.split('.')[1] : '0'}
+                    value={compositeUnits.height?.fraction || ''}
                     onChange={(e) => {
-                      const whole = heightValue.includes('.') ? heightValue.split('.')[0] : heightValue;
-                      const fraction = e.target.value;
-                      handleHeightChange(`${whole}.${fraction}`);
+                      handleCompositeChange('height', 'fraction', e.target.value);
                     }}
                     className={`flex-1 px-3 py-2 border ${heightError ? 'border-red-500' : 'border-slate-300'} rounded-lg rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
@@ -1105,22 +1119,21 @@ export default function GallonsPerSquareFootCalculator() {
                     value={heightUnit}
                     onChange={(e) => {
                       const newUnit = e.target.value;
-                      handleUnitChange(heightValue, heightUnit, newUnit, setHeightValue, convertLength);
-                      setHeightUnit(newUnit);
+                      handleHeightUnitChange(heightUnit, newUnit);
                     }}
                     className="w-full h-full px-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none"
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                   >
-                    <option value="ft / in" className="text-blue-600">ft / in</option>
-                    <option value="m / cm" className="text-blue-600">m / cm</option>
-                    <option value="mm" className="text-blue-600">mm</option>
-                    <option value="cm" className="text-blue-600">cm</option>
-                    <option value="m" className="text-blue-600">m</option>
-                    <option value="km" className="text-blue-600">km</option>
-                    <option value="in" className="text-blue-600">in</option>
-                    <option value="ft" className="text-blue-600">ft</option>
-                    <option value="yd" className="text-blue-600">yd</option>
-                    <option value="mi" className="text-blue-600">mi</option>
+                    <option value="ft / in" className="text-blue-600">feet / inches (ft / in)</option>
+                    <option value="m / cm" className="text-blue-600">meters / centimeters (m / cm)</option>
+                    <option value="mm" className="text-blue-600">millimeters (mm)</option>
+                    <option value="cm" className="text-blue-600">centimeters (cm)</option>
+                    <option value="m" className="text-blue-600">meters (m)</option>
+                    <option value="km" className="text-blue-600">kilometers (km)</option>
+                    <option value="in" className="text-blue-600">inches (in)</option>
+                    <option value="ft" className="text-blue-600">feet (ft)</option>
+                    <option value="yd" className="text-blue-600">yards (yd)</option>
+                    <option value="mi" className="text-blue-600">miles (mi)</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-1 pointer-events-none">
                     <span className="text-slate-500">▼</span>
@@ -1132,11 +1145,9 @@ export default function GallonsPerSquareFootCalculator() {
                 <div className="flex-1 flex">
                   <input
                     type="number"
-                    value={heightValue.includes('.') ? heightValue.split('.')[0] : heightValue}
+                    value={compositeUnits.height?.whole || ''}
                     onChange={(e) => {
-                      const whole = e.target.value;
-                      const fraction = heightValue.includes('.') ? heightValue.split('.')[1] : '0';
-                      handleHeightChange(`${whole}.${fraction}`);
+                      handleCompositeChange('height', 'whole', e.target.value);
                     }}
                     className={`flex-1 px-3 py-2 border ${heightError ? 'border-red-500' : 'border-slate-300'} rounded-lg rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
@@ -1151,11 +1162,9 @@ export default function GallonsPerSquareFootCalculator() {
                 <div className="flex-1 flex">
                   <input
                     type="number"
-                    value={heightValue.includes('.') ? heightValue.split('.')[1] : '0'}
+                    value={compositeUnits.height?.fraction || ''}
                     onChange={(e) => {
-                      const whole = heightValue.includes('.') ? heightValue.split('.')[0] : heightValue;
-                      const fraction = e.target.value;
-                      handleHeightChange(`${whole}.${fraction}`);
+                      handleCompositeChange('height', 'fraction', e.target.value);
                     }}
                     className={`flex-1 px-3 py-2 border ${heightError ? 'border-red-500' : 'border-slate-300'} rounded-lg rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
@@ -1173,22 +1182,21 @@ export default function GallonsPerSquareFootCalculator() {
                     value={heightUnit}
                     onChange={(e) => {
                       const newUnit = e.target.value;
-                      handleUnitChange(heightValue, heightUnit, newUnit, setHeightValue, convertLength);
-                      setHeightUnit(newUnit);
+                      handleHeightUnitChange(heightUnit, newUnit);
                     }}
                     className="w-full h-full px-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none"
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                   >
-                    <option value="m / cm" className="text-blue-600">m / cm</option>
-                    <option value="ft / in" className="text-blue-600">ft / in</option>
-                    <option value="mm" className="text-blue-600">mm</option>
-                    <option value="cm" className="text-blue-600">cm</option>
-                    <option value="m" className="text-blue-600">m</option>
-                    <option value="km" className="text-blue-600">km</option>
-                    <option value="in" className="text-blue-600">in</option>
-                    <option value="ft" className="text-blue-600">ft</option>
-                    <option value="yd" className="text-blue-600">yd</option>
-                    <option value="mi" className="text-blue-600">mi</option>
+                    <option value="m / cm" className="text-blue-600">meters / centimeters (m / cm)</option>
+                    <option value="ft / in" className="text-blue-600">feet / inches (ft / in)</option>
+                    <option value="mm" className="text-blue-600">millimeters (mm)</option>
+                    <option value="cm" className="text-blue-600">centimeters (cm)</option>
+                    <option value="m" className="text-blue-600">meters (m)</option>
+                    <option value="km" className="text-blue-600">kilometers (km)</option>
+                    <option value="in" className="text-blue-600">inches (in)</option>
+                    <option value="ft" className="text-blue-600">feet (ft)</option>
+                    <option value="yd" className="text-blue-600">yards (yd)</option>
+                    <option value="mi" className="text-blue-600">miles (mi)</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-1 pointer-events-none">
                     <span className="text-slate-500">▼</span>
@@ -1200,7 +1208,7 @@ export default function GallonsPerSquareFootCalculator() {
                 <input
                   type="number"
                   value={heightValue}
-                  onChange={(e) => handleHeightChange(e.target.value)}
+                  onChange={(e) => handleRegularUnitChange('height', e.target.value)}
                   className={`flex-1 px-3 py-2 border ${heightError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                   style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                   step="0.01"
@@ -1212,8 +1220,7 @@ export default function GallonsPerSquareFootCalculator() {
                     value={heightUnit}
                     onChange={(e) => {
                       const newUnit = e.target.value;
-                      handleUnitChange(heightValue, heightUnit, newUnit, setHeightValue, convertLength, false);
-                      setHeightUnit(newUnit);
+                      handleHeightUnitChange(heightUnit, newUnit);
                     }}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm appearance-none pr-8"
                     style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
@@ -1258,7 +1265,7 @@ export default function GallonsPerSquareFootCalculator() {
                   value={volumeUnit}
                   onChange={(e) => {
                     const newUnit = e.target.value;
-                    handleUnitChange(volumeValue, volumeUnit, newUnit, setVolumeValue, convertVolume, false);
+                    handleOtherUnitChange(volumeValue, volumeUnit, newUnit, setVolumeValue, convertVolume);
                     setVolumeUnit(newUnit);
                   }}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none pr-8"
@@ -1269,10 +1276,7 @@ export default function GallonsPerSquareFootCalculator() {
                   <option value="cu ft" className="text-blue-600">cubic feet (cu ft)</option>
                   <option value="cu yd" className="text-blue-600">cubic yards (cu yd)</option>
                   <option value="mL" className="text-blue-600">milliliters (mL)</option>
-                  <option value="cL" className="text-blue-600">centiliters (cL)</option>
                   <option value="L" className="text-blue-600">liters (L)</option>
-                  <option value="US fl oz" className="text-blue-600">fluid ounces (US) (US fl oz)</option>
-                  <option value="UK fl oz" className="text-blue-600">fluid ounces (UK) (UK fl oz)</option>
                   <option value="US gal" className="bg-blue-500 text-white">gallons (US) (US gal)</option>
                   <option value="UK gal" className="text-blue-600">gallons (UK) (UK gal)</option>
                 </select>
@@ -1303,7 +1307,7 @@ export default function GallonsPerSquareFootCalculator() {
                   value={gallonsPerSqFtUnit}
                   onChange={(e) => {
                     const newUnit = e.target.value;
-                    handleUnitChange(gallonsPerSqFtValue, gallonsPerSqFtUnit, newUnit, setGallonsPerSqFtValue, convertVolume, false);
+                    handleOtherUnitChange(gallonsPerSqFtValue, gallonsPerSqFtUnit, newUnit, setGallonsPerSqFtValue, convertVolume);
                     setGallonsPerSqFtUnit(newUnit);
                   }}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none pr-8"
@@ -1331,40 +1335,14 @@ export default function GallonsPerSquareFootCalculator() {
 
           {/* Action Buttons */}
           <div className="grid grid-cols-1 gap-4 mb-6">
-            <button
-              onClick={() => {
-                if (lengthValue && widthValue) {
-                  calculateArea();
-                }
-                if (areaValue && heightValue) {
-                  calculateFromAreaAndHeight();
-                } else if (volumeValue && heightValue) {
-                  calculateFromVolumeAndHeight();
-                }
-              }}
-              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-            >
-              <span className="text-white">🧮</span>
-              Calculate
-            </button>
+        
           </div>
 
           {/* Action Buttons */}
           <div className="grid grid-cols-1 gap-4">
             <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={shareResult}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                <span className="text-white">⚡</span>
-                Share result
-              </button>
-              <button
-                onClick={reloadCalculator}
-                className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
-              >
-                Reload calculator
-              </button>
+             
+             
             </div>
             <button
               onClick={clearAllChanges}
@@ -1374,37 +1352,7 @@ export default function GallonsPerSquareFootCalculator() {
             </button>
           </div>
 
-          {/* Feedback Section */}
-          <div className="mt-6 pt-6 border-t border-slate-200">
-            <p className="text-sm text-slate-600 mb-3">Did we solve your problem today?</p>
-            <div className="flex gap-3">
-              <button className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors">
-                <span>✓</span>
-                Yes
-              </button>
-              <button className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors">
-                <span>✗</span>
-                No
-              </button>
-            </div>
-          </div>
-          
-          {/* Information Section */}
-          <div className="mt-6 pt-6 border-t border-slate-200">
-            <h3 className="text-md font-semibold text-slate-700 mb-2">Understanding Gallons per Square Foot</h3>
-            <p className="text-sm text-slate-600 mb-3">
-              The number of gallons per square foot depends on the height/depth of your container:
-            </p>
-            <ul className="text-sm text-slate-600 list-disc pl-5 mb-3">
-              <li>1 cubic foot = 7.48052 US gallons</li>
-              <li>1 cubic foot = 6.22884 UK gallons</li>
-              <li>Gallons per square foot = Height (in feet) × 7.48052</li>
-            </ul>
-            <p className="text-sm text-slate-600 mb-3">
-              This calculator supports multiple volume units including US/UK gallons and fluid ounces, perfect for pool calculations, 
-              aquarium setups, water tanks, or any liquid volume per area calculations.
-            </p>
-          </div>
+         
         </div>
       </div>
     </div>
