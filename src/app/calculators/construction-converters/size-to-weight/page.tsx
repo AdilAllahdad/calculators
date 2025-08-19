@@ -13,6 +13,21 @@ export default function SizeToWeightPage() {
   const [height, setHeight] = useState<number>(0);
   const [volume, setVolume] = useState<number>(0);
   
+  // State for compound units (feet-inches, meters-centimeters)
+  const [lengthFeet, setLengthFeet] = useState<number>(0);
+  const [lengthInches, setLengthInches] = useState<number>(0);
+  const [widthFeet, setWidthFeet] = useState<number>(0);
+  const [widthInches, setWidthInches] = useState<number>(0);
+  const [heightFeet, setHeightFeet] = useState<number>(0);
+  const [heightInches, setHeightInches] = useState<number>(0);
+  
+  const [lengthMeters, setLengthMeters] = useState<number>(0);
+  const [lengthCentimeters, setLengthCentimeters] = useState<number>(0);
+  const [widthMeters, setWidthMeters] = useState<number>(0);
+  const [widthCentimeters, setWidthCentimeters] = useState<number>(0);
+  const [heightMeters, setHeightMeters] = useState<number>(0);
+  const [heightCentimeters, setHeightCentimeters] = useState<number>(0);
+  
   // State for validation errors
   const [lengthError, setLengthError] = useState<string | null>(null);
   const [widthError, setWidthError] = useState<string | null>(null);
@@ -132,6 +147,82 @@ export default function SizeToWeightPage() {
         return valueInMeters / 0.9144;
       default:
         return valueInMeters;
+    }
+  };
+  
+  // Helper function to convert feet and inches to meters
+  const feetAndInchesToMeters = (feet: number, inches: number): number => {
+    return (feet * 0.3048) + (inches * 0.0254);
+  };
+  
+  // Helper function to convert meters and centimeters to meters
+  const metersAndCentimetersToMeters = (meters: number, centimeters: number): number => {
+    return meters + (centimeters * 0.01);
+  };
+  
+  // Helper function to convert meters to feet and inches
+  const metersToFeetAndInches = (meters: number): { feet: number, inches: number } => {
+    const totalInches = meters / 0.0254;
+    const feet = Math.floor(totalInches / 12);
+    const inches = Math.round((totalInches % 12) * 100) / 100; // Round to 2 decimal places
+    return { feet, inches };
+  };
+  
+  // Helper function to convert meters to meters and centimeters
+  const metersToMetersAndCentimeters = (meters: number): { meters: number, centimeters: number } => {
+    const wholeMeters = Math.floor(meters);
+    const centimeters = Math.round((meters - wholeMeters) * 100 * 100) / 100; // Round to 2 decimal places
+    return { meters: wholeMeters, centimeters };
+  };
+  
+  // Helper function to handle compound unit changes for length
+  const updateLengthCompoundUnits = (value: number, unit: string): void => {
+    if (unit === "ft / in") {
+      // Convert value (in inches) to feet and inches
+      const feet = Math.floor(value / 12);
+      const inches = Math.round((value % 12) * 100) / 100;
+      setLengthFeet(feet);
+      setLengthInches(inches);
+    } else if (unit === "m / cm") {
+      // Convert value (in meters) to meters and centimeters
+      const wholeMeters = Math.floor(value);
+      const centimeters = Math.round((value - wholeMeters) * 100 * 100) / 100;
+      setLengthMeters(wholeMeters);
+      setLengthCentimeters(centimeters);
+    }
+  };
+  
+  // Helper function to handle compound unit changes for width
+  const updateWidthCompoundUnits = (value: number, unit: string): void => {
+    if (unit === "ft / in") {
+      // Convert value (in inches) to feet and inches
+      const feet = Math.floor(value / 12);
+      const inches = Math.round((value % 12) * 100) / 100;
+      setWidthFeet(feet);
+      setWidthInches(inches);
+    } else if (unit === "m / cm") {
+      // Convert value (in meters) to meters and centimeters
+      const wholeMeters = Math.floor(value);
+      const centimeters = Math.round((value - wholeMeters) * 100 * 100) / 100;
+      setWidthMeters(wholeMeters);
+      setWidthCentimeters(centimeters);
+    }
+  };
+  
+  // Helper function to handle compound unit changes for height
+  const updateHeightCompoundUnits = (value: number, unit: string): void => {
+    if (unit === "ft / in") {
+      // Convert value (in inches) to feet and inches
+      const feet = Math.floor(value / 12);
+      const inches = Math.round((value % 12) * 100) / 100;
+      setHeightFeet(feet);
+      setHeightInches(inches);
+    } else if (unit === "m / cm") {
+      // Convert value (in meters) to meters and centimeters
+      const wholeMeters = Math.floor(value);
+      const centimeters = Math.round((value - wholeMeters) * 100 * 100) / 100;
+      setHeightMeters(wholeMeters);
+      setHeightCentimeters(centimeters);
     }
   };
 
@@ -349,6 +440,31 @@ export default function SizeToWeightPage() {
     }
   }, [length, width, height, density]);
 
+  // Update compound units when single units change
+  useEffect(() => {
+    if (lengthUnit === "ft / in") {
+      updateLengthCompoundUnits(length, lengthUnit);
+    } else if (lengthUnit === "m / cm") {
+      updateLengthCompoundUnits(length, lengthUnit);
+    }
+  }, [length, lengthUnit]);
+
+  useEffect(() => {
+    if (widthUnit === "ft / in") {
+      updateWidthCompoundUnits(width, widthUnit);
+    } else if (widthUnit === "m / cm") {
+      updateWidthCompoundUnits(width, widthUnit);
+    }
+  }, [width, widthUnit]);
+
+  useEffect(() => {
+    if (heightUnit === "ft / in") {
+      updateHeightCompoundUnits(height, heightUnit);
+    } else if (heightUnit === "m / cm") {
+      updateHeightCompoundUnits(height, heightUnit);
+    }
+  }, [height, heightUnit]);
+  
   // Calculate volume and weight whenever dimensions or density change, but not when units change
   useEffect(() => {
     // Only calculate when all values are valid (not negative)
@@ -403,37 +519,171 @@ export default function SizeToWeightPage() {
             <div className="mb-3">
               <div className="flex justify-between mb-1">
                 <label className="text-base font-medium text-gray-700">Length</label>
-                <button className="text-blue-500 text-xs">•••</button>
+               
               </div>
-              <div className="flex">
-                <input 
-                  type="number" 
-                  className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${lengthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
-                  value={length || ''}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    setLength(value);
-                    setLengthError(value < 0 ? "Length cannot be negative." : null);
-                  }}
-                  placeholder="0"
-                />
-                <select 
-                  className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
-                  value={lengthUnit}
-                  onChange={(e) => {
-                    const newUnit = e.target.value;
-                    // Convert the current length to meters, then to the new unit
-                    const lengthInMeters = convertLengthToMeters(length, lengthUnit);
-                    const convertedLength = convertMetersToLength(lengthInMeters, newUnit);
-                    setLength(convertedLength);
-                    setLengthUnit(newUnit);
-                  }}
-                >
-                  {lengthUnits.map(unit => (
-                    <option key={unit.value} value={unit.value}>{unit.value}</option>
-                  ))}
-                </select>
-              </div>
+              
+              {lengthUnit === "ft / in" ? (
+                <div className="flex">
+                  <div className="flex-1 flex">
+                    <input 
+                      type="number" 
+                      className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${lengthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                      value={lengthFeet || ''}
+                      onChange={(e) => {
+                        const feet = Number(e.target.value);
+                        setLengthFeet(feet);
+                        // Update length in inches (for internal calculations)
+                        const totalInches = (feet * 12) + lengthInches;
+                        setLength(totalInches);
+                        setLengthError(feet < 0 ? "Length cannot be negative." : null);
+                      }}
+                      placeholder="0"
+                    />
+                    <div className="px-3 py-2 border-t border-b bg-gray-50 text-gray-500">
+                      ft
+                    </div>
+                  </div>
+                  <div className="flex-1 flex">
+                    <input 
+                      type="number" 
+                      className={`flex-1 px-3 py-2 border-t border-b border-r focus:outline-none focus:ring-1 ${lengthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                      value={lengthInches || ''}
+                      onChange={(e) => {
+                        const inches = Number(e.target.value);
+                        setLengthInches(inches);
+                        // Update length in inches (for internal calculations)
+                        const totalInches = (lengthFeet * 12) + inches;
+                        setLength(totalInches);
+                        setLengthError(inches < 0 ? "Length cannot be negative." : null);
+                      }}
+                      placeholder="0"
+                    />
+                    <select 
+                      className="w-24 px-3 py-2 border-t border-b border-r rounded-r-md bg-white text-blue-500 focus:outline-none"
+                      value={lengthUnit}
+                      onChange={(e) => {
+                        const newUnit = e.target.value;
+                        // Convert the compound value to the simple unit format
+                        if (newUnit !== "ft / in") {
+                          const lengthInMeters = feetAndInchesToMeters(lengthFeet, lengthInches);
+                          const convertedLength = convertMetersToLength(lengthInMeters, newUnit);
+                          setLength(convertedLength);
+                        }
+                        setLengthUnit(newUnit);
+                      }}
+                    >
+                      {lengthUnits.map(unit => (
+                        <option key={unit.value} value={unit.value}>{unit.value}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : lengthUnit === "m / cm" ? (
+                <div className="flex">
+                  <div className="flex-1 flex">
+                    <input 
+                      type="number" 
+                      className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${lengthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                      value={lengthMeters || ''}
+                      onChange={(e) => {
+                        const meters = Number(e.target.value);
+                        setLengthMeters(meters);
+                        // Update length in meters (for internal calculations)
+                        const totalMeters = meters + (lengthCentimeters / 100);
+                        setLength(totalMeters);
+                        setLengthError(meters < 0 ? "Length cannot be negative." : null);
+                      }}
+                      placeholder="0"
+                    />
+                    <div className="px-3 py-2 border-t border-b bg-gray-50 text-gray-500">
+                      m
+                    </div>
+                  </div>
+                  <div className="flex-1 flex">
+                    <input 
+                      type="number" 
+                      className={`flex-1 px-3 py-2 border-t border-b border-r focus:outline-none focus:ring-1 ${lengthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                      value={lengthCentimeters || ''}
+                      onChange={(e) => {
+                        const cm = Number(e.target.value);
+                        setLengthCentimeters(cm);
+                        // Update length in meters (for internal calculations)
+                        const totalMeters = lengthMeters + (cm / 100);
+                        setLength(totalMeters);
+                        setLengthError(cm < 0 ? "Length cannot be negative." : null);
+                      }}
+                      placeholder="0"
+                    />
+                    <select 
+                      className="w-24 px-3 py-2 border-t border-b border-r rounded-r-md bg-white text-blue-500 focus:outline-none"
+                      value={lengthUnit}
+                      onChange={(e) => {
+                        const newUnit = e.target.value;
+                        // Convert the compound value to the simple unit format
+                        if (newUnit !== "m / cm") {
+                          const lengthInMeters = metersAndCentimetersToMeters(lengthMeters, lengthCentimeters);
+                          const convertedLength = convertMetersToLength(lengthInMeters, newUnit);
+                          setLength(convertedLength);
+                        }
+                        setLengthUnit(newUnit);
+                      }}
+                    >
+                      {lengthUnits.map(unit => (
+                        <option key={unit.value} value={unit.value}>{unit.value}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex">
+                  <input 
+                    type="number" 
+                    className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${lengthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                    value={length || ''}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      setLength(value);
+                      setLengthError(value < 0 ? "Length cannot be negative." : null);
+                    }}
+                    placeholder="0"
+                  />
+                  <select 
+                    className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                    value={lengthUnit}
+                    onChange={(e) => {
+                      const newUnit = e.target.value;
+                      // Convert the current length to meters, then to the new unit
+                      const lengthInMeters = convertLengthToMeters(length, lengthUnit);
+                      
+                      if (newUnit === "ft / in") {
+                        // Convert meters to feet and inches
+                        const { feet, inches } = metersToFeetAndInches(lengthInMeters);
+                        setLengthFeet(feet);
+                        setLengthInches(inches);
+                        // Calculate total inches for internal value
+                        setLength(feet * 12 + inches);
+                      } else if (newUnit === "m / cm") {
+                        // Convert meters to meters and centimeters
+                        const { meters, centimeters } = metersToMetersAndCentimeters(lengthInMeters);
+                        setLengthMeters(meters);
+                        setLengthCentimeters(centimeters);
+                        // Use meters for internal value
+                        setLength(lengthInMeters);
+                      } else {
+                        // Standard conversion
+                        const convertedLength = convertMetersToLength(lengthInMeters, newUnit);
+                        setLength(convertedLength);
+                      }
+                      
+                      setLengthUnit(newUnit);
+                    }}
+                  >
+                    {lengthUnits.map(unit => (
+                      <option key={unit.value} value={unit.value}>{unit.value}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {lengthError && (
                 <div className="mt-1 flex items-center text-red-500 text-xs">
                   <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
@@ -448,37 +698,170 @@ export default function SizeToWeightPage() {
             <div className="mb-3">
               <div className="flex justify-between mb-1">
                 <label className="text-base font-medium text-gray-700">Width</label>
-                <button className="text-blue-500 text-xs">•••</button>
+             
               </div>
-              <div className="flex">
-                <input 
-                  type="number" 
-                  className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${widthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
-                  value={width || ''}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    setWidth(value);
-                    setWidthError(value < 0 ? "Width cannot be negative." : null);
-                  }}
-                  placeholder="0"
-                />
-                <select 
-                  className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
-                  value={widthUnit}
-                  onChange={(e) => {
-                    const newUnit = e.target.value;
-                    // Convert the current width to meters, then to the new unit
-                    const widthInMeters = convertLengthToMeters(width, widthUnit);
-                    const convertedWidth = convertMetersToLength(widthInMeters, newUnit);
-                    setWidth(convertedWidth);
-                    setWidthUnit(newUnit);
-                  }}
-                >
-                  {lengthUnits.map(unit => (
-                    <option key={unit.value} value={unit.value}>{unit.value}</option>
-                  ))}
-                </select>
-              </div>
+              {widthUnit === "ft / in" ? (
+                <div className="flex">
+                  <div className="flex-1 flex">
+                    <input 
+                      type="number" 
+                      className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${widthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                      value={widthFeet || ''}
+                      onChange={(e) => {
+                        const feet = Number(e.target.value);
+                        setWidthFeet(feet);
+                        // Update width in inches (for internal calculations)
+                        const totalInches = (feet * 12) + widthInches;
+                        setWidth(totalInches);
+                        setWidthError(feet < 0 ? "Width cannot be negative." : null);
+                      }}
+                      placeholder="0"
+                    />
+                    <div className="px-3 py-2 border-t border-b bg-gray-50 text-gray-500">
+                      ft
+                    </div>
+                  </div>
+                  <div className="flex-1 flex">
+                    <input 
+                      type="number" 
+                      className={`flex-1 px-3 py-2 border-t border-b border-r focus:outline-none focus:ring-1 ${widthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                      value={widthInches || ''}
+                      onChange={(e) => {
+                        const inches = Number(e.target.value);
+                        setWidthInches(inches);
+                        // Update width in inches (for internal calculations)
+                        const totalInches = (widthFeet * 12) + inches;
+                        setWidth(totalInches);
+                        setWidthError(inches < 0 ? "Width cannot be negative." : null);
+                      }}
+                      placeholder="0"
+                    />
+                    <select 
+                      className="w-24 px-3 py-2 border-t border-b border-r rounded-r-md bg-white text-blue-500 focus:outline-none"
+                      value={widthUnit}
+                      onChange={(e) => {
+                        const newUnit = e.target.value;
+                        // Convert the compound value to the simple unit format
+                        if (newUnit !== "ft / in") {
+                          const widthInMeters = feetAndInchesToMeters(widthFeet, widthInches);
+                          const convertedWidth = convertMetersToLength(widthInMeters, newUnit);
+                          setWidth(convertedWidth);
+                        }
+                        setWidthUnit(newUnit);
+                      }}
+                    >
+                      {lengthUnits.map(unit => (
+                        <option key={unit.value} value={unit.value}>{unit.value}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : widthUnit === "m / cm" ? (
+                <div className="flex">
+                  <div className="flex-1 flex">
+                    <input 
+                      type="number" 
+                      className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${widthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                      value={widthMeters || ''}
+                      onChange={(e) => {
+                        const meters = Number(e.target.value);
+                        setWidthMeters(meters);
+                        // Update width in meters (for internal calculations)
+                        const totalMeters = meters + (widthCentimeters / 100);
+                        setWidth(totalMeters);
+                        setWidthError(meters < 0 ? "Width cannot be negative." : null);
+                      }}
+                      placeholder="0"
+                    />
+                    <div className="px-3 py-2 border-t border-b bg-gray-50 text-gray-500">
+                      m
+                    </div>
+                  </div>
+                  <div className="flex-1 flex">
+                    <input 
+                      type="number" 
+                      className={`flex-1 px-3 py-2 border-t border-b border-r focus:outline-none focus:ring-1 ${widthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                      value={widthCentimeters || ''}
+                      onChange={(e) => {
+                        const cm = Number(e.target.value);
+                        setWidthCentimeters(cm);
+                        // Update width in meters (for internal calculations)
+                        const totalMeters = widthMeters + (cm / 100);
+                        setWidth(totalMeters);
+                        setWidthError(cm < 0 ? "Width cannot be negative." : null);
+                      }}
+                      placeholder="0"
+                    />
+                    <select 
+                      className="w-24 px-3 py-2 border-t border-b border-r rounded-r-md bg-white text-blue-500 focus:outline-none"
+                      value={widthUnit}
+                      onChange={(e) => {
+                        const newUnit = e.target.value;
+                        // Convert the compound value to the simple unit format
+                        if (newUnit !== "m / cm") {
+                          const widthInMeters = metersAndCentimetersToMeters(widthMeters, widthCentimeters);
+                          const convertedWidth = convertMetersToLength(widthInMeters, newUnit);
+                          setWidth(convertedWidth);
+                        }
+                        setWidthUnit(newUnit);
+                      }}
+                    >
+                      {lengthUnits.map(unit => (
+                        <option key={unit.value} value={unit.value}>{unit.value}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex">
+                  <input 
+                    type="number" 
+                    className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${widthError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                    value={width || ''}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      setWidth(value);
+                      setWidthError(value < 0 ? "Width cannot be negative." : null);
+                    }}
+                    placeholder="0"
+                  />
+                  <select 
+                    className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                    value={widthUnit}
+                    onChange={(e) => {
+                      const newUnit = e.target.value;
+                      // Convert the current width to meters, then to the new unit
+                      const widthInMeters = convertLengthToMeters(width, widthUnit);
+                      
+                      if (newUnit === "ft / in") {
+                        // Convert meters to feet and inches
+                        const { feet, inches } = metersToFeetAndInches(widthInMeters);
+                        setWidthFeet(feet);
+                        setWidthInches(inches);
+                        // Calculate total inches for internal value
+                        setWidth(feet * 12 + inches);
+                      } else if (newUnit === "m / cm") {
+                        // Convert meters to meters and centimeters
+                        const { meters, centimeters } = metersToMetersAndCentimeters(widthInMeters);
+                        setWidthMeters(meters);
+                        setWidthCentimeters(centimeters);
+                        // Use meters for internal value
+                        setWidth(widthInMeters);
+                      } else {
+                        // Standard conversion
+                        const convertedWidth = convertMetersToLength(widthInMeters, newUnit);
+                        setWidth(convertedWidth);
+                      }
+                      
+                      setWidthUnit(newUnit);
+                    }}
+                  >
+                    {lengthUnits.map(unit => (
+                      <option key={unit.value} value={unit.value}>{unit.value}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {widthError && (
                 <div className="mt-1 flex items-center text-red-500 text-xs">
                   <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
@@ -493,37 +876,170 @@ export default function SizeToWeightPage() {
             <div className="mb-3">
               <div className="flex justify-between mb-1">
                 <label className="text-base font-medium text-gray-700">Height</label>
-                <button className="text-blue-500 text-xs">•••</button>
+              
               </div>
-              <div className="flex">
-                <input 
-                  type="number" 
-                  className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${heightError ? 'border-red-500' : 'focus:ring-blue-500'}`}
-                  value={height || ''}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    setHeight(value);
-                    setHeightError(value < 0 ? "Height cannot be negative." : null);
-                  }}
-                  placeholder="0"
-                />
-                <select 
-                  className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
-                  value={heightUnit}
-                  onChange={(e) => {
-                    const newUnit = e.target.value;
-                    // Convert the current height to meters, then to the new unit
-                    const heightInMeters = convertLengthToMeters(height, heightUnit);
-                    const convertedHeight = convertMetersToLength(heightInMeters, newUnit);
-                    setHeight(convertedHeight);
-                    setHeightUnit(newUnit);
-                  }}
-                >
-                  {lengthUnits.map(unit => (
-                    <option key={unit.value} value={unit.value}>{unit.value}</option>
-                  ))}
-                </select>
-              </div>
+              {heightUnit === "ft / in" ? (
+                <div className="flex">
+                  <div className="flex-1 flex">
+                    <input 
+                      type="number" 
+                      className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${heightError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                      value={heightFeet || ''}
+                      onChange={(e) => {
+                        const feet = Number(e.target.value);
+                        setHeightFeet(feet);
+                        // Update height in inches (for internal calculations)
+                        const totalInches = (feet * 12) + heightInches;
+                        setHeight(totalInches);
+                        setHeightError(feet < 0 ? "Height cannot be negative." : null);
+                      }}
+                      placeholder="0"
+                    />
+                    <div className="px-3 py-2 border-t border-b bg-gray-50 text-gray-500">
+                      ft
+                    </div>
+                  </div>
+                  <div className="flex-1 flex">
+                    <input 
+                      type="number" 
+                      className={`flex-1 px-3 py-2 border-t border-b border-r focus:outline-none focus:ring-1 ${heightError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                      value={heightInches || ''}
+                      onChange={(e) => {
+                        const inches = Number(e.target.value);
+                        setHeightInches(inches);
+                        // Update height in inches (for internal calculations)
+                        const totalInches = (heightFeet * 12) + inches;
+                        setHeight(totalInches);
+                        setHeightError(inches < 0 ? "Height cannot be negative." : null);
+                      }}
+                      placeholder="0"
+                    />
+                    <select 
+                      className="w-24 px-3 py-2 border-t border-b border-r rounded-r-md bg-white text-blue-500 focus:outline-none"
+                      value={heightUnit}
+                      onChange={(e) => {
+                        const newUnit = e.target.value;
+                        // Convert the compound value to the simple unit format
+                        if (newUnit !== "ft / in") {
+                          const heightInMeters = feetAndInchesToMeters(heightFeet, heightInches);
+                          const convertedHeight = convertMetersToLength(heightInMeters, newUnit);
+                          setHeight(convertedHeight);
+                        }
+                        setHeightUnit(newUnit);
+                      }}
+                    >
+                      {lengthUnits.map(unit => (
+                        <option key={unit.value} value={unit.value}>{unit.value}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : heightUnit === "m / cm" ? (
+                <div className="flex">
+                  <div className="flex-1 flex">
+                    <input 
+                      type="number" 
+                      className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${heightError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                      value={heightMeters || ''}
+                      onChange={(e) => {
+                        const meters = Number(e.target.value);
+                        setHeightMeters(meters);
+                        // Update height in meters (for internal calculations)
+                        const totalMeters = meters + (heightCentimeters / 100);
+                        setHeight(totalMeters);
+                        setHeightError(meters < 0 ? "Height cannot be negative." : null);
+                      }}
+                      placeholder="0"
+                    />
+                    <div className="px-3 py-2 border-t border-b bg-gray-50 text-gray-500">
+                      m
+                    </div>
+                  </div>
+                  <div className="flex-1 flex">
+                    <input 
+                      type="number" 
+                      className={`flex-1 px-3 py-2 border-t border-b border-r focus:outline-none focus:ring-1 ${heightError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                      value={heightCentimeters || ''}
+                      onChange={(e) => {
+                        const cm = Number(e.target.value);
+                        setHeightCentimeters(cm);
+                        // Update height in meters (for internal calculations)
+                        const totalMeters = heightMeters + (cm / 100);
+                        setHeight(totalMeters);
+                        setHeightError(cm < 0 ? "Height cannot be negative." : null);
+                      }}
+                      placeholder="0"
+                    />
+                    <select 
+                      className="w-24 px-3 py-2 border-t border-b border-r rounded-r-md bg-white text-blue-500 focus:outline-none"
+                      value={heightUnit}
+                      onChange={(e) => {
+                        const newUnit = e.target.value;
+                        // Convert the compound value to the simple unit format
+                        if (newUnit !== "m / cm") {
+                          const heightInMeters = metersAndCentimetersToMeters(heightMeters, heightCentimeters);
+                          const convertedHeight = convertMetersToLength(heightInMeters, newUnit);
+                          setHeight(convertedHeight);
+                        }
+                        setHeightUnit(newUnit);
+                      }}
+                    >
+                      {lengthUnits.map(unit => (
+                        <option key={unit.value} value={unit.value}>{unit.value}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex">
+                  <input 
+                    type="number" 
+                    className={`flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-1 ${heightError ? 'border-red-500' : 'focus:ring-blue-500'}`}
+                    value={height || ''}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      setHeight(value);
+                      setHeightError(value < 0 ? "Height cannot be negative." : null);
+                    }}
+                    placeholder="0"
+                  />
+                  <select 
+                    className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
+                    value={heightUnit}
+                    onChange={(e) => {
+                      const newUnit = e.target.value;
+                      // Convert the current height to meters, then to the new unit
+                      const heightInMeters = convertLengthToMeters(height, heightUnit);
+                      
+                      if (newUnit === "ft / in") {
+                        // Convert meters to feet and inches
+                        const { feet, inches } = metersToFeetAndInches(heightInMeters);
+                        setHeightFeet(feet);
+                        setHeightInches(inches);
+                        // Calculate total inches for internal value
+                        setHeight(feet * 12 + inches);
+                      } else if (newUnit === "m / cm") {
+                        // Convert meters to meters and centimeters
+                        const { meters, centimeters } = metersToMetersAndCentimeters(heightInMeters);
+                        setHeightMeters(meters);
+                        setHeightCentimeters(centimeters);
+                        // Use meters for internal value
+                        setHeight(heightInMeters);
+                      } else {
+                        // Standard conversion
+                        const convertedHeight = convertMetersToLength(heightInMeters, newUnit);
+                        setHeight(convertedHeight);
+                      }
+                      
+                      setHeightUnit(newUnit);
+                    }}
+                  >
+                    {lengthUnits.map(unit => (
+                      <option key={unit.value} value={unit.value}>{unit.value}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {heightError && (
                 <div className="mt-1 flex items-center text-red-500 text-xs">
                   <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
@@ -538,7 +1054,7 @@ export default function SizeToWeightPage() {
             <div>
               <div className="flex justify-between mb-1">
                 <label className="text-base font-medium text-gray-700">Volume</label>
-                <button className="text-blue-500 text-xs">•••</button>
+            
               </div>
               <div className="flex">
                 <input 
@@ -583,7 +1099,7 @@ export default function SizeToWeightPage() {
           <div className="mb-3">
             <div className="flex justify-between mb-1">
               <label className="text-base font-medium text-gray-700">Density</label>
-              <button className="text-blue-500 text-xs">•••</button>
+            
             </div>
             <div className="flex">
               <input 
@@ -635,16 +1151,15 @@ export default function SizeToWeightPage() {
           <div>
             <div className="flex justify-between mb-1">
               <label className="text-base font-medium text-gray-700">Weight</label>
-              <button className="text-blue-500 text-xs">•••</button>
+            
             </div>
             <div className="flex">
               <input 
                 type="text" 
                 className="flex-1 px-3 py-2 border rounded-l-md bg-gray-50 focus:outline-none "
                 value={formatNumberWithCommas(weight)}
-                readOnly
-              />
-              <select 
+                readOnly />
+               <select 
                 className="w-24 px-3 py-2 border border-l-0 rounded-r-md bg-white text-blue-500 focus:outline-none"
                 value={weightUnit}
                 onChange={(e) => {
