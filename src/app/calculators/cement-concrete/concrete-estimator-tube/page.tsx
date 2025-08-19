@@ -4,12 +4,11 @@ import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 
 /* ----------------- Constants ------------------ */
-const DEFAULT_DENSITY = 150; // lb/ft³ for concrete
-const DEFAULT_BAG_SIZE = 94; // lb (standard US Portland cement bag)
-const DEFAULT_WASTE = 10; // 10% waste factor
+const DEFAULT_DENSITY_LBFT3 = 150;
+const DEFAULT_BAG_SIZE_LB = 60; // Changed to match your example
+const DEFAULT_WASTE = 10;
 
 /* ----------------- Length + Volume Units ------------------ */
-
 const lengthToCm: Record<string, number> = {
   cm: 1,
   m: 100,
@@ -20,11 +19,11 @@ const lengthToCm: Record<string, number> = {
 };
 
 const volumeUnits = [
-  { value: 'm3', label: 'cubic meters (m³)', factorFromCm3: 1 / 1_000_000 },
-  { value: 'cu-ft', label: 'cubic feet (cu ft)', factorFromCm3: 1 / 28_316.846592 },
-  { value: 'cu-yd', label: 'cubic yards (cu yd)', factorFromCm3: 1 / 764_554.857984 },
-  { value: 'us-gal', label: 'gallons (US) (US gal)', factorFromCm3: 1 / 3785.411784 },
-  { value: 'uk-gal', label: 'gallons (UK) (UK gal)', factorFromCm3: 1 / 4546.09 }
+  { value: 'm3', label: 'cubic meters (m³)' },
+  { value: 'cu-ft', label: 'cubic feet (cu ft)' },
+  { value: 'cu-yd', label: 'cubic yards (cu yd)' },
+  { value: 'us-gal', label: 'gallons (US) (US gal)' },
+  { value: 'uk-gal', label: 'gallons (UK) (UK gal)' }
 ];
 
 const lengthUnits = [
@@ -39,39 +38,37 @@ const lengthUnits = [
 const heightOnlyUnits = lengthUnits.filter(u => u.value !== 'm-cm');
 
 /* ----------------- Density / Mass Units ------------------ */
-
 const densityUnits = [
-  { value: 'kg-m3', label: 'kilograms per cubic meter (kg/m³)', toKgPerM3: (v: number) => v, fromKgPerM3: (v: number) => v },
-  { value: 'lb-ft3', label: 'pounds per cubic feet (lb/cu ft)', toKgPerM3: (v: number) => v * 16.01846337, fromKgPerM3: (v: number) => v / 16.01846337 },
-  { value: 'lb-yd3', label: 'pounds per cubic yard (lb/cu yd)', toKgPerM3: (v: number) => v * 0.593276, fromKgPerM3: (v: number) => v / 0.593276 },
-  { value: 'g-cm3', label: 'grams per cubic centimeter (g/cm³)', toKgPerM3: (v: number) => v * 1000, fromKgPerM3: (v: number) => v / 1000 }
+  { value: 'kg-m3', label: 'kilograms per cubic meter (kg/m³)' },
+  { value: 'lb-ft3', label: 'pounds per cubic foot (lb/cu ft)' },
+  { value: 'lb-yd3', label: 'pounds per cubic yard (lb/cu yd)' },
+  { value: 'g-cm3', label: 'grams per cubic centimeter (g/cm³)' }
 ];
 
 const massUnits = [
-  { value: 'kg', label: 'kilograms (kg)', fromKg: (v: number) => v, toKg: (v: number) => v },
-  { value: 't', label: 'metric tons (t)', fromKg: (v: number) => v / 1000, toKg: (v: number) => v * 1000 },
-  { value: 'lb', label: 'pounds (lb)', fromKg: (v: number) => v * 2.2046226218, toKg: (v: number) => v / 2.2046226218 },
-  { value: 'st', label: 'stones (st)', fromKg: (v: number) => v * 0.157473, toKg: (v: number) => v / 0.157473 },
-  { value: 'US-st', label: 'US short tons (US ton)', fromKg: (v: number) => v / 907.18474, toKg: (v: number) => v * 907.18474 },
-  { value: 'long-ton', label: 'imperial tons (long ton)', fromKg: (v: number) => v / 1016.047, toKg: (v: number) => v * 1016.047 }
+  { value: 'kg', label: 'kilograms (kg)' },
+  { value: 't', label: 'metric tons (t)' },
+  { value: 'lb', label: 'pounds (lb)' },
+  { value: 'st', label: 'stones (st)' },
+  { value: 'US-st', label: 'US short tons (US ton)' },
+  { value: 'long-ton', label: 'imperial tons (long ton)' }
 ];
 
 const bagSizeUnits = [
-  { value: 'kg', label: 'kilogram (kg)', fromKg: (v: number) => v, toKg: (v: number) => v },
-  { value: 'lb', label: 'pound (lb)', fromKg: (v: number) => v * 2.2046226218, toKg: (v: number) => v / 2.2046226218 }
+  { value: 'kg', label: 'kilogram (kg)' },
+  { value: 'lb', label: 'pound (lb)' }
 ];
 
 /* ----------------- Cost Units ------------------ */
 const perVolumeCostUnits = [
-  { value: 'm3', label: 'per cubic meter (m³)', factor: 1 },
-  { value: 'cu-ft', label: 'per cubic foot (cu ft)', factor: 0.028317 },
-  { value: 'cu-yd', label: 'per cubic yard (cu yd)', factor: 0.764555 },
-  { value: 'us-gal', label: 'per US gallon', factor: 0.003785 },
-  { value: 'uk-gal', label: 'per UK gallon', factor: 0.004546 }
+  { value: 'm3', label: 'per cubic meter (m³)' },
+  { value: 'cu-ft', label: 'per cubic foot (cu ft)' },
+  { value: 'cu-yd', label: 'per cubic yard (cu yd)' },
+  { value: 'us-gal', label: 'per US gallon' },
+  { value: 'uk-gal', label: 'per UK gallon' }
 ];
 
-/* ----------------- Shared Field Group Component ------------------ */
-
+/* ----------------- Shared Field Group ------------------ */
 interface FieldProps {
   label: string;
   children: React.ReactNode;
@@ -121,115 +118,79 @@ const RulerIcon = (
 );
 
 /* ----------------- Style Tokens ------------------ */
-
 const inputBase = 'h-11 w-full text-sm rounded-l-md border-2 border-gray-300 bg-white px-4 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400';
-const unitSelectBase = 'h-11 w-[120px] text-sm px-4 rounded-r-md bg-white border-2 border-l-0 border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none';
+const unitSelectBase = 'h-11 w-[140px] text-sm px-4 rounded-r-md bg-white border-2 border-l-0 border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer';
 const readonlyInputBase = 'h-11 w-full text-sm rounded-l-md border-2 border-gray-300 bg-gray-50 px-4 text-gray-700 cursor-not-allowed';
-const smallSelectLeft = 'h-11 w-[70px] rounded-l-md border-2 border-gray-300 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none';
-const trailingStatic = 'h-11 flex items-center rounded-r-md border-2 border-l-0 border-gray-300 bg-gray-50 text-sm px-4 text-gray-600 select-none w-[120px]';
-const trailingSelect = 'h-11 w-[120px] border-2 border-l-0 border-gray-300 bg-white px-4 text-sm rounded-r-md appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500';
+const trailingStatic = 'h-11 flex items-center rounded-r-md border-2 border-l-0 border-gray-300 bg-gray-50 text-sm px-4 text-gray-600 select-none w-[140px] justify-center';
+const trailingSelect = 'h-11 w-[140px] border-2 border-l-0 border-gray-300 bg-white px-4 text-sm rounded-r-md appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer';
 
-/* ----------------- Volume Conversion Factors ------------------ */
-const volumeConversionFactors: Record<string, Record<string, number>> = {
-  'cu-ft': {
-    'cu-ft': 1,
-    'cu-yd': 1/27,
-    'm3': 0.0283168,
-    'us-gal': 7.48052,
-    'uk-gal': 6.22884
-  },
-  'cu-yd': {
-    'cu-ft': 27,
-    'cu-yd': 1,
-    'm3': 0.764555,
-    'us-gal': 201.974,
-    'uk-gal': 168.178
-  },
-  'm3': {
-    'cu-ft': 35.3147,
-    'cu-yd': 1.30795,
-    'm3': 1,
-    'us-gal': 264.172,
-    'uk-gal': 219.969
-  }
-};
-
-/* ----------------- Component ------------------ */
-
+/* ----------------- Conversion Helpers ------------------ */
 const convertLength = (value: number, fromUnit: string, toUnit: string): number => {
+  if (isNaN(value) || value < 0) return 0;
   const meterValue = value * lengthToCm[fromUnit] / 100;
   return meterValue / (lengthToCm[toUnit] / 100);
 };
 
-/* Add these conversion helpers before the component */
 const convertDensity = (value: number, fromUnit: string, toUnit: string): number => {
-  // First convert to kg/m³
+  if (isNaN(value) || value < 0) return 0;
   let kgPerM3 = value;
+  
+  // Convert to kg/m³ first
   switch (fromUnit) {
-    case 'lb-ft3': kgPerM3 *= 16.0185;
-      break;
-    case 'lb-yd3': kgPerM3 *= 0.593276;
-      break;
-    case 'g-cm3': kgPerM3 *= 1000;
-      break;
+    case 'lb-ft3': kgPerM3 *= 16.01846337; break;
+    case 'lb-yd3': kgPerM3 *= 0.593276; break;
+    case 'g-cm3': kgPerM3 *= 1000; break;
+    case 'kg-m3': default: break;
   }
   
-  // Then convert to target unit
+  // Convert from kg/m³ to target unit
   switch (toUnit) {
-    case 'lb-ft3': return kgPerM3 / 16.0185;
+    case 'lb-ft3': return kgPerM3 / 16.01846337;
     case 'lb-yd3': return kgPerM3 / 0.593276;
     case 'g-cm3': return kgPerM3 / 1000;
-    default: return kgPerM3;
+    case 'kg-m3': default: return kgPerM3;
   }
 };
 
 const convertMass = (value: number, fromUnit: string, toUnit: string): number => {
-  // First convert to kg
+  if (isNaN(value) || value < 0) return 0;
   let kg = value;
+  
+  // Convert to kg first
   switch (fromUnit) {
-    case 'lb': kg /= 2.20462;
-      break;
-    case 't': kg *= 1000;
-      break;
-    case 'st': kg /= 0.157473;
-      break;
-    case 'US-st': kg *= 907.185;
-      break;
-    case 'long-ton': kg *= 1016.047;
-      break;
+    case 'lb': kg /= 2.2046226218; break;
+    case 't': kg *= 1000; break;
+    case 'st': kg /= 0.157473; break;
+    case 'US-st': kg *= 907.18474; break;
+    case 'long-ton': kg *= 1016.047; break;
+    case 'kg': default: break;
   }
   
-  // Then convert to target unit
+  // Convert from kg to target unit
   switch (toUnit) {
-    case 'lb': return kg * 2.20462;
+    case 'lb': return kg * 2.2046226218;
     case 't': return kg / 1000;
     case 'st': return kg * 0.157473;
-    case 'US-st': return kg / 907.185;
+    case 'US-st': return kg / 907.18474;
     case 'long-ton': return kg / 1016.047;
-    default: return kg;
+    case 'kg': default: return kg;
   }
 };
 
-/* Add these new conversion helpers */
-const getConversionFactor = (value: number, currentUnit: string, targetUnit: string, conversionMap: Record<string, number>): number => {
-  if (currentUnit === targetUnit) return value;
-  const baseValue = value * conversionMap[currentUnit];
-  return baseValue / conversionMap[targetUnit];
+const formatNumber = (v: number, d = 2) =>
+  isFinite(v) && v >= 0 ? parseFloat(v.toFixed(d)).toString() : '0';
+
+const unitVolumeInM3: Record<string, number> = {
+  'm3': 1,
+  'cu-ft': 0.0283168467117,
+  'cu-yd': 0.764554857984,
+  'us-gal': 0.003785411784,
+  'uk-gal': 0.00454609
 };
 
-const convertCost = (cost: number, fromUnit: string, toUnit: string): number => {
-  const conversionFactors = {
-    'm3': 1,
-    'cu-ft': 0.028317,
-    'cu-yd': 0.764555,
-    'us-gal': 0.003785,
-    'uk-gal': 0.004546
-  };
-  return getConversionFactor(cost, fromUnit, toUnit, conversionFactors);
-};
-
+/* ----------------- Component ------------------ */
 const ConcreteEstimatorTubePage = () => {
-  /* Tube geometry */
+  // Dimension states - keeping display values and canonical values separate
   const [outerDiameter, setOuterDiameter] = useState('24');
   const [outerDiameterUnit, setOuterDiameterUnit] = useState('in');
   const [innerDiameter, setInnerDiameter] = useState('20');
@@ -237,47 +198,47 @@ const ConcreteEstimatorTubePage = () => {
   const [height, setHeight] = useState('6');
   const [heightUnit, setHeightUnit] = useState('ft');
   const [quantity, setQuantity] = useState('1');
+
+  // Volume display
   const [volumeUnit, setVolumeUnit] = useState('cu-yd');
-  const [volumeDisplay, setVolumeDisplay] = useState('0');
   const [diameterError, setDiameterError] = useState('');
 
-  /* Pre-mixed concrete section */
-  const [densityValue, setDensityValue] = useState('2400'); // Default to 2400 kg/m³ for standard concrete
-  const [densityUnit, setDensityUnit] = useState('kg-m3'); // Default to kg/m³
-  const [massUnit, setMassUnit] = useState('kg'); // Change default to kg
-  const [massDisplay, setMassDisplay] = useState('');
-  const [bagSize, setBagSize] = useState(DEFAULT_BAG_SIZE.toString());
-  const [bagSizeUnit, setBagSizeUnit] = useState('lb');
-  const [wastePercent, setWastePercent] = useState(DEFAULT_WASTE.toString());
-  const [bagsNeeded, setBagsNeeded] = useState('');
+  // Density - display and canonical
+  const [densityUnit, setDensityUnit] = useState('lb-ft3');
+  const [densityDisplay, setDensityDisplay] = useState(DEFAULT_DENSITY_LBFT3.toString());
 
-  /* Costs section */
+  // Mass output
+  const [massUnit, setMassUnit] = useState('lb');
+
+  // Bag size - display and canonical
+  const [bagSizeUnit, setBagSizeUnit] = useState('lb');
+  const [bagSizeDisplay, setBagSizeDisplay] = useState(DEFAULT_BAG_SIZE_LB.toString());
+
+  const [wastePercent, setWastePercent] = useState(DEFAULT_WASTE.toString());
+
+  // Costs
   const [pricePerBag, setPricePerBag] = useState('5');
   const [pricePerUnitVolume, setPricePerUnitVolume] = useState('');
   const [pricePerUnitVolumeBasis, setPricePerUnitVolumeBasis] = useState('cu-yd');
   const [pricePerTube, setPricePerTube] = useState('');
-  const [totalCost, setTotalCost] = useState('');
 
-  /* Validate diameters */
+  // Calculated values
+  const [volumeDisplay, setVolumeDisplay] = useState('0');
+  const [massDisplay, setMassDisplay] = useState('0');
+  const [bagsNeeded, setBagsNeeded] = useState('0');
+  const [totalCost, setTotalCost] = useState('0.00');
+
+  // Validate diameters
   useEffect(() => {
-    const od = parseFloat(outerDiameter);
-    const id = parseFloat(innerDiameter);
+    const outer = parseFloat(outerDiameter);
+    const inner = parseFloat(innerDiameter);
     
-    if (isNaN(od)) {
-      setDiameterError('');
-      return;
-    }
-
-    if (od <= 0) {
-      setDiameterError('Outer diameter must be greater than 0');
-      return;
-    }
-
-    if (!isNaN(id) && id >= 0) {
-      const odCm = od * lengthToCm[outerDiameterUnit];
-      const idCm = id * lengthToCm[innerDiameterUnit];
-
-      if (odCm <= idCm) {
+    if (!isNaN(outer) && !isNaN(inner) && outer > 0 && inner >= 0) {
+      // Convert both to same unit for comparison
+      const outerInMeters = convertLength(outer, outerDiameterUnit, 'm');
+      const innerInMeters = convertLength(inner, innerDiameterUnit, 'm');
+      
+      if (outerInMeters <= innerInMeters) {
         setDiameterError('Outer diameter must be greater than inner diameter');
       } else {
         setDiameterError('');
@@ -285,190 +246,194 @@ const ConcreteEstimatorTubePage = () => {
     } else {
       setDiameterError('');
     }
-  }, [outerDiameter, innerDiameter, outerDiameterUnit, innerDiameterUnit]);
+  }, [outerDiameter, outerDiameterUnit, innerDiameter, innerDiameterUnit]);
 
-  /* Volume Calculation with independent unit handling */
+  // Independent unit change handlers
+  const handleOuterDiameterUnitChange = (newUnit: string) => {
+    const currentVal = parseFloat(outerDiameter);
+    if (!isNaN(currentVal) && currentVal > 0) {
+      const converted = convertLength(currentVal, outerDiameterUnit, newUnit);
+      setOuterDiameter(formatNumber(converted, 4));
+    }
+    setOuterDiameterUnit(newUnit);
+  };
+
+  const handleInnerDiameterUnitChange = (newUnit: string) => {
+    const currentVal = parseFloat(innerDiameter);
+    if (!isNaN(currentVal) && currentVal >= 0) {
+      const converted = convertLength(currentVal, innerDiameterUnit, newUnit);
+      setInnerDiameter(formatNumber(converted, 4));
+    }
+    setInnerDiameterUnit(newUnit);
+  };
+
+  const handleHeightUnitChange = (newUnit: string) => {
+    const currentVal = parseFloat(height);
+    if (!isNaN(currentVal) && currentVal > 0) {
+      const converted = convertLength(currentVal, heightUnit, newUnit);
+      setHeight(formatNumber(converted, 4));
+    }
+    setHeightUnit(newUnit);
+  };
+
+  const handleDensityUnitChange = (newUnit: string) => {
+    const currentVal = parseFloat(densityDisplay);
+    if (!isNaN(currentVal) && currentVal > 0) {
+      const converted = convertDensity(currentVal, densityUnit, newUnit);
+      setDensityDisplay(formatNumber(converted, 4));
+    }
+    setDensityUnit(newUnit);
+  };
+
+  const handleBagSizeUnitChange = (newUnit: string) => {
+    const currentVal = parseFloat(bagSizeDisplay);
+    if (!isNaN(currentVal) && currentVal > 0) {
+      const converted = convertMass(currentVal, bagSizeUnit, newUnit);
+      setBagSizeDisplay(formatNumber(converted, 4));
+    }
+    setBagSizeUnit(newUnit);
+  };
+
+  const handlePricePerUnitVolumeBasisChange = (newUnit: string) => {
+    const currentVal = parseFloat(pricePerUnitVolume);
+    if (!isNaN(currentVal) && currentVal > 0) {
+      // Convert the price rate
+      const currentFactor = unitVolumeInM3[pricePerUnitVolumeBasis] || 1;
+      const newFactor = unitVolumeInM3[newUnit] || 1;
+      const converted = (currentVal * currentFactor) / newFactor;
+      setPricePerUnitVolume(formatNumber(converted, 4));
+    }
+    setPricePerUnitVolumeBasis(newUnit);
+  };
+
+  // Volume calculation
   useEffect(() => {
-    const od = parseFloat(outerDiameter);
-    const id = parseFloat(innerDiameter);
+    const outerD = parseFloat(outerDiameter);
+    const innerD = parseFloat(innerDiameter) || 0; // Default to 0 if empty
     const h = parseFloat(height);
     const q = parseFloat(quantity);
 
-    if (diameterError || isNaN(od) || od <= 0 || isNaN(h) || h <= 0 || isNaN(q) || q <= 0) {
+    if (diameterError || isNaN(outerD) || outerD <= 0 || isNaN(h) || h <= 0 || isNaN(q) || q <= 0) {
       setVolumeDisplay('0.00');
       return;
     }
 
-    // Convert all measurements to meters for calculation
-    const odM = convertLength(od, outerDiameterUnit, 'm');
-    const idM = isNaN(id) || id < 0 ? 0 : convertLength(id, innerDiameterUnit, 'm');
-    const hM = convertLength(h, heightUnit, 'm');
+    // Convert all dimensions to meters for calculation
+    const outerDMeters = convertLength(outerD, outerDiameterUnit, 'm');
+    const innerDMeters = convertLength(innerD, innerDiameterUnit, 'm');
+    const hMeters = convertLength(h, heightUnit, 'm');
 
-    // Calculate volume in cubic meters
-    const volumeM3 = Math.PI * (Math.pow(odM/2, 2) - Math.pow(idM/2, 2)) * hM * q;
+    // Calculate volume in cubic meters (π * (R₁² - R₂²) * h * quantity)
+    const outerRadius = outerDMeters / 2;
+    const innerRadius = innerDMeters / 2;
+    const volumeM3 = Math.PI * (Math.pow(outerRadius, 2) - Math.pow(innerRadius, 2)) * hMeters * q;
 
-    // Convert to target volume unit
-    let result = volumeM3;
+    // Convert to display unit
+    let displayVolume = volumeM3;
     switch (volumeUnit) {
-      case 'cu-ft': result *= 35.3147;
-        break;
-      case 'cu-yd': result *= 1.30795;
-        break;
-      case 'us-gal': result *= 264.172;
-        break;
-      case 'uk-gal': result *= 219.969;
-        break;
+      case 'cu-ft': displayVolume /= 0.0283168467117; break;
+      case 'cu-yd': displayVolume /= 0.764554857984; break;
+      case 'us-gal': displayVolume /= 0.003785411784; break;
+      case 'uk-gal': displayVolume /= 0.00454609; break;
     }
 
-    setVolumeDisplay(result.toFixed(4));
-  }, [
-    outerDiameter,
-    innerDiameter,
-    height,
-    quantity,
-    outerDiameterUnit,
-    innerDiameterUnit,
-    heightUnit,
-    volumeUnit,
-    diameterError
-  ]);
+    setVolumeDisplay(formatNumber(displayVolume, 4));
+  }, [outerDiameter, outerDiameterUnit, innerDiameter, innerDiameterUnit, height, heightUnit, quantity, volumeUnit, diameterError]);
 
-  /* Mass + Bags Calculation with independent unit handling */
+  // Mass and bags calculation
   useEffect(() => {
-    const volume = parseFloat(volumeDisplay);
-    if (isNaN(volume) || volume <= 0) {
+    const vol = parseFloat(volumeDisplay);
+    const density = parseFloat(densityDisplay);
+    const waste = parseFloat(wastePercent) || 0;
+    const bagSize = parseFloat(bagSizeDisplay);
+
+    if (isNaN(vol) || vol <= 0 || isNaN(density) || density <= 0) {
       setMassDisplay('0.00');
       setBagsNeeded('0');
       return;
     }
 
-    // 1. Convert volume to m³
-    let volumeM3 = volume;
+    // Convert volume to cubic meters for mass calculation
+    let volumeM3 = vol;
     switch (volumeUnit) {
-      case 'cu-ft': volumeM3 /= 35.3147;
-        break;
-      case 'cu-yd': volumeM3 /= 1.30795;
-        break;
-      case 'us-gal': volumeM3 /= 264.172;
-        break;
-      case 'uk-gal': volumeM3 /= 219.969;
-        break;
+      case 'cu-ft': volumeM3 *= 0.0283168467117; break;
+      case 'cu-yd': volumeM3 *= 0.764554857984; break;
+      case 'us-gal': volumeM3 *= 0.003785411784; break;
+      case 'uk-gal': volumeM3 *= 0.00454609; break;
     }
 
-    // 2. Get density in kg/m³
-    const densityValue_kgm3 = convertDensity(parseFloat(densityValue), densityUnit, 'kg-m3');
+    // Convert density to kg/m³ for calculation
+    const densityKgM3 = convertDensity(density, densityUnit, 'kg-m3');
+    
+    // Calculate mass in kg
+    const massKg = volumeM3 * densityKgM3;
+    const massWithWasteKg = massKg * (1 + waste / 100);
 
-    // 3. Calculate base mass in kg
-    const baseMassKg = volumeM3 * densityValue_kgm3;
+    // Convert to display unit
+    const massForDisplay = convertMass(massWithWasteKg, 'kg', massUnit);
+    setMassDisplay(formatNumber(massForDisplay, 2));
 
-    // 4. Apply waste factor
-    const waste = parseFloat(wastePercent) || 0;
-    const totalMassKg = baseMassKg * (1 + waste / 100);
-
-    // 5. Convert to display unit
-    const massInDisplayUnit = convertMass(totalMassKg, 'kg', massUnit);
-    setMassDisplay(massInDisplayUnit.toFixed(2));
-
-    // 6. Calculate bags needed
-    const bagMassInKg = bagSizeUnit === 'kg' 
-      ? parseFloat(bagSize)
-      : convertMass(parseFloat(bagSize), bagSizeUnit, 'kg');
-
-    if (bagMassInKg > 0) {
-      const bagsCount = Math.ceil(totalMassKg / bagMassInKg);
-      setBagsNeeded(bagsCount.toString());
+    // Calculate bags needed
+    if (!isNaN(bagSize) && bagSize > 0) {
+      const bagSizeKg = convertMass(bagSize, bagSizeUnit, 'kg');
+      const bags = Math.ceil(massWithWasteKg / bagSizeKg);
+      setBagsNeeded(bags.toString());
     } else {
       setBagsNeeded('0');
     }
+  }, [volumeDisplay, volumeUnit, densityDisplay, densityUnit, wastePercent, massUnit, bagSizeDisplay, bagSizeUnit]);
 
-  }, [
-    volumeDisplay,
-    volumeUnit,
-    densityValue,
-    densityUnit,
-    wastePercent,
-    massUnit,
-    bagSize,
-    bagSizeUnit
-  ]);
-
-  /* Cost Calculation */
+  // Cost calculation
   useEffect(() => {
     let total = 0;
 
-    // Per bag cost
-    const bagPrice = parseFloat(pricePerBag);
-    const bags = parseInt(bagsNeeded);
-    if (!isNaN(bagPrice) && !isNaN(bags)) {
-      total += bagPrice * bags;
+    // Cost from bags
+    const bagPrice = parseFloat(pricePerBag) || 0;
+    const bags = parseInt(bagsNeeded) || 0;
+    total += bagPrice * bags;
+
+    // Cost from volume
+    const volumePrice = parseFloat(pricePerUnitVolume) || 0;
+    const vol = parseFloat(volumeDisplay) || 0;
+    if (volumePrice > 0 && vol > 0) {
+      // Convert volume to pricing basis unit
+      let volumeForPricing = vol;
+      if (volumeUnit !== pricePerUnitVolumeBasis) {
+        // Convert through m³
+        let volumeM3 = vol;
+        switch (volumeUnit) {
+          case 'cu-ft': volumeM3 *= 0.0283168467117; break;
+          case 'cu-yd': volumeM3 *= 0.764554857984; break;
+          case 'us-gal': volumeM3 *= 0.003785411784; break;
+          case 'uk-gal': volumeM3 *= 0.00454609; break;
+        }
+        
+        switch (pricePerUnitVolumeBasis) {
+          case 'cu-ft': volumeForPricing = volumeM3 / 0.0283168467117; break;
+          case 'cu-yd': volumeForPricing = volumeM3 / 0.764554857984; break;
+          case 'us-gal': volumeForPricing = volumeM3 / 0.003785411784; break;
+          case 'uk-gal': volumeForPricing = volumeM3 / 0.00454609; break;
+          case 'm3': volumeForPricing = volumeM3; break;
+        }
+      }
+      total += volumePrice * volumeForPricing;
     }
 
-    // Per volume cost
-    const volPrice = parseFloat(pricePerUnitVolume);
-    const volume = parseFloat(volumeDisplay);
-    if (!isNaN(volPrice) && !isNaN(volume)) {
-      const convertedVolume = convertCost(volume, volumeUnit, pricePerUnitVolumeBasis);
-      total += volPrice * convertedVolume;
-    }
+    // Cost from tubes
+    const tubePrice = parseFloat(pricePerTube) || 0;
+    const qty = parseInt(quantity) || 0;
+    total += tubePrice * qty;
 
-    // Per piece cost
-    const piecePrice = parseFloat(pricePerTube);
-    const pieces = parseInt(quantity);
-    if (!isNaN(piecePrice) && !isNaN(pieces)) {
-      total += piecePrice * pieces;
-    }
-
-    setTotalCost(total.toFixed(2));
-  }, [
-    pricePerBag, bagsNeeded,
-    pricePerUnitVolume, volumeDisplay, volumeUnit, pricePerUnitVolumeBasis,
-    pricePerTube, quantity
-  ]);
-
-  /* Helper functions */
-  const convertToInches = (value: number, unit: string): number => {
-    switch (unit) {
-      case 'in': return value;
-      case 'ft': return value * 12;
-      case 'cm': return value / 2.54;
-      case 'm': return value * 39.3701;
-      default: return value;
-    }
-  };
-
-  const formatDecimal = (value: number): string => {
-    if (isNaN(value)) return '0';
-    // Format with 2 decimal places, remove trailing zeros after decimal
-    return value.toFixed(2).replace(/\.?0+$/, '');
-  };
-
-  const convertVolume = (value: number, fromUnit: string, toUnit: string): number => {
-    if (fromUnit === toUnit) return value;
-    
-    // First convert to cubic feet if not already
-    let inCuFt = value;
-    if (fromUnit !== 'cu-ft') {
-      const factor = volumeConversionFactors[fromUnit]?.['cu-ft'];
-      if (factor) inCuFt = value * factor;
-    }
-    
-    // Then convert to target unit
-    const toFactor = volumeConversionFactors['cu-ft']?.[toUnit];
-    return toFactor ? inCuFt * toFactor : value;
-  };
+    setTotalCost(formatNumber(total, 2));
+  }, [pricePerBag, bagsNeeded, pricePerUnitVolume, volumeDisplay, volumeUnit, pricePerUnitVolumeBasis, pricePerTube, quantity]);
 
   const lengthOptions = useMemo(
-    () =>
-      lengthUnits.map(u => (
-        <option key={u.value} value={u.value}>
-          {u.label}
-        </option>
-      )),
+    () => lengthUnits.map(u => <option key={u.value} value={u.value}>{u.label}</option>),
     []
   );
 
   return (
-    <div className="w-[450px] max-w-xl mx-auto p-4 md:p-6 space-y-4">
+    <div className="w-[500px] max-w-xl mx-auto p-4 md:p-6 space-y-4">
       {/* Card 1: Tube Details */}
       <div className="border border-gray-300 rounded-lg bg-white shadow-sm px-4 pb-5 pt-4">
         <h1 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">
@@ -476,17 +441,18 @@ const ConcreteEstimatorTubePage = () => {
         </h1>
 
         <div className="flex flex-col items-center mb-6">
-          <div className="relative w-52 h-52">
+          <div className="relative w-52 h-52 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
             <Image
               src="/cylinder.webp"
-              alt="Concrete tube diagram showing outer diameter, inner diameter and height"
-              fill
+              alt="Concrete Tube Cross-Section"
+              width={208}
+              height={208}
               className="object-contain"
               priority
             />
           </div>
           <p className="mt-2 text-[11px] text-gray-500 tracking-wide">
-            © Omni Calculator
+            © Concrete Calculator
           </p>
         </div>
 
@@ -506,7 +472,7 @@ const ConcreteEstimatorTubePage = () => {
               />
               <select
                 value={outerDiameterUnit}
-                onChange={(e) => setOuterDiameterUnit(e.target.value)}
+                onChange={(e) => handleOuterDiameterUnitChange(e.target.value)}
                 className={`${unitSelectBase} ${diameterError ? 'border-red-500' : ''}`}
                 aria-label="Outer diameter unit"
               >
@@ -530,7 +496,7 @@ const ConcreteEstimatorTubePage = () => {
               />
               <select
                 value={innerDiameterUnit}
-                onChange={(e) => setInnerDiameterUnit(e.target.value)}
+                onChange={(e) => handleInnerDiameterUnitChange(e.target.value)}
                 className={`${unitSelectBase} ${diameterError ? 'border-red-500' : ''}`}
                 aria-label="Inner diameter unit"
               >
@@ -554,7 +520,7 @@ const ConcreteEstimatorTubePage = () => {
               />
               <select
                 value={heightUnit}
-                onChange={(e) => setHeightUnit(e.target.value)}
+                onChange={(e) => handleHeightUnitChange(e.target.value)}
                 className={unitSelectBase}
                 aria-label="Height unit"
               >
@@ -620,8 +586,8 @@ const ConcreteEstimatorTubePage = () => {
                 type="number"
                 inputMode="decimal"
                 placeholder="0"
-                value={densityValue}
-                onChange={(e) => setDensityValue(e.target.value)}
+                value={densityDisplay}
+                onChange={(e) => setDensityDisplay(e.target.value)}
                 className={inputBase}
                 aria-label="Concrete density"
                 min="0"
@@ -629,7 +595,7 @@ const ConcreteEstimatorTubePage = () => {
               />
               <select
                 value={densityUnit}
-                onChange={(e) => setDensityUnit(e.target.value)}
+                onChange={(e) => handleDensityUnitChange(e.target.value)}
                 className={unitSelectBase}
                 aria-label="Density unit"
               >
@@ -672,8 +638,8 @@ const ConcreteEstimatorTubePage = () => {
               <input
                 type="number"
                 inputMode="decimal"
-                value={bagSize}
-                onChange={(e) => setBagSize(e.target.value)}
+                value={bagSizeDisplay}
+                onChange={(e) => setBagSizeDisplay(e.target.value)}
                 className={inputBase}
                 aria-label="Bag size"
                 min="0"
@@ -681,7 +647,7 @@ const ConcreteEstimatorTubePage = () => {
               />
               <select
                 value={bagSizeUnit}
-                onChange={(e) => setBagSizeUnit(e.target.value)}
+                onChange={(e) => handleBagSizeUnitChange(e.target.value)}
                 className={unitSelectBase}
                 aria-label="Bag size unit"
               >
@@ -766,7 +732,7 @@ const ConcreteEstimatorTubePage = () => {
             />
             <select
               value={pricePerUnitVolumeBasis}
-              onChange={(e) => setPricePerUnitVolumeBasis(e.target.value)}
+              onChange={(e) => handlePricePerUnitVolumeBasisChange(e.target.value)}
               className={trailingSelect}
               aria-label="Per volume basis"
             >
@@ -811,6 +777,8 @@ const ConcreteEstimatorTubePage = () => {
           </div>
         </FieldGroup>
       </div>
+
+     
     </div>
   );
 };

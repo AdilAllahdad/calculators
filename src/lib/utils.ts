@@ -1,6 +1,10 @@
-/**
- * Utility functions for calculations
- */
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
 
 import { UNIT_OPTIONS } from '@/constants';
 import { UnitOption } from '@/types/calculator';
@@ -271,3 +275,4 @@ export const formatNumberWithCommas = (num: number, maxDecimals: number = 2): st
 export const formatCurrency = (num: number): string => {
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
+
