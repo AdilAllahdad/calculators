@@ -3,26 +3,102 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown,ChevronUp } from '@/components/icons';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue, formatNumber } from '@/lib/utils';
 
-// Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
-const archHeightUnitValues = ['m', 'mm', 'ft', 'in', 'cm'];
-const archLengthUnitValues = ['m', 'mm', 'ft', 'in', 'cm'];
+// Type definitions for unit system
+type LengthUnitType = 'm' | 'mm' | 'ft' | 'in' | 'cm';
+type ConversionMap<T extends string> = Record<T, number>;
 
-const f1UnitValues = ['m', 'mm', 'ft', 'in', 'cm'];
-const f2UnitValues = ['m', 'mm', 'ft', 'in', 'cm'];
+// Helper functions for type safety
+const isLengthUnit = (unit: string): unit is LengthUnitType => {
+  return ['m', 'mm', 'ft', 'in', 'cm'].includes(unit);
+};
+
+// Define the unit values needed for each dropdown
+const archHeightUnitValues: LengthUnitType[] = ['m', 'mm', 'ft', 'in', 'cm'];
+const archLengthUnitValues: LengthUnitType[] = ['m', 'mm', 'ft', 'in', 'cm'];
+const f1UnitValues: LengthUnitType[] = ['m', 'mm', 'ft', 'in', 'cm'];
+const f2UnitValues: LengthUnitType[] = ['m', 'mm', 'ft', 'in', 'cm'];
+
+// Conversion map (all to meters as base unit)
+const lengthConversions: ConversionMap<LengthUnitType> = {
+  'm': 1,           // meters (base)
+  'mm': 0.001,      // millimeters to meters
+  'ft': 0.3048,     // feet to meters
+  'in': 0.0254,     // inches to meters
+  'cm': 0.01        // centimeters to meters
+};
+
+// Unit conversion helper
+const handleUnitConversion = (
+  currentUnit: LengthUnitType,
+  newUnit: LengthUnitType,
+  value: string,
+  conversionTable: ConversionMap<LengthUnitType>
+): number => {
+  if (!value) return 0;
+  const numValue = Number(value);
+  if (isNaN(numValue)) return 0;
+  const standardValue = numValue * conversionTable[currentUnit];
+  return standardValue / conversionTable[newUnit];
+};
+
+// Format number helper
+const formatNumber = (value: number, decimals: number = 2): string => {
+  if (value === 0) return '0';
+  if (value % 1 === 0) return value.toString();
+  return value.toFixed(decimals);
+};
 
 export default function ArchCalculator() {
     const [archHeight, setArchHeight] = useState<string>('');
-    const [archHeightUnit, setArchHeightUnit] = useState<string>('m');
+    const [archHeightUnit, setArchHeightUnit] = useState<LengthUnitType>('m');
     const [archLength, setArchLength] = useState<string>('');
-    const [archLengthUnit, setArchLengthUnit] = useState<string>('m');
+    const [archLengthUnit, setArchLengthUnit] = useState<LengthUnitType>('m');
     const [showFocus, setShowFocus] = useState<boolean>(false);
     const [f1, setF1] = useState<number>(0);
-    const [f1Unit, setF1Unit] = useState<string>('m');
+    const [f1Unit, setF1Unit] = useState<LengthUnitType>('m');
     const [f2, setF2] = useState<number>(0);
-    const [f2Unit, setF2Unit] = useState<string>('m');
+    const [f2Unit, setF2Unit] = useState<LengthUnitType>('m');
     const [error, setError] = useState<string>('');
+
+    // Unit change handlers with type safety
+    const handleArchHeightUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!archHeight || archHeight === '') {
+            setArchHeightUnit(newUnit);
+            return;
+        }
+
+        const result = handleUnitConversion(archHeightUnit, newUnit, archHeight, lengthConversions);
+        setArchHeight(result.toFixed(4));
+        setArchHeightUnit(newUnit);
+    };
+
+    const handleArchLengthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!archLength || archLength === '') {
+            setArchLengthUnit(newUnit);
+            return;
+        }
+
+        const result = handleUnitConversion(archLengthUnit, newUnit, archLength, lengthConversions);
+        setArchLength(result.toFixed(4));
+        setArchLengthUnit(newUnit);
+    };
+
+    const handleF1UnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        setF1Unit(newUnitValue);
+    };
+
+    const handleF2UnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        setF2Unit(newUnitValue);
+    };
 
     const validateDimensions = () => {
         const archHeightNum = parseFloat(archHeight);
@@ -33,8 +109,9 @@ export default function ArchCalculator() {
             return false;
         }
 
-        const archHeightInM = convertValue(archHeightNum, archHeightUnit, 'm');
-        const archLengthInM = convertValue(archLengthNum, archLengthUnit, 'm');
+        // Convert to meters using type-safe conversion
+        const archHeightInM = archHeightNum * lengthConversions[archHeightUnit];
+        const archLengthInM = archLengthNum * lengthConversions[archLengthUnit];
 
         if (archLengthInM <= 2 * archHeightInM) {
             setError('Base length should be greater than twice the arch height for a proper elliptical arch');
@@ -62,8 +139,9 @@ export default function ArchCalculator() {
             return;
         }
 
-        const archHeightInM = convertValue(archHeightNum, archHeightUnit, 'm');
-        const archLengthInM = convertValue(archLengthNum, archLengthUnit, 'm');
+        // Convert to meters using type-safe conversion
+        const archHeightInM = archHeightNum * lengthConversions[archHeightUnit];
+        const archLengthInM = archLengthNum * lengthConversions[archLengthUnit];
 
         // For elliptical arch: focal distance = sqrt(a² - b²)
         // where a = half the base length, b = rise/height
@@ -93,9 +171,9 @@ export default function ArchCalculator() {
         const f1Value = -focalDistance;  // Left focus point (negative)
         const f2Value = focalDistance;   // Right focus point (positive)
 
-        // Convert to selected units
-        const f1Display = convertValue(f1Value, 'm', f1Unit);
-        const f2Display = convertValue(f2Value, 'm', f2Unit);
+        // Convert to selected units using type-safe conversion
+        const f1Display = f1Value / lengthConversions[f1Unit];
+        const f2Display = f2Value / lengthConversions[f2Unit];
 
         // Ensure the converted values are valid numbers
         setF1(isNaN(f1Display) || !isFinite(f1Display) ? 0 : f1Display);
@@ -125,25 +203,11 @@ export default function ArchCalculator() {
         handleNumberInput(e.target.value, setArchHeight);
     };
 
-    const handleArchHeightUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setArchHeightUnit(e.target.value);
-    };
-
     const handleArchLengthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         handleNumberInput(e.target.value, setArchLength);
     };
 
-    const handleArchLengthUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setArchLengthUnit(e.target.value);
-    };
 
-    const handleF1UnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setF1Unit(e.target.value);
-    };
-
-    const handleF2UnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setF2Unit(e.target.value);
-    };
 
     const reloadCalculator = () => {
         setArchHeight('');
@@ -212,7 +276,7 @@ export default function ArchCalculator() {
                             />
                             <UnitDropdown
                                 value={archLengthUnit}
-                                onChange={handleArchLengthUnitChange}
+                                onChange={(e) => handleArchLengthUnitChange(e.target.value)}
                                 unitValues={archLengthUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -236,7 +300,7 @@ export default function ArchCalculator() {
                             />
                             <UnitDropdown
                                 value={archHeightUnit}
-                                onChange={handleArchHeightUnitChange}
+                                onChange={(e) => handleArchHeightUnitChange(e.target.value)}
                                 unitValues={archHeightUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -271,7 +335,7 @@ export default function ArchCalculator() {
                                 />
                                 <UnitDropdown
                                     value={f1Unit}
-                                    onChange={handleF1UnitChange}
+                                    onChange={(e) => handleF1UnitChange(e.target.value)}
                                     unitValues={f1UnitValues}
                                     className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                 />
@@ -289,7 +353,7 @@ export default function ArchCalculator() {
                                 />
                                 <UnitDropdown
                                     value={f2Unit}
-                                    onChange={handleF2UnitChange}
+                                    onChange={(e) => handleF2UnitChange(e.target.value)}
                                     unitValues={f2UnitValues}
                                     className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                 />

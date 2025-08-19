@@ -3,45 +3,109 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown,ChevronUp } from '@/components/icons';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue, formatNumber } from '@/lib/utils';
+import { convertValue } from '@/lib/utils';
 
-// Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
-const lengthUnitValues = ['m', 'ft', 'in', 'cm', 'km', 'yd', 'ft in', 'm cm'];
-const heightUnitvalues = ['m', 'ft', 'in', 'cm', 'km', 'yd', 'ft in', 'm cm'];
-const widthUnitvalues = ['m', 'ft', 'in', 'cm', 'mm', 'ft in', 'm cm'];
-const spacingUnitvalues = ['m', 'ft', 'in', 'cm', 'mm', 'ft in', 'm cm'];
-const thicknessUnitvalues = ['m', 'ft', 'in', 'cm', 'mm', 'ft in', 'm cm'];
-const concreteVolumeUnitValues = ['m3', 'dm3', 'cm3', 'cu ft', 'cu in', 'cu yd'];
+// Type definitions for unit system
+type SingleLengthUnitType = 'm' | 'ft' | 'in' | 'cm' | 'km' | 'yd' | 'mm';
+type CompositeLengthUnitType = 'ft/in' | 'm/cm';
+type LengthUnitType = SingleLengthUnitType | CompositeLengthUnitType;
+type VolumeUnitType = 'm3' | 'dm3' | 'cm3' | 'cu ft' | 'cu in' | 'cu yd';
+type ConversionMap<T extends string> = Record<T, number>;
+
+// Helper functions for type safety
+const isSingleLengthUnit = (unit: string): unit is SingleLengthUnitType => {
+  return ['m', 'ft', 'in', 'cm', 'km', 'yd', 'mm'].includes(unit);
+};
+
+const isCompositeLengthUnit = (unit: string): unit is CompositeLengthUnitType => {
+  return unit === 'ft/in' || unit === 'm/cm';
+};
+
+const isLengthUnit = (unit: string): unit is LengthUnitType => {
+  return isSingleLengthUnit(unit) || isCompositeLengthUnit(unit);
+};
+
+const isVolumeUnit = (unit: string): unit is VolumeUnitType => {
+  return ['m3', 'dm3', 'cm3', 'cu ft', 'cu in', 'cu yd'].includes(unit);
+};
+
+// Define the unit values needed for each dropdown
+const lengthUnitValues: LengthUnitType[] = ['m', 'ft', 'in', 'cm', 'km', 'yd', 'ft/in', 'm/cm'];
+const heightUnitvalues: LengthUnitType[] = ['m', 'ft', 'in', 'cm', 'km', 'yd', 'ft/in', 'm/cm'];
+const widthUnitvalues: LengthUnitType[] = ['m', 'ft', 'in', 'cm', 'mm', 'ft/in', 'm/cm'];
+const spacingUnitvalues: LengthUnitType[] = ['m', 'ft', 'in', 'cm', 'mm', 'ft/in', 'm/cm'];
+const thicknessUnitvalues: LengthUnitType[] = ['m', 'ft', 'in', 'cm', 'mm', 'ft/in', 'm/cm'];
+const concreteVolumeUnitValues: VolumeUnitType[] = ['m3', 'dm3', 'cm3', 'cu ft', 'cu in', 'cu yd'];
+
+// Conversion maps (all to base units)
+const lengthConversions: ConversionMap<SingleLengthUnitType> = {
+  'm': 1,           // meters (base)
+  'ft': 0.3048,     // feet to meters
+  'in': 0.0254,     // inches to meters
+  'cm': 0.01,       // centimeters to meters
+  'km': 1000,       // kilometers to meters
+  'yd': 0.9144,     // yards to meters
+  'mm': 0.001       // millimeters to meters
+};
+
+const volumeConversions: ConversionMap<VolumeUnitType> = {
+  'm3': 1,          // cubic meters (base)
+  'dm3': 0.001,     // cubic decimeters to cubic meters
+  'cm3': 1e-6,      // cubic centimeters to cubic meters
+  'cu ft': 0.0283168, // cubic feet to cubic meters
+  'cu in': 1.6387e-5, // cubic inches to cubic meters
+  'cu yd': 0.764555   // cubic yards to cubic meters
+};
+
+// Unit conversion helper
+const handleUnitConversion = <T extends string>(
+  currentUnit: T,
+  newUnit: T,
+  value: number | string,
+  conversionTable: ConversionMap<T>
+): number => {
+  const numValue = Number(value);
+  if (!numValue || isNaN(numValue)) return 0;
+  const standardValue = numValue * conversionTable[currentUnit];
+  return standardValue / conversionTable[newUnit];
+};
+
+// Format number helper
+const formatNumber = (value: number, decimals: number = 2): string => {
+  if (value === 0) return '0';
+  if (value % 1 === 0) return value.toString();
+  return value.toFixed(decimals);
+};
 
 export default function FenceCalculator() {
     const [length, setLength] = useState<string>('');
-    const [lengthUnit, setLengthUnit] = useState<string>('m');
+    const [lengthUnit, setLengthUnit] = useState<LengthUnitType>('m');
     const [space, setSpace] = useState<string>('2.5');
-    const [spaceUnit, setSpaceUnit] = useState<string>('m');
+    const [spaceUnit, setSpaceUnit] = useState<LengthUnitType>('m');
     const [numPosts, setNumPosts] = useState<number | string>('');
     const [numSections, setNumSections] = useState<number>(0);
     const [height, setHeight] = useState<string>('');
-    const [heightUnit, setHeightUnit] = useState<string>('m');
+    const [heightUnit, setHeightUnit] = useState<LengthUnitType>('m');
     const [postLength, setPostLength] = useState<number>(0);
-    const [postLengthUnit, setPostLengthUnit] = useState<string>('m');
+    const [postLengthUnit, setPostLengthUnit] = useState<LengthUnitType>('m');
     const [railsPerSection, setRailsPerSection] = useState<string>('');
     const [numRails, setNumRails] = useState<number>(0);
     const [width, setWidth] = useState<string>('');
-    const [widthUnit, setWidthUnit] = useState<string>('m');
+    const [widthUnit, setWidthUnit] = useState<LengthUnitType>('m');
     const [spacing, setSpacing] = useState<string>('');
-    const [spacingUnit, setSpacingUnit] = useState<string>('m');
+    const [spacingUnit, setSpacingUnit] = useState<LengthUnitType>('m');
     const [numPickets, setNumPickets] = useState<number>(0);
     const [shape, setShape] = useState<string>('');
     const [postDiameter, setPostDiameter] = useState<string>('');
-    const [postDiameterUnit, setPostDiameterUnit] = useState<string>('m');
+    const [postDiameterUnit, setPostDiameterUnit] = useState<LengthUnitType>('m');
     const [postDepth, setPostDepth] = useState<string>('5');
-    const [postDepthUnit, setPostDepthUnit] = useState<string>('m');
+    const [postDepthUnit, setPostDepthUnit] = useState<LengthUnitType>('m');
     const [postWidth, setPostWidth] = useState<string>('');
-    const [postWidthUnit, setPostWidthUnit] = useState<string>('m');
+    const [postWidthUnit, setPostWidthUnit] = useState<LengthUnitType>('m');
     const [postThickness, setPostThickness] = useState<string>('');
-    const [postThicknessUnit, setPostThicknessUnit] = useState<string>('m');
+    const [postThicknessUnit, setPostThicknessUnit] = useState<LengthUnitType>('m');
     const [concreteVolume, setConcreteVolume] = useState<number>(0);
-    const [concreteVolumeUnit, setConcreteVolumeUnit] = useState<string>('m3');
+    const [concreteVolumeUnit, setConcreteVolumeUnit] = useState<VolumeUnitType>('m3');
     const [showNumLPosts, setShowNumLPosts] = useState<boolean>(true);
     const [showNumRails, setShowNumRails] = useState<boolean>(true);
     const [showNumPickets, setShowNumPickets] = useState<boolean>(true);
@@ -66,7 +130,148 @@ export default function FenceCalculator() {
         }
     };
 
-    const calculateNumPosts = () => {   
+    // Type-safe unit change handlers with value preservation
+    const handleLengthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!length || length === '') {
+            setLengthUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(lengthUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(lengthUnit, newUnit, Number(length), lengthConversions);
+            setLength(result.toFixed(4));
+        }
+        setLengthUnit(newUnit);
+    };
+
+    const handleSpaceUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!space || space === '') {
+            setSpaceUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(spaceUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(spaceUnit, newUnit, Number(space), lengthConversions);
+            setSpace(result.toFixed(4));
+        }
+        setSpaceUnit(newUnit);
+    };
+
+    const handleWidthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!width || width === '') {
+            setWidthUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(widthUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(widthUnit, newUnit, Number(width), lengthConversions);
+            setWidth(result.toFixed(4));
+        }
+        setWidthUnit(newUnit);
+    };
+
+    const handleSpacingUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!spacing || spacing === '') {
+            setSpacingUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(spacingUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(spacingUnit, newUnit, Number(spacing), lengthConversions);
+            setSpacing(result.toFixed(4));
+        }
+        setSpacingUnit(newUnit);
+    };
+
+    const handlePostWidthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!postWidth || postWidth === '') {
+            setPostWidthUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(postWidthUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(postWidthUnit, newUnit, Number(postWidth), lengthConversions);
+            setPostWidth(result.toFixed(4));
+        }
+        setPostWidthUnit(newUnit);
+    };
+
+    const handlePostThicknessUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!postThickness || postThickness === '') {
+            setPostThicknessUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(postThicknessUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(postThicknessUnit, newUnit, Number(postThickness), lengthConversions);
+            setPostThickness(result.toFixed(4));
+        }
+        setPostThicknessUnit(newUnit);
+    };
+
+    const handlePostDiameterUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!postDiameter || postDiameter === '') {
+            setPostDiameterUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(postDiameterUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(postDiameterUnit, newUnit, Number(postDiameter), lengthConversions);
+            setPostDiameter(result.toFixed(4));
+        }
+        setPostDiameterUnit(newUnit);
+    };
+
+    const handleHeightUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!height || height === '') {
+            setHeightUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(heightUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(heightUnit, newUnit, Number(height), lengthConversions);
+            setHeight(result.toFixed(4));
+        }
+        setHeightUnit(newUnit);
+    };
+
+    const handlePostLengthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        // Convert the current post length value to the new unit (only for single units)
+        if (postLength && postLength > 0 && isSingleLengthUnit(postLengthUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(postLengthUnit, newUnit, Number(postLength), lengthConversions);
+            setPostLength(result);
+        }
+        setPostLengthUnit(newUnit);
+    };
+
+    const calculateNumPosts = () => {
         const lengthNum = parseFloat(length) || 0;
         const spaceNum = parseFloat(space) || 0;
         if (lengthNum <= 0 || spaceNum <= 0) {
@@ -263,7 +468,7 @@ export default function FenceCalculator() {
                             />
                             <UnitDropdown
                                 value={lengthUnit}
-                                onChange={(e) => setLengthUnit(e.target.value)}
+                                onChange={(e) => handleLengthUnitChange(e.target.value)}
                                 unitValues={lengthUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -285,7 +490,7 @@ export default function FenceCalculator() {
                             />
                             <UnitDropdown
                                 value={spaceUnit}
-                                onChange={(e) => setSpaceUnit(e.target.value)}
+                                onChange={(e) => handleSpaceUnitChange(e.target.value)}
                                 unitValues={lengthUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -335,7 +540,7 @@ export default function FenceCalculator() {
                             />
                             <UnitDropdown
                                 value={heightUnit}
-                                onChange={(e) => setHeightUnit(e.target.value)}
+                                onChange={(e) => handleHeightUnitChange(e.target.value)}
                                 unitValues={heightUnitvalues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -355,7 +560,7 @@ export default function FenceCalculator() {
                             />
                             <UnitDropdown
                                 value={postLengthUnit}
-                                onChange={(e) => setPostLengthUnit(e.target.value)}
+                                onChange={(e) => handlePostLengthUnitChange(e.target.value)}
                                 unitValues={lengthUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -445,7 +650,7 @@ export default function FenceCalculator() {
                             />
                             <UnitDropdown
                                 value={widthUnit}
-                                onChange={(e) => setWidthUnit(e.target.value)}
+                                onChange={(e) => handleWidthUnitChange(e.target.value)}
                                 unitValues={widthUnitvalues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -467,7 +672,7 @@ export default function FenceCalculator() {
                             />  
                             <UnitDropdown
                                 value={spacingUnit}
-                                onChange={(e) => setSpacingUnit(e.target.value)}
+                                onChange={(e) => handleSpacingUnitChange(e.target.value)}
                                 unitValues={spacingUnitvalues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -551,12 +756,12 @@ export default function FenceCalculator() {
                                         style={{ color: '#1e293b', backgroundColor: '#ffffff' }}  
                                         min="0"  
                                     />  
-                                    <UnitDropdown   
-                                        value={postWidthUnit}  
-                                        onChange={(e) => setPostWidthUnit(e.target.value)}  
-                                        unitValues={lengthUnitValues}     
-                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"  
-                                    />  
+                                    <UnitDropdown
+                                        value={postWidthUnit}
+                                        onChange={(e) => handlePostWidthUnitChange(e.target.value)}
+                                        unitValues={lengthUnitValues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
                                 </div>  
                             </div>  
                             <div className="mb-6">  
@@ -573,12 +778,12 @@ export default function FenceCalculator() {
                                         style={{ color: '#1e293b', backgroundColor: '#ffffff' }}  
                                         min="0"  
                                     />  
-                                    <UnitDropdown   
-                                        value={postThicknessUnit}  
-                                        onChange={(e) => setPostThicknessUnit(e.target.value)}  
-                                        unitValues={thicknessUnitvalues}    
-                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"  
-                                    />  
+                                    <UnitDropdown
+                                        value={postThicknessUnit}
+                                        onChange={(e) => handlePostThicknessUnitChange(e.target.value)}
+                                        unitValues={thicknessUnitvalues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
                                 </div>  
                             </div>  
                             <div className="mb-6">  
@@ -595,7 +800,7 @@ export default function FenceCalculator() {
                                     />
                                     <UnitDropdown   
                                         value={concreteVolumeUnit}  
-                                        onChange={(e) => setConcreteVolumeUnit(e.target.value)}  
+                                        onChange={(e) => setConcreteVolumeUnit(e.target.value as VolumeUnitType)}  
                                         unitValues={concreteVolumeUnitValues}    
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"  
                                     />
@@ -619,12 +824,12 @@ export default function FenceCalculator() {
                                         style={{ color: '#1e293b', backgroundColor: '#ffffff' }}  
                                         min="0"  
                                     />  
-                                    <UnitDropdown   
-                                        value={postDiameterUnit}  
-                                        onChange={(e) => setPostDiameterUnit(e.target.value)}  
-                                        unitValues={lengthUnitValues}    
-                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"  
-                                    />  
+                                    <UnitDropdown
+                                        value={postDiameterUnit}
+                                        onChange={(e) => handlePostDiameterUnitChange(e.target.value)}
+                                        unitValues={lengthUnitValues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
                                 </div>  
                             </div>  
                             <div className="mb-6">  
@@ -643,7 +848,7 @@ export default function FenceCalculator() {
                                     />  
                                     <UnitDropdown   
                                         value={postDepthUnit}  
-                                        onChange={(e) => setPostDepthUnit(e.target.value)}  
+                                        onChange={(e) => setPostDepthUnit(e.target.value as LengthUnitType)}  
                                         unitValues={lengthUnitValues}    
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"  
                                     />  
@@ -663,7 +868,7 @@ export default function FenceCalculator() {
                                     />
                                     <UnitDropdown   
                                         value={concreteVolumeUnit}  
-                                        onChange={(e) => setConcreteVolumeUnit(e.target.value)}  
+                                        onChange={(e) => setConcreteVolumeUnit(e.target.value as VolumeUnitType)}  
                                         unitValues={concreteVolumeUnitValues}    
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"  
                                     />  

@@ -2,28 +2,94 @@
 
 import { useState, useEffect } from 'react';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue, formatNumber } from '@/lib/utils';
 
-// Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
-const lengthUnitValues = ['m', 'ft', 'in', 'mi', 'cm', 'km', 'yd', 'ft in', 'm cm'];
-const widthUnitValues = ['m', 'ft', 'in', 'mi', 'cm', 'km', 'yd', 'ft in', 'm cm'];
-const areaUnitValues = ['m2', 'ft2', 'yd2', 'cm2', 'a', 'da', 'ha', 'ac', 'sf'];
-const perimeterUnitValues = ['m', 'ft', 'in', 'mi', 'cm', 'km', 'yd', 'ft in', 'm cm'];
-const gateWidthUnitValues = ['m', 'ft', 'in', 'cm', 'yd', 'ft in', 'm cm'];
+// Type definitions for unit system
+type SingleLengthUnitType = 'm' | 'ft' | 'in' | 'mi' | 'cm' | 'km' | 'yd';
+type CompositeLengthUnitType = 'ft/in' | 'm/cm';
+type LengthUnitType = SingleLengthUnitType | CompositeLengthUnitType;
+type AreaUnitType = 'm2' | 'ft2' | 'yd2' | 'cm2' | 'a' | 'da' | 'ha' | 'ac' | 'sf';
+type ConversionMap<T extends string> = Record<T, number>;
+
+// Helper functions for type safety
+const isSingleLengthUnit = (unit: string): unit is SingleLengthUnitType => {
+  return ['m', 'ft', 'in', 'mi', 'cm', 'km', 'yd'].includes(unit);
+};
+
+const isCompositeLengthUnit = (unit: string): unit is CompositeLengthUnitType => {
+  return unit === 'ft/in' || unit === 'm/cm';
+};
+
+const isLengthUnit = (unit: string): unit is LengthUnitType => {
+  return isSingleLengthUnit(unit) || isCompositeLengthUnit(unit);
+};
+
+const isAreaUnit = (unit: string): unit is AreaUnitType => {
+  return ['m2', 'ft2', 'yd2', 'cm2', 'a', 'da', 'ha', 'ac', 'sf'].includes(unit);
+};
+
+// Define the unit values needed for each dropdown
+const lengthUnitValues: LengthUnitType[] = ['m', 'ft', 'in', 'mi', 'cm', 'km', 'yd', 'ft/in', 'm/cm'];
+const widthUnitValues: LengthUnitType[] = ['m', 'ft', 'in', 'mi', 'cm', 'km', 'yd', 'ft/in', 'm/cm'];
+const areaUnitValues: AreaUnitType[] = ['m2', 'ft2', 'yd2', 'cm2', 'a', 'da', 'ha', 'ac', 'sf'];
+const perimeterUnitValues: LengthUnitType[] = ['m', 'ft', 'in', 'mi', 'cm', 'km', 'yd', 'ft/in', 'm/cm'];
+const gateWidthUnitValues: LengthUnitType[] = ['m', 'ft', 'in', 'cm', 'yd', 'ft/in', 'm/cm'];
+
+// Conversion maps (all to base units)
+const lengthConversions: ConversionMap<SingleLengthUnitType> = {
+  'm': 1,           // meters (base)
+  'ft': 0.3048,     // feet to meters
+  'in': 0.0254,     // inches to meters
+  'mi': 1609.34,    // miles to meters
+  'cm': 0.01,       // centimeters to meters
+  'km': 1000,       // kilometers to meters
+  'yd': 0.9144      // yards to meters
+};
+
+const areaConversions: ConversionMap<AreaUnitType> = {
+  'm2': 1,          // square meters (base)
+  'ft2': 0.092903,  // square feet to square meters
+  'yd2': 0.836127,  // square yards to square meters
+  'cm2': 0.0001,    // square centimeters to square meters
+  'a': 100,         // ares to square meters
+  'da': 1000,       // decares to square meters
+  'ha': 10000,      // hectares to square meters
+  'ac': 4046.86,    // acres to square meters
+  'sf': 0.092903    // square feet to square meters (same as ft2)
+};
+
+// Unit conversion helper for single units
+const handleUnitConversion = <T extends string>(
+  currentUnit: T,
+  newUnit: T,
+  value: number | string,
+  conversionTable: ConversionMap<T>
+): number => {
+  const numValue = Number(value);
+  if (!numValue || isNaN(numValue)) return 0;
+  const standardValue = numValue * conversionTable[currentUnit];
+  return standardValue / conversionTable[newUnit];
+};
+
+// Format number helper
+const formatNumber = (value: number, decimals: number = 2): string => {
+  if (value === 0) return '0';
+  if (value % 1 === 0) return value.toString();
+  return value.toFixed(decimals);
+};
 
 export default function RectangleFencePerimeterCalculator() {
     const [length, setLength] = useState<number | string>("");
-    const [lengthUnit, setLengthUnit] = useState("m");
+    const [lengthUnit, setLengthUnit] = useState<LengthUnitType>("m");
     const [fenceLength, setFenceLength] = useState<number | string>("");
-    const [fenceLengthUnit, setFenceLengthUnit] = useState("m");
+    const [fenceLengthUnit, setFenceLengthUnit] = useState<LengthUnitType>("m");
     const [Width, setWidth] = useState<number | string>("");
-    const [WidthUnit, setWidthUnit] = useState("m");
-    const [areaUnit, setAreaUnit] = useState("m2");
-    const [perimeterUnit, setPerimeterUnit] = useState("m");
+    const [WidthUnit, setWidthUnit] = useState<LengthUnitType>("m");
+    const [areaUnit, setAreaUnit] = useState<AreaUnitType>("m2");
+    const [perimeterUnit, setPerimeterUnit] = useState<LengthUnitType>("m");
     const [area, setArea] = useState<number | string>("");
     const [perimeter, setPerimeter] = useState<number | string>("");
     const [gateWidth, setGateWidth] = useState<number | string>("");
-    const [gateWidthUnit, setGateWidthUnit] = useState("m");
+    const [gateWidthUnit, setGateWidthUnit] = useState<LengthUnitType>("m");
     const [showGateWidth, setShowGateWidth] = useState(false);
     
     const handleNumberInput = (value: string, setter: (val: string) => void) => {
@@ -52,41 +118,101 @@ export default function RectangleFencePerimeterCalculator() {
         handleNumberInput(value, setGateWidth);
     };
 
-    const handleLengthUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setLengthUnit(e.target.value);
+    // Type-safe unit change handlers
+    const handleLengthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!length || length === '') {
+            setLengthUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(lengthUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(lengthUnit, newUnit, Number(length), lengthConversions);
+            setLength(result.toFixed(4));
+        }
+        setLengthUnit(newUnit);
     };
 
-    const handleWidthUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setWidthUnit(e.target.value);
+    const handleWidthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!Width || Width === '') {
+            setWidthUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(WidthUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(WidthUnit, newUnit, Number(Width), lengthConversions);
+            setWidth(result.toFixed(4));
+        }
+        setWidthUnit(newUnit);
     };
 
-    const handleAreaUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setAreaUnit(e.target.value);
+    const handleAreaUnitChange = (newUnitValue: string) => {
+        if (!isAreaUnit(newUnitValue)) return;
+        setAreaUnit(newUnitValue);
     };
 
-    const handleFenceLengthUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setFenceLengthUnit(e.target.value);
+    const handleFenceLengthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!fenceLength || fenceLength === '') {
+            setFenceLengthUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(fenceLengthUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(fenceLengthUnit, newUnit, Number(fenceLength), lengthConversions);
+            setFenceLength(result.toFixed(4));
+        }
+        setFenceLengthUnit(newUnit);
     };
 
-    const handleGateWidthUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setGateWidthUnit(e.target.value);
+    const handleGateWidthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!gateWidth || gateWidth === '') {
+            setGateWidthUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(gateWidthUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(gateWidthUnit, newUnit, Number(gateWidth), lengthConversions);
+            setGateWidth(result.toFixed(4));
+        }
+        setGateWidthUnit(newUnit);
     };
 
-    const handlePerimeterUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setPerimeterUnit(e.target.value);
+    const handlePerimeterUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        setPerimeterUnit(newUnitValue);
     };
 
-    const calculateArea = () => {   
+    const calculateArea = () => {
         const lengthNum = parseFloat(length.toString()) || 0;
         const widthNum = parseFloat(Width.toString()) || 0;
         if (lengthNum <= 0 || widthNum <= 0) {
             setArea(0);
             return;
         }
-        const lengthInMeters = convertValue(lengthNum, lengthUnit, 'm');
-        const widthInMeters = convertValue(widthNum, WidthUnit, 'm');
+
+        // Convert to meters using type-safe conversion
+        const lengthInMeters = isSingleLengthUnit(lengthUnit)
+            ? lengthNum * lengthConversions[lengthUnit]
+            : lengthNum; // Handle composite units if needed
+        const widthInMeters = isSingleLengthUnit(WidthUnit)
+            ? widthNum * lengthConversions[WidthUnit]
+            : widthNum; // Handle composite units if needed
+
         const areaInSquareMeters = lengthInMeters * widthInMeters;
-        const areaDisplay = convertValue(areaInSquareMeters, 'm2', areaUnit);
+
+        // Convert to selected unit using type-safe conversion
+        const areaDisplay = areaInSquareMeters / areaConversions[areaUnit];
         setArea(areaDisplay);
     };
 
@@ -97,10 +223,21 @@ export default function RectangleFencePerimeterCalculator() {
             setPerimeter(0);
             return;
         }
-        const lengthInMeters = convertValue(lengthNum, lengthUnit, 'm');
-        const widthInMeters = convertValue(widthNum, WidthUnit, 'm');
+
+        // Convert to meters using type-safe conversion
+        const lengthInMeters = isSingleLengthUnit(lengthUnit)
+            ? lengthNum * lengthConversions[lengthUnit]
+            : lengthNum; // Handle composite units if needed
+        const widthInMeters = isSingleLengthUnit(WidthUnit)
+            ? widthNum * lengthConversions[WidthUnit]
+            : widthNum; // Handle composite units if needed
+
         const perimeterInMeters = (lengthInMeters + widthInMeters) * 2;
-        const perimeterDisplay = convertValue(perimeterInMeters, 'm', perimeterUnit);
+
+        // Convert to selected unit using type-safe conversion
+        const perimeterDisplay = isSingleLengthUnit(perimeterUnit)
+            ? perimeterInMeters / lengthConversions[perimeterUnit]
+            : perimeterInMeters; // Handle composite units if needed
         setPerimeter(perimeterDisplay);
     };
 
@@ -111,10 +248,21 @@ export default function RectangleFencePerimeterCalculator() {
             setFenceLength(0);
             return;
         }
-        const perimeterInMeters = convertValue(perimeterNum, perimeterUnit, 'm');
-        const gateWidthInMeters = convertValue(gateWidthNum, gateWidthUnit, 'm');
+
+        // Convert to meters using type-safe conversion
+        const perimeterInMeters = isSingleLengthUnit(perimeterUnit)
+            ? perimeterNum * lengthConversions[perimeterUnit]
+            : perimeterNum; // Handle composite units if needed
+        const gateWidthInMeters = isSingleLengthUnit(gateWidthUnit)
+            ? gateWidthNum * lengthConversions[gateWidthUnit]
+            : gateWidthNum; // Handle composite units if needed
+
         const fenceLengthInMeters = perimeterInMeters - gateWidthInMeters;
-        const fenceLengthDisplay = convertValue(fenceLengthInMeters, 'm', fenceLengthUnit);
+
+        // Convert to selected unit using type-safe conversion
+        const fenceLengthDisplay = isSingleLengthUnit(fenceLengthUnit)
+            ? fenceLengthInMeters / lengthConversions[fenceLengthUnit]
+            : fenceLengthInMeters; // Handle composite units if needed
         setFenceLength(fenceLengthDisplay);
     };
 
@@ -218,7 +366,7 @@ export default function RectangleFencePerimeterCalculator() {
                             <UnitDropdown
                                 id="length-unit"
                                 value={lengthUnit}
-                                onChange={handleLengthUnitChange}
+                                onChange={(e) => handleLengthUnitChange(e.target.value)}
                                 unitValues={lengthUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -241,7 +389,7 @@ export default function RectangleFencePerimeterCalculator() {
                             <UnitDropdown
                                 id="width-unit"
                                 value={WidthUnit}
-                                onChange={handleWidthUnitChange}
+                                onChange={(e) => handleWidthUnitChange(e.target.value)}
                                 unitValues={widthUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -262,7 +410,7 @@ export default function RectangleFencePerimeterCalculator() {
                             <UnitDropdown
                                 id="area-unit"
                                 value={areaUnit}
-                                onChange={handleAreaUnitChange}
+                                onChange={(e) => handleAreaUnitChange(e.target.value)}
                                 unitValues={areaUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -286,7 +434,7 @@ export default function RectangleFencePerimeterCalculator() {
                                 <UnitDropdown
                                     id="gate-width-unit"
                                     value={gateWidthUnit}
-                                    onChange={handleGateWidthUnitChange}
+                                    onChange={(e) => handleGateWidthUnitChange(e.target.value)}
                                     unitValues={gateWidthUnitValues}
                                     className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                 />
@@ -306,7 +454,7 @@ export default function RectangleFencePerimeterCalculator() {
                                 <UnitDropdown
                                     id="fence-length-unit"
                                     value={fenceLengthUnit}
-                                    onChange={handleFenceLengthUnitChange}
+                                    onChange={(e) => handleFenceLengthUnitChange(e.target.value)}
                                     unitValues={perimeterUnitValues}
                                     className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                 />
@@ -331,7 +479,7 @@ export default function RectangleFencePerimeterCalculator() {
                                 <UnitDropdown
                                     id="perimeter-unit"
                                     value={perimeterUnit}
-                                    onChange={handlePerimeterUnitChange}
+                                    onChange={(e) => handlePerimeterUnitChange(e.target.value)}
                                     unitValues={perimeterUnitValues}
                                     className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                 />

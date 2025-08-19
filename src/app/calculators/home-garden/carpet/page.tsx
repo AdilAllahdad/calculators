@@ -2,39 +2,237 @@
 
 import { useState, useEffect } from 'react';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue, formatNumber } from '@/lib/utils';
 
-// Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
+// Type definitions for unit system
+type SingleLengthUnitType = 'cm' | 'dm' | 'm' | 'yd' | 'ft' | 'in';
+type CompositeLengthUnitType = 'ft/in' | 'm/cm';
+type LengthUnitType = SingleLengthUnitType | CompositeLengthUnitType;
+type AreaUnitType = 'cm2' | 'dm2' | 'm2' | 'yd2' | 'ft2' | 'in2';
 
-const sideUnitvalues = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft-in', 'm-cm'];
-const areaUnitvalues = ['cm2', 'dm2', 'm2', 'yd2', 'ft2', 'in2'];
-const priceUnitvalues = ['cm2', 'dm2', 'm2', 'yd2', 'ft2', 'in2'];
+type ConversionMap<T extends string> = Record<T, number>;
+
+// Helper functions for type safety
+const isSingleLengthUnit = (unit: string): unit is SingleLengthUnitType => {
+  return ['cm', 'dm', 'm', 'yd', 'ft', 'in'].includes(unit);
+};
+
+const isCompositeLengthUnit = (unit: string): unit is CompositeLengthUnitType => {
+  return unit === 'ft/in' || unit === 'm/cm';
+};
+
+const isLengthUnit = (unit: string): unit is LengthUnitType => {
+  return isSingleLengthUnit(unit) || isCompositeLengthUnit(unit);
+};
+
+const isAreaUnit = (unit: string): unit is AreaUnitType => {
+  return ['cm2', 'dm2', 'm2', 'yd2', 'ft2', 'in2'].includes(unit);
+};
+
+// Define the unit values needed for each dropdown
+const sideUnitvalues: LengthUnitType[] = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft/in', 'm/cm'];
+const areaUnitvalues: AreaUnitType[] = ['cm2', 'dm2', 'm2', 'yd2', 'ft2', 'in2'];
+const priceUnitvalues: AreaUnitType[] = ['cm2', 'dm2', 'm2', 'yd2', 'ft2', 'in2'];
+
+// Conversion maps (all to base units)
+const lengthConversions: ConversionMap<SingleLengthUnitType> = {
+  'm': 1,           // meters (base)
+  'cm': 0.01,       // centimeters to meters
+  'dm': 0.1,        // decimeters to meters
+  'yd': 0.9144,     // yards to meters
+  'ft': 0.3048,     // feet to meters
+  'in': 0.0254      // inches to meters
+};
+
+const areaConversions: ConversionMap<AreaUnitType> = {
+  'm2': 1,          // square meters (base)
+  'cm2': 0.0001,    // square centimeters to square meters
+  'dm2': 0.01,      // square decimeters to square meters
+  'yd2': 0.836127,  // square yards to square meters
+  'ft2': 0.092903,  // square feet to square meters
+  'in2': 0.00064516 // square inches to square meters
+};
+
+// Unit conversion helper for single units
+const handleUnitConversion = <T extends string>(
+  currentUnit: T,
+  newUnit: T,
+  value: string,
+  conversionTable: ConversionMap<T>
+): number => {
+  if (!value) return 0;
+  const numValue = Number(value);
+  if (isNaN(numValue)) return 0;
+  const standardValue = numValue * conversionTable[currentUnit];
+  return standardValue / conversionTable[newUnit];
+};
+
+// Helper functions for composite units
+const convertFtInToMCm = (feet: string, inches: string) => {
+  const totalFeet = Number(feet || 0);
+  const totalInches = Number(inches || 0);
+  const totalMeters = (totalFeet * 0.3048) + (totalInches * 0.0254);
+  const meters = Math.floor(totalMeters);
+  const centimeters = Math.round((totalMeters - meters) * 100);
+  return { meters, centimeters };
+};
+
+const convertMCmToFtIn = (meters: string, centimeters: string) => {
+  const totalMeters = Number(meters || 0) + (Number(centimeters || 0) / 100);
+  const totalInches = totalMeters * 39.3701;
+  const feet = Math.floor(totalInches / 12);
+  const inches = Number((totalInches % 12).toFixed(2));
+  return { feet, inches };
+};
+
+// Format number helper
+const formatNumber = (value: number, decimals: number = 2): string => {
+  if (value === 0) return '0';
+  if (value % 1 === 0) return value.toString();
+  return value.toFixed(decimals);
+};
 
 export default function CarpetCalculator() {
-    const [length,setLength] = useState<string>('');
-    const [width,setWidth] = useState<string>('');
-    const [lengthUnit,setLengthUnit] = useState<string>('m');
-    const [widthUnit,setWidthUnit] = useState<string>('m');
+    const [length, setLength] = useState<string>('');
+    const [width, setWidth] = useState<string>('');
+    const [lengthUnit, setLengthUnit] = useState<LengthUnitType>('m');
+    const [widthUnit, setWidthUnit] = useState<LengthUnitType>('m');
     const [radius, setRadius] = useState<string>('');
-    const [radiusUnit, setRadiusUnit] = useState<string>('m');
+    const [radiusUnit, setRadiusUnit] = useState<LengthUnitType>('m');
     const [axisA, setAxisA] = useState<string>('');
-    const [axisAUnit, setAxisAUnit] = useState<string>('m');
+    const [axisAUnit, setAxisAUnit] = useState<LengthUnitType>('m');
     const [axisB, setAxisB] = useState<string>('');
-    const [axisBUnit, setAxisBUnit] = useState<string>('m');
-    const [side,setSide] = useState<string>('');
+    const [axisBUnit, setAxisBUnit] = useState<LengthUnitType>('m');
+    const [side, setSide] = useState<string>('');
     const [shape, setShape] = useState<string>('square');
-    const [sideUnit,setSideUnit] = useState<string>('m');
-    const [area,setArea] = useState<number>(0);
-    const [areaUnit,setAreaUnit] = useState<string>('m2');
-    const [price,setPrice] = useState<string>('');
-    const [priceUnit,setPriceUnit] = useState<string>('m2');
-    const [totalCost,setTotalCost] = useState<number>(0);
+    const [sideUnit, setSideUnit] = useState<LengthUnitType>('m');
+    const [area, setArea] = useState<number>(0);
+    const [areaUnit, setAreaUnit] = useState<AreaUnitType>('m2');
+    const [price, setPrice] = useState<string>('');
+    const [priceUnit, setPriceUnit] = useState<AreaUnitType>('m2');
+    const [totalCost, setTotalCost] = useState<number>(0);
 
-    const lengthUnitvalues = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft-in', 'm-cm'];
-    const widthUnitvalues = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft-in', 'm-cm'];
-    const radiusUnitvalues = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft-in', 'm-cm'];
-    const axisAUnitvalues = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft-in', 'm-cm'];
-    const axisBUnitvalues = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft-in', 'm-cm'];
+    // Composite unit states for ft/in and m/cm
+    const [lengthFeet, setLengthFeet] = useState<string>('');
+    const [lengthInches, setLengthInches] = useState<string>('');
+    const [lengthMeters, setLengthMeters] = useState<string>('');
+    const [lengthCentimeters, setLengthCentimeters] = useState<string>('');
+
+    const [widthFeet, setWidthFeet] = useState<string>('');
+    const [widthInches, setWidthInches] = useState<string>('');
+    const [widthMeters, setWidthMeters] = useState<string>('');
+    const [widthCentimeters, setWidthCentimeters] = useState<string>('');
+
+    const lengthUnitvalues: LengthUnitType[] = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft/in', 'm/cm'];
+    const widthUnitvalues: LengthUnitType[] = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft/in', 'm/cm'];
+    const radiusUnitvalues: LengthUnitType[] = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft/in', 'm/cm'];
+    const axisAUnitvalues: LengthUnitType[] = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft/in', 'm/cm'];
+    const axisBUnitvalues: LengthUnitType[] = ['cm', 'dm', 'm', 'yd', 'ft', 'in', 'ft/in', 'm/cm'];
+
+    // Unit change handlers with composite unit support
+    const handleLengthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (isCompositeLengthUnit(lengthUnit) && isSingleLengthUnit(newUnit)) {
+            // Converting from composite to single unit
+            if (lengthUnit === 'ft/in') {
+                const totalMeters = (Number(lengthFeet || 0) * 0.3048) + (Number(lengthInches || 0) * 0.0254);
+                const result = totalMeters / lengthConversions[newUnit];
+                setLength(result.toFixed(4));
+            } else if (lengthUnit === 'm/cm') {
+                const totalMeters = Number(lengthMeters || 0) + (Number(lengthCentimeters || 0) / 100);
+                const result = totalMeters / lengthConversions[newUnit];
+                setLength(result.toFixed(4));
+            }
+        } else if (isSingleLengthUnit(lengthUnit) && isCompositeLengthUnit(newUnit)) {
+            // Converting from single to composite unit
+            if (newUnit === 'ft/in') {
+                const totalMeters = Number(length || 0) * lengthConversions[lengthUnit];
+                const { feet, inches } = convertMCmToFtIn(totalMeters.toString(), '0');
+                setLengthFeet(feet.toString());
+                setLengthInches(inches.toString());
+            } else if (newUnit === 'm/cm') {
+                const totalMeters = Number(length || 0) * lengthConversions[lengthUnit];
+                const { meters, centimeters } = convertFtInToMCm(totalMeters.toString(), '0');
+                setLengthMeters(meters.toString());
+                setLengthCentimeters(centimeters.toString());
+            }
+        } else if (isSingleLengthUnit(lengthUnit) && isSingleLengthUnit(newUnit)) {
+            // Converting between single units
+            if (length && length !== '') {
+                const result = handleUnitConversion(lengthUnit, newUnit, length, lengthConversions);
+                setLength(result.toFixed(4));
+            }
+        }
+
+        setLengthUnit(newUnit);
+    };
+
+    const handleWidthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!width || width === '') {
+            setWidthUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(widthUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(widthUnit, newUnit, width, lengthConversions);
+            setWidth(result.toFixed(4));
+        }
+        setWidthUnit(newUnit);
+    };
+
+    const handleRadiusUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!radius || radius === '') {
+            setRadiusUnit(newUnit);
+            return;
+        }
+
+        if (isSingleLengthUnit(radiusUnit) && isSingleLengthUnit(newUnit)) {
+            const result = handleUnitConversion(radiusUnit, newUnit, radius, lengthConversions);
+            setRadius(result.toFixed(4));
+        }
+        setRadiusUnit(newUnit);
+    };
+
+    const handleAxisAUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        setAxisAUnit(newUnitValue);
+    };
+
+    const handleAxisBUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        setAxisBUnit(newUnitValue);
+    };
+
+    const handleSideUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        setSideUnit(newUnitValue);
+    };
+
+    const handleAreaUnitChange = (newUnitValue: string) => {
+        if (!isAreaUnit(newUnitValue)) return;
+        setAreaUnit(newUnitValue);
+    };
+
+    const handlePriceUnitChange = (newUnitValue: string) => {
+        if (!isAreaUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!price || price === '') {
+            setPriceUnit(newUnit);
+            return;
+        }
+
+        const result = handleUnitConversion(priceUnit, newUnit, price, areaConversions);
+        setPrice(result.toFixed(4));
+        setPriceUnit(newUnit);
+    };
 
     useEffect(() => {
         calculateArea();
@@ -53,55 +251,76 @@ export default function CarpetCalculator() {
                 setArea(0);
                 return;
             }
-            const lengthInMeters = convertValue(lengthNum, lengthUnit, 'm');
-            const widthInMeters = convertValue(widthNum, widthUnit, 'm');
+            // Convert to meters using type-safe conversion for single units only
+            const lengthInMeters = isSingleLengthUnit(lengthUnit)
+                ? lengthNum * lengthConversions[lengthUnit]
+                : lengthNum; // For composite units, assume already in meters
+            const widthInMeters = isSingleLengthUnit(widthUnit)
+                ? widthNum * lengthConversions[widthUnit]
+                : widthNum; // For composite units, assume already in meters
             const areaInSquareMeters = roundToThreeDecimals(lengthInMeters * widthInMeters);
-            const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
+            // Convert to selected unit using type-safe conversion
+            const areaDisplay = roundToThreeDecimals(areaInSquareMeters / areaConversions[areaUnit]);
             setArea(areaDisplay);
-        };
-        if (shape === 'circle') {
+        } else if (shape === 'circle') {
             const radiusNum = parseFloat(radius) || 0;
             if (radiusNum <= 0) {
                 setArea(0);
                 return;
             }
-            const radiusInMeters = convertValue(radiusNum, radiusUnit, 'm');
+            // Convert to meters using type-safe conversion for single units only
+            const radiusInMeters = isSingleLengthUnit(radiusUnit)
+                ? radiusNum * lengthConversions[radiusUnit]
+                : radiusNum; // For composite units, assume already in meters
             const areaInSquareMeters = roundToThreeDecimals(Math.PI * radiusInMeters * radiusInMeters);
-            const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
+            // Convert to selected unit using type-safe conversion
+            const areaDisplay = roundToThreeDecimals(areaInSquareMeters / areaConversions[areaUnit]);
             setArea(areaDisplay);
-        };
-        if (shape === 'ellipse') {
+        } else if (shape === 'ellipse') {
             const axisANum = parseFloat(axisA) || 0;
             const axisBNum = parseFloat(axisB) || 0;
             if (axisANum <= 0 || axisBNum <= 0) {
                 setArea(0);
                 return;
             }
-            const axisAInMeters = convertValue(axisANum, axisAUnit, 'm');
-            const axisBInMeters = convertValue(axisBNum, axisBUnit, 'm');
+            // Convert to meters using type-safe conversion for single units only
+            const axisAInMeters = isSingleLengthUnit(axisAUnit)
+                ? axisANum * lengthConversions[axisAUnit]
+                : axisANum; // For composite units, assume already in meters
+            const axisBInMeters = isSingleLengthUnit(axisBUnit)
+                ? axisBNum * lengthConversions[axisBUnit]
+                : axisBNum; // For composite units, assume already in meters
             const areaInSquareMeters = roundToThreeDecimals(Math.PI * axisAInMeters * axisBInMeters);
-            const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
+            // Convert to selected unit using type-safe conversion
+            const areaDisplay = roundToThreeDecimals(areaInSquareMeters / areaConversions[areaUnit]);
             setArea(areaDisplay);
-        };
-        if (shape === 'pentagon') {
+        } else if (shape === 'pentagon') {
             const sideNum = parseFloat(side) || 0;
             if (sideNum <= 0) {
                 setArea(0);
                 return;
             }
-            const sideInMeters = convertValue(sideNum, sideUnit, 'm');
+            // Convert to meters using type-safe conversion for single units only
+            const sideInMeters = isSingleLengthUnit(sideUnit)
+                ? sideNum * lengthConversions[sideUnit]
+                : sideNum; // For composite units, assume already in meters
             const areaInSquareMeters = roundToThreeDecimals((Math.sqrt(5 * (5 + 2 * Math.sqrt(5))) / 4) * Math.pow(sideInMeters, 2));
-            const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
+            // Convert to selected unit using type-safe conversion
+            const areaDisplay = roundToThreeDecimals(areaInSquareMeters / areaConversions[areaUnit]);
             setArea(areaDisplay);
-        }
-        if (shape === 'hexagon') {
-            if (side <= 0) {
+        } else if (shape === 'hexagon') {
+            const sideNum = parseFloat(side) || 0;
+            if (sideNum <= 0) {
                 setArea(0);
                 return;
             }
-            const sideInMeters = convertValue(side, sideUnit, 'm');
+            // Convert to meters using type-safe conversion for single units only
+            const sideInMeters = isSingleLengthUnit(sideUnit)
+                ? sideNum * lengthConversions[sideUnit]
+                : sideNum; // For composite units, assume already in meters
             const areaInSquareMeters = roundToThreeDecimals((3 * Math.sqrt(3) / 2) * Math.pow(sideInMeters, 2));
-            const areaDisplay = roundToThreeDecimals(convertValue(areaInSquareMeters, 'm2', areaUnit));
+            // Convert to selected unit using type-safe conversion
+            const areaDisplay = roundToThreeDecimals(areaInSquareMeters / areaConversions[areaUnit]);
             setArea(areaDisplay);
         }
     };
@@ -152,7 +371,8 @@ export default function CarpetCalculator() {
             setTotalCost(0);
             return;
         }
-        const areaInPricingUnit = convertValue(area, areaUnit, priceUnit);
+        // Convert area to pricing unit using type-safe conversion
+        const areaInPricingUnit = area / areaConversions[areaUnit] * areaConversions[priceUnit];
         const cost = roundToThreeDecimals(priceNum * areaInPricingUnit);
         setTotalCost(cost);
     };
@@ -257,7 +477,7 @@ export default function CarpetCalculator() {
                                     />
                                     <UnitDropdown
                                         value={lengthUnit}
-                                        onChange={(e) => setLengthUnit(e.target.value)}
+                                        onChange={(e) => handleLengthUnitChange(e.target.value)}
                                         unitValues={lengthUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -280,7 +500,7 @@ export default function CarpetCalculator() {
                                     />
                                     <UnitDropdown
                                         value={widthUnit}
-                                        onChange={(e) => setWidthUnit(e.target.value)}
+                                        onChange={(e) => handleWidthUnitChange(e.target.value)}
                                         unitValues={widthUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -301,7 +521,7 @@ export default function CarpetCalculator() {
                                     />
                                     <UnitDropdown
                                         value={areaUnit}
-                                        onChange={(e) => setAreaUnit(e.target.value)}
+                                        onChange={(e) => handleAreaUnitChange(e.target.value)}
                                         unitValues={areaUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -329,7 +549,7 @@ export default function CarpetCalculator() {
                                     />
                                     <UnitDropdown
                                         value={radiusUnit}
-                                        onChange={(e) => setRadiusUnit(e.target.value)}
+                                        onChange={(e) => handleRadiusUnitChange(e.target.value)}
                                         unitValues={radiusUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -351,7 +571,7 @@ export default function CarpetCalculator() {
                                     />
                                     <UnitDropdown
                                         value={areaUnit}
-                                        onChange={(e) => setAreaUnit(e.target.value)}
+                                        onChange={(e) => handleAreaUnitChange(e.target.value)}
                                         unitValues={areaUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -378,10 +598,10 @@ export default function CarpetCalculator() {
                                     />
                                     <UnitDropdown
                                         value={axisAUnit}
-                                        onChange={(e) => setAxisAUnit(e.target.value)}
+                                        onChange={(e) => handleAxisAUnitChange(e.target.value)}
                                         unitValues={axisAUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                                    />    
+                                    />
                                 </div>
                             </div>
                             <div className="mb-6">
@@ -401,7 +621,7 @@ export default function CarpetCalculator() {
                                     />
                                     <UnitDropdown
                                         value={axisBUnit}
-                                        onChange={(e) => setAxisBUnit(e.target.value)}
+                                        onChange={(e) => handleAxisBUnitChange(e.target.value)}
                                         unitValues={axisBUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -423,7 +643,7 @@ export default function CarpetCalculator() {
                                     />
                                     <UnitDropdown
                                         value={areaUnit}
-                                        onChange={(e) => setAreaUnit(e.target.value)}
+                                        onChange={(e) => setAreaUnit(e.target.value as AreaUnitType)}
                                         unitValues={areaUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -449,7 +669,7 @@ export default function CarpetCalculator() {
                                     />
                                     <UnitDropdown
                                         value={sideUnit}
-                                        onChange={(e) => setSideUnit(e.target.value)}
+                                        onChange={(e) => handleSideUnitChange(e.target.value)}
                                         unitValues={sideUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -472,7 +692,7 @@ export default function CarpetCalculator() {
                                     />
                                     <UnitDropdown
                                         value={areaUnit}
-                                        onChange={(e) => setAreaUnit(e.target.value)}
+                                        onChange={(e) => setAreaUnit(e.target.value as AreaUnitType)}
                                         unitValues={areaUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -498,7 +718,7 @@ export default function CarpetCalculator() {
                                     />
                                     <UnitDropdown
                                         value={sideUnit}
-                                        onChange={(e) => setSideUnit(e.target.value)}
+                                        onChange={(e) => handleSideUnitChange(e.target.value)}
                                         unitValues={sideUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -521,7 +741,7 @@ export default function CarpetCalculator() {
                                     />
                                     <UnitDropdown
                                         value={areaUnit}
-                                        onChange={(e) => setAreaUnit(e.target.value)}
+                                        onChange={(e) => setAreaUnit(e.target.value as AreaUnitType)}
                                         unitValues={areaUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -552,7 +772,7 @@ export default function CarpetCalculator() {
                             />
                             <UnitDropdown
                                 value={priceUnit}
-                                onChange={(e) => setPriceUnit(e.target.value)}
+                                onChange={(e) => handlePriceUnitChange(e.target.value)}
                                 unitValues={priceUnitvalues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />

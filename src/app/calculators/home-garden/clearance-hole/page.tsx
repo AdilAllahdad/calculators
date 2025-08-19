@@ -2,21 +2,92 @@
 
 import { useState, useEffect } from 'react';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue } from '@/lib/utils';
 
-const fastenerDiameterUnitValues = ['mm', 'in', 'cm'];
-const fastenerHeadUnitValues = ['mm', 'in', 'cm'];
-const clearanceHoleUnitValues = ['mm', 'in', 'cm'];
+// Type definitions for unit system
+type LengthUnitType = 'mm' | 'in' | 'cm';
+type ConversionMap<T extends string> = Record<T, number>;
+
+// Helper functions for type safety
+const isLengthUnit = (unit: string): unit is LengthUnitType => {
+  return ['mm', 'in', 'cm'].includes(unit);
+};
+
+// Define the unit values needed for each dropdown
+const fastenerDiameterUnitValues: LengthUnitType[] = ['mm', 'in', 'cm'];
+const fastenerHeadUnitValues: LengthUnitType[] = ['mm', 'in', 'cm'];
+const clearanceHoleUnitValues: LengthUnitType[] = ['mm', 'in', 'cm'];
+
+// Conversion map (all to millimeters as base unit)
+const lengthConversions: ConversionMap<LengthUnitType> = {
+  'mm': 1,          // millimeters (base)
+  'in': 25.4,       // inches to millimeters
+  'cm': 10          // centimeters to millimeters
+};
+
+// Unit conversion helper
+const handleUnitConversion = (
+  currentUnit: LengthUnitType,
+  newUnit: LengthUnitType,
+  value: number,
+  conversionTable: ConversionMap<LengthUnitType>
+): number => {
+  if (!value) return 0;
+  const standardValue = value * conversionTable[currentUnit];
+  return standardValue / conversionTable[newUnit];
+};
 
 export default function ClearanceHoleCalculator() {
     const [fastenerDiameter, setFastenerDiameter] = useState<number | null>(null);
-    const [fastenerDiameterUnit, setFastenerDiameterUnit] = useState<string>('mm');
+    const [fastenerDiameterUnit, setFastenerDiameterUnit] = useState<LengthUnitType>('mm');
     const [fastenerHead, setFastenerHead] = useState<number | null>(null);
-    const [fastenerHeadUnit, setFastenerHeadUnit] = useState<string>('mm');
+    const [fastenerHeadUnit, setFastenerHeadUnit] = useState<LengthUnitType>('mm');
     const [clearanceHole, setClearanceHole] = useState<number | null>(null);
-    const [clearanceHoleUnit, setClearanceHoleUnit] = useState<string>('mm');
+    const [clearanceHoleUnit, setClearanceHoleUnit] = useState<LengthUnitType>('mm');
     const [error, setError] = useState<string>('');
     const [showError, setShowError] = useState<boolean>(false);
+
+    // Unit change handlers with type safety
+    const handleFastenerDiameterUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (fastenerDiameter === null) {
+            setFastenerDiameterUnit(newUnit);
+            return;
+        }
+
+        const result = handleUnitConversion(fastenerDiameterUnit, newUnit, fastenerDiameter, lengthConversions);
+        setFastenerDiameter(Number(result.toFixed(4)));
+        setFastenerDiameterUnit(newUnit);
+    };
+
+    const handleFastenerHeadUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (fastenerHead === null) {
+            setFastenerHeadUnit(newUnit);
+            return;
+        }
+
+        const result = handleUnitConversion(fastenerHeadUnit, newUnit, fastenerHead, lengthConversions);
+        setFastenerHead(Number(result.toFixed(4)));
+        setFastenerHeadUnit(newUnit);
+    };
+
+    const handleClearanceHoleUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (clearanceHole === null) {
+            setClearanceHoleUnit(newUnit);
+            return;
+        }
+
+        const result = handleUnitConversion(clearanceHoleUnit, newUnit, clearanceHole, lengthConversions);
+        setClearanceHole(Number(result.toFixed(4)));
+        setClearanceHoleUnit(newUnit);
+    };
 
     const handleNumberInput = (value: string, setValue: React.Dispatch<React.SetStateAction<number | null>>) => {
         if (value === '') {
@@ -41,8 +112,9 @@ export default function ClearanceHoleCalculator() {
             return;
         }
 
-        const fastenerDiameterInMM = convertValue(fastenerDiameter, fastenerDiameterUnit, 'mm');
-        const fastenerHeadInMM = convertValue(fastenerHead, fastenerHeadUnit, 'mm');
+        // Convert to millimeters using type-safe conversion
+        const fastenerDiameterInMM = fastenerDiameter * lengthConversions[fastenerDiameterUnit];
+        const fastenerHeadInMM = fastenerHead * lengthConversions[fastenerHeadUnit];
 
         // ✅ Error check only when entering Fastener Head
         if (fastenerHead !== null && (fastenerDiameterInMM >= fastenerHeadInMM || fastenerHeadInMM <= 0)) {
@@ -56,7 +128,9 @@ export default function ClearanceHoleCalculator() {
         setShowError(false);
 
         const clearanceHoleInMM = (fastenerDiameterInMM + fastenerHeadInMM) / 2;
-        const clearanceHoleDisplay = convertValue(clearanceHoleInMM, 'mm', clearanceHoleUnit);
+
+        // Convert to selected unit using type-safe conversion
+        const clearanceHoleDisplay = clearanceHoleInMM / lengthConversions[clearanceHoleUnit];
         setClearanceHole(clearanceHoleDisplay);
     };
 
@@ -119,7 +193,7 @@ export default function ClearanceHoleCalculator() {
                             />
                             <UnitDropdown
                                 value={fastenerDiameterUnit}
-                                onChange={(e) => setFastenerDiameterUnit(e.target.value)}
+                                onChange={(e) => handleFastenerDiameterUnitChange(e.target.value)}
                                 unitValues={fastenerDiameterUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm"
                             />
@@ -143,7 +217,7 @@ export default function ClearanceHoleCalculator() {
                             />
                             <UnitDropdown
                                 value={fastenerHeadUnit}
-                                onChange={(e) => setFastenerHeadUnit(e.target.value)}
+                                onChange={(e) => handleFastenerHeadUnitChange(e.target.value)}
                                 unitValues={fastenerHeadUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm"
                             />
@@ -165,7 +239,7 @@ export default function ClearanceHoleCalculator() {
                             />
                             <UnitDropdown
                                 value={clearanceHoleUnit}
-                                onChange={(e) => setClearanceHoleUnit(e.target.value)}
+                                onChange={(e) => handleClearanceHoleUnitChange(e.target.value)}
                                 unitValues={clearanceHoleUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm"
                             />

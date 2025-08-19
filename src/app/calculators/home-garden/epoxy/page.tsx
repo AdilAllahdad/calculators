@@ -2,24 +2,219 @@
 
 import { useState, useEffect } from 'react';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue, formatNumber } from '@/lib/utils';
 
-// Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
-const inputUnitvalues = ['mm', 'cm', 'm', 'in', 'ft', 'ft-in', 'm-cm'];
-const volumeUnitvalues = ['mm3', 'cm3', 'm3', 'in3', 'ft3', 'yd3', 'cu in', 'cu ft', 'l', 'gal', 'ml', 'US fl oz', 'UK fl oz' ];
+// Type definitions for unit system
+type SingleLengthUnitType = 'mm' | 'cm' | 'm' | 'in' | 'ft';
+type CompositeLengthUnitType = 'ft/in' | 'm/cm';
+type LengthUnitType = SingleLengthUnitType | CompositeLengthUnitType;
+type VolumeUnitType = 'mm3' | 'cm3' | 'm3' | 'in3' | 'ft3' | 'yd3' | 'cu in' | 'cu ft' | 'l' | 'gal' | 'ml' | 'US fl oz' | 'UK fl oz';
+type ConversionMap<T extends string> = Record<T, number>;
+
+// Helper functions for type safety
+const isSingleLengthUnit = (unit: string): unit is SingleLengthUnitType => {
+  return ['mm', 'cm', 'm', 'in', 'ft'].includes(unit);
+};
+
+const isCompositeLengthUnit = (unit: string): unit is CompositeLengthUnitType => {
+  return unit === 'ft/in' || unit === 'm/cm';
+};
+
+const isLengthUnit = (unit: string): unit is LengthUnitType => {
+  return isSingleLengthUnit(unit) || isCompositeLengthUnit(unit);
+};
+
+const isVolumeUnit = (unit: string): unit is VolumeUnitType => {
+  return ['mm3', 'cm3', 'm3', 'in3', 'ft3', 'yd3', 'cu in', 'cu ft', 'l', 'gal', 'ml', 'US fl oz', 'UK fl oz'].includes(unit);
+};
+
+// Define the unit values needed for each dropdown
+const inputUnitvalues: LengthUnitType[] = ['mm', 'cm', 'm', 'in', 'ft', 'ft/in', 'm/cm'];
+const volumeUnitvalues: VolumeUnitType[] = ['mm3', 'cm3', 'm3', 'in3', 'ft3', 'yd3', 'cu in', 'cu ft', 'l', 'gal', 'ml', 'US fl oz', 'UK fl oz'];
+
+// Conversion maps (all to base units)
+const lengthConversions: ConversionMap<SingleLengthUnitType> = {
+  'm': 1,           // meters (base)
+  'mm': 0.001,      // millimeters to meters
+  'cm': 0.01,       // centimeters to meters
+  'in': 0.0254,     // inches to meters
+  'ft': 0.3048      // feet to meters
+};
+
+const volumeConversions: ConversionMap<VolumeUnitType> = {
+  'm3': 1,              // cubic meters (base)
+  'mm3': 1e-9,          // cubic millimeters to cubic meters
+  'cm3': 1e-6,          // cubic centimeters to cubic meters
+  'in3': 1.6387e-5,     // cubic inches to cubic meters
+  'ft3': 0.0283168,     // cubic feet to cubic meters
+  'yd3': 0.764555,      // cubic yards to cubic meters
+  'cu in': 1.6387e-5,   // cubic inches to cubic meters (same as in3)
+  'cu ft': 0.0283168,   // cubic feet to cubic meters (same as ft3)
+  'l': 0.001,           // liters to cubic meters
+  'gal': 0.00378541,    // US gallons to cubic meters
+  'ml': 1e-6,           // milliliters to cubic meters
+  'US fl oz': 2.9574e-5, // US fluid ounces to cubic meters
+  'UK fl oz': 2.8413e-5  // UK fluid ounces to cubic meters
+};
+
+// Unit conversion helper for single units
+const handleUnitConversion = <T extends string>(
+  currentUnit: T,
+  newUnit: T,
+  value: string,
+  conversionTable: ConversionMap<T>
+): number => {
+  if (!value) return 0;
+  const numValue = Number(value);
+  if (isNaN(numValue)) return 0;
+  const standardValue = numValue * conversionTable[currentUnit];
+  return standardValue / conversionTable[newUnit];
+};
+
+// Helper functions for composite units
+const convertFtInToMCm = (feet: string, inches: string) => {
+  const totalFeet = Number(feet || 0);
+  const totalInches = Number(inches || 0);
+  const totalMeters = (totalFeet * 0.3048) + (totalInches * 0.0254);
+  const meters = Math.floor(totalMeters);
+  const centimeters = Math.round((totalMeters - meters) * 100);
+  return { meters, centimeters };
+};
+
+const convertMCmToFtIn = (meters: string, centimeters: string) => {
+  const totalMeters = Number(meters || 0) + (Number(centimeters || 0) / 100);
+  const totalInches = totalMeters * 39.3701;
+  const feet = Math.floor(totalInches / 12);
+  const inches = Number((totalInches % 12).toFixed(2));
+  return { feet, inches };
+};
+
+// Format number helper
+const formatNumber = (value: number, decimals: number = 2): string => {
+  if (value === 0) return '0';
+  if (value % 1 === 0) return value.toString();
+  return value.toFixed(decimals);
+};
 
 export default function EpoxyCalculator() {
     const [coatingDepth, setCoatingDepth] = useState<string>('');
-    const [coatingDepthUnit, setCoatingDepthUnit] = useState<string>('mm');
+    const [coatingDepthUnit, setCoatingDepthUnit] = useState<LengthUnitType>('mm');
     const [surfaceShape, setSurfaceShape] = useState<string>('rectangle');
     const [surfaceLength, setSurfaceLength] = useState<string>('');
-    const [surfaceLengthUnit, setSurfaceLengthUnit] = useState<string>('m');
+    const [surfaceLengthUnit, setSurfaceLengthUnit] = useState<LengthUnitType>('m');
     const [surfaceWidth, setSurfaceWidth] = useState<string>('');
-    const [surfaceWidthUnit, setSurfaceWidthUnit] = useState<string>('m');
+    const [surfaceWidthUnit, setSurfaceWidthUnit] = useState<LengthUnitType>('m');
     const [surfaceDiameter, setSurfaceDiameter] = useState<string>('');
-    const [surfaceDiameterUnit, setSurfaceDiameterUnit] = useState<string>('m');
+    const [surfaceDiameterUnit, setSurfaceDiameterUnit] = useState<LengthUnitType>('m');
     const [volume, setVolume] = useState<number>(0);
-    const [volumeUnit, setVolumeUnit] = useState<string>('m3');
+    const [volumeUnit, setVolumeUnit] = useState<VolumeUnitType>('m3');
+
+    // Composite unit states for ft/in and m/cm
+    const [depthFeet, setDepthFeet] = useState<string>('');
+    const [depthInches, setDepthInches] = useState<string>('');
+    const [depthMeters, setDepthMeters] = useState<string>('');
+    const [depthCentimeters, setDepthCentimeters] = useState<string>('');
+
+    const [lengthFeet, setLengthFeet] = useState<string>('');
+    const [lengthInches, setLengthInches] = useState<string>('');
+    const [lengthMeters, setLengthMeters] = useState<string>('');
+    const [lengthCentimeters, setLengthCentimeters] = useState<string>('');
+
+    const [widthFeet, setWidthFeet] = useState<string>('');
+    const [widthInches, setWidthInches] = useState<string>('');
+    const [widthMeters, setWidthMeters] = useState<string>('');
+    const [widthCentimeters, setWidthCentimeters] = useState<string>('');
+
+    const [diameterFeet, setDiameterFeet] = useState<string>('');
+    const [diameterInches, setDiameterInches] = useState<string>('');
+    const [diameterMeters, setDiameterMeters] = useState<string>('');
+    const [diameterCentimeters, setDiameterCentimeters] = useState<string>('');
+
+    // Unit change handlers with composite unit support
+    const handleCoatingDepthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (isCompositeLengthUnit(coatingDepthUnit) && isSingleLengthUnit(newUnit)) {
+            // Converting from composite to single unit
+            if (coatingDepthUnit === 'ft/in') {
+                const totalMeters = (Number(depthFeet || 0) * 0.3048) + (Number(depthInches || 0) * 0.0254);
+                const result = totalMeters / lengthConversions[newUnit];
+                setCoatingDepth(result.toFixed(4));
+            } else if (coatingDepthUnit === 'm/cm') {
+                const totalMeters = Number(depthMeters || 0) + (Number(depthCentimeters || 0) / 100);
+                const result = totalMeters / lengthConversions[newUnit];
+                setCoatingDepth(result.toFixed(4));
+            }
+        } else if (isSingleLengthUnit(coatingDepthUnit) && isCompositeLengthUnit(newUnit)) {
+            // Converting from single to composite unit
+            if (newUnit === 'ft/in') {
+                const totalMeters = Number(coatingDepth || 0) * lengthConversions[coatingDepthUnit];
+                const { feet, inches } = convertMCmToFtIn(totalMeters.toString(), '0');
+                setDepthFeet(feet.toString());
+                setDepthInches(inches.toString());
+            } else if (newUnit === 'm/cm') {
+                const totalMeters = Number(coatingDepth || 0) * lengthConversions[coatingDepthUnit];
+                const { meters, centimeters } = convertFtInToMCm(totalMeters.toString(), '0');
+                setDepthMeters(meters.toString());
+                setDepthCentimeters(centimeters.toString());
+            }
+        } else if (isSingleLengthUnit(coatingDepthUnit) && isSingleLengthUnit(newUnit)) {
+            // Converting between single units
+            if (coatingDepth && coatingDepth !== '') {
+                const result = handleUnitConversion(coatingDepthUnit, newUnit, coatingDepth, lengthConversions);
+                setCoatingDepth(result.toFixed(4));
+            }
+        }
+
+        setCoatingDepthUnit(newUnit);
+    };
+
+    const handleVolumeUnitChange = (newUnitValue: string) => {
+        if (!isVolumeUnit(newUnitValue)) return;
+        setVolumeUnit(newUnitValue);
+    };
+
+    const handleSurfaceLengthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (isSingleLengthUnit(surfaceLengthUnit) && isSingleLengthUnit(newUnit)) {
+            // Converting between single units
+            if (surfaceLength && surfaceLength !== '') {
+                const result = handleUnitConversion(surfaceLengthUnit, newUnit, surfaceLength, lengthConversions);
+                setSurfaceLength(result.toFixed(4));
+            }
+        }
+        setSurfaceLengthUnit(newUnit);
+    };
+
+    const handleSurfaceWidthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (isSingleLengthUnit(surfaceWidthUnit) && isSingleLengthUnit(newUnit)) {
+            // Converting between single units
+            if (surfaceWidth && surfaceWidth !== '') {
+                const result = handleUnitConversion(surfaceWidthUnit, newUnit, surfaceWidth, lengthConversions);
+                setSurfaceWidth(result.toFixed(4));
+            }
+        }
+        setSurfaceWidthUnit(newUnit);
+    };
+
+    const handleSurfaceDiameterUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (isSingleLengthUnit(surfaceDiameterUnit) && isSingleLengthUnit(newUnit)) {
+            // Converting between single units
+            if (surfaceDiameter && surfaceDiameter !== '') {
+                const result = handleUnitConversion(surfaceDiameterUnit, newUnit, surfaceDiameter, lengthConversions);
+                setSurfaceDiameter(result.toFixed(4));
+            }
+        }
+        setSurfaceDiameterUnit(newUnit);
+    };
 
     const handleNumberInput = (value: string, setter: (val: string) => void) => {
         // Allow only digits and a single dot
@@ -38,32 +233,56 @@ export default function EpoxyCalculator() {
     };
 
     const calculateVolume = () => {
-        const depth = parseFloat(coatingDepth) || 0;
-        const length = parseFloat(surfaceLength) || 0;
-        const width = parseFloat(surfaceWidth) || 0;
-        const diameter = parseFloat(surfaceDiameter) || 0;
+        // Get depth value from appropriate source
+        let depthInMeters = 0;
+        if (isCompositeLengthUnit(coatingDepthUnit)) {
+            if (coatingDepthUnit === 'ft/in') {
+                depthInMeters = (Number(depthFeet || 0) * 0.3048) + (Number(depthInches || 0) * 0.0254);
+            } else if (coatingDepthUnit === 'm/cm') {
+                depthInMeters = Number(depthMeters || 0) + (Number(depthCentimeters || 0) / 100);
+            }
+        } else {
+            const depth = parseFloat(coatingDepth) || 0;
+            depthInMeters = depth * lengthConversions[coatingDepthUnit];
+        }
 
-        if (depth <= 0 || (length <= 0 && width <= 0 && diameter <= 0)) {
+        // Get length and width values
+        let lengthInMeters = 0;
+        let widthInMeters = 0;
+        let diameterInMeters = 0;
+
+        if (isSingleLengthUnit(surfaceLengthUnit)) {
+            const length = parseFloat(surfaceLength) || 0;
+            lengthInMeters = length * lengthConversions[surfaceLengthUnit];
+        }
+
+        if (isSingleLengthUnit(surfaceWidthUnit)) {
+            const width = parseFloat(surfaceWidth) || 0;
+            widthInMeters = width * lengthConversions[surfaceWidthUnit];
+        }
+
+        if (isSingleLengthUnit(surfaceDiameterUnit)) {
+            const diameter = parseFloat(surfaceDiameter) || 0;
+            diameterInMeters = diameter * lengthConversions[surfaceDiameterUnit];
+        }
+
+        if (depthInMeters <= 0 || (lengthInMeters <= 0 && widthInMeters <= 0 && diameterInMeters <= 0)) {
             setVolume(0);
             return;
         }
 
         let volumeInCubicMeters = 0;
 
-        if (length > 0 && width > 0) {
-            const lengthInMeters = convertValue(length, surfaceLengthUnit, 'm');
-            const widthInMeters = convertValue(width, surfaceWidthUnit, 'm');
-            const depthInMeters = convertValue(depth, coatingDepthUnit, 'm');
+        if (lengthInMeters > 0 && widthInMeters > 0) {
             volumeInCubicMeters = lengthInMeters * widthInMeters * depthInMeters;
-        } else if (diameter > 0) {
-            const diameterInMeters = convertValue(diameter, surfaceDiameterUnit, 'm');
-            const depthInMeters = convertValue(depth, coatingDepthUnit, 'm');
+        } else if (diameterInMeters > 0) {
             volumeInCubicMeters = Math.PI * Math.pow(diameterInMeters / 2, 2) * depthInMeters;
         }
 
-        const volumeDisplay = convertValue(volumeInCubicMeters, 'm3', volumeUnit);
+        // Convert to selected unit using type-safe conversion
+        const volumeDisplay = volumeInCubicMeters / volumeConversions[volumeUnit];
         setVolume(volumeDisplay);
-    };  
+    };
 
     useEffect(() => {
         calculateVolume();
@@ -120,7 +339,7 @@ export default function EpoxyCalculator() {
                             />
                             <UnitDropdown
                                 value={coatingDepthUnit}
-                                onChange={(e) => setCoatingDepthUnit(e.target.value)}
+                                onChange={(e) => handleCoatingDepthUnitChange(e.target.value)}
                                 unitValues={inputUnitvalues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -161,7 +380,7 @@ export default function EpoxyCalculator() {
                                     />  
                                     <UnitDropdown
                                         value={surfaceLengthUnit}
-                                        onChange={(e) => setSurfaceLengthUnit(e.target.value)}
+                                        onChange={(e) => handleSurfaceLengthUnitChange(e.target.value)}
                                         unitValues={inputUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -183,7 +402,7 @@ export default function EpoxyCalculator() {
                                     />  
                                     <UnitDropdown
                                         value={surfaceWidthUnit}
-                                        onChange={(e) => setSurfaceWidthUnit(e.target.value)}
+                                        onChange={(e) => handleSurfaceWidthUnitChange(e.target.value)}
                                         unitValues={inputUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -209,7 +428,7 @@ export default function EpoxyCalculator() {
                                     />  
                                     <UnitDropdown
                                         value={surfaceDiameterUnit}
-                                        onChange={(e) => setSurfaceDiameterUnit(e.target.value)}
+                                        onChange={(e) => handleSurfaceDiameterUnitChange(e.target.value)}
                                         unitValues={inputUnitvalues}
                                         className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                     />
@@ -234,7 +453,7 @@ export default function EpoxyCalculator() {
                             />
                             <UnitDropdown
                                 value={volumeUnit}
-                                onChange={(e) => setVolumeUnit(e.target.value)}
+                                onChange={(e) => handleVolumeUnitChange(e.target.value)}
                                 unitValues={volumeUnitvalues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />

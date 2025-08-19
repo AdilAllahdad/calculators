@@ -2,18 +2,67 @@
 
 import { useState, useEffect } from 'react';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue, formatNumber } from '@/lib/utils';
 
-// Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
-const coopSizeUnitValues = ['m2', 'ft2', 'yd2'];
+// Type definitions for unit system
+type AreaUnitType = 'm2' | 'ft2' | 'yd2';
+type ConversionMap<T extends string> = Record<T, number>;
+
+// Helper functions for type safety
+const isAreaUnit = (unit: string): unit is AreaUnitType => {
+  return ['m2', 'ft2', 'yd2'].includes(unit);
+};
+
+// Define the unit values needed for each dropdown
+const coopSizeUnitValues: AreaUnitType[] = ['m2', 'ft2', 'yd2'];
+
+// Conversion map (all to square meters as base unit)
+const areaConversions: ConversionMap<AreaUnitType> = {
+  'm2': 1,          // square meters (base)
+  'ft2': 0.092903,  // square feet to square meters
+  'yd2': 0.836127   // square yards to square meters
+};
+
+// Unit conversion helper
+const handleUnitConversion = (
+  currentUnit: AreaUnitType,
+  newUnit: AreaUnitType,
+  value: number,
+  conversionTable: ConversionMap<AreaUnitType>
+): number => {
+  if (!value) return 0;
+  const standardValue = value * conversionTable[currentUnit];
+  return standardValue / conversionTable[newUnit];
+};
+
+// Format number helper
+const formatNumber = (value: number, decimals: number = 2): string => {
+  if (value === 0) return '0';
+  if (value % 1 === 0) return value.toString();
+  return value.toFixed(decimals);
+};
 
 export default function ChickenCoopSizeCalculator() {
-    const [coopSize,setCoopSize] = useState<number>(0);
+    const [coopSize, setCoopSize] = useState<number>(0);
     const [chickenLocation, setChickenLocation] = useState<string>('Run'); // Default to Run for now
-    const [coopSizeUnit,setCoopSizeUnit] = useState<string>('m2');
-    const [numRegularChickens,setNumRegularChickens] = useState<string>('');
-    const [numBantamChickens,setNumBantamChickens] = useState<string>('');
+    const [coopSizeUnit, setCoopSizeUnit] = useState<AreaUnitType>('m2');
+    const [numRegularChickens, setNumRegularChickens] = useState<string>('');
+    const [numBantamChickens, setNumBantamChickens] = useState<string>('');
     const [recommendedCoopSizeDisplay, setRecommendedCoopSizeDisplay] = useState<boolean>(false);
+
+    // Unit change handler with type safety
+    const handleCoopSizeUnitChange = (newUnitValue: string) => {
+        if (!isAreaUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (coopSize === 0) {
+            setCoopSizeUnit(newUnit);
+            return;
+        }
+
+        const result = handleUnitConversion(coopSizeUnit, newUnit, coopSize, areaConversions);
+        setCoopSize(result);
+        setCoopSizeUnit(newUnit);
+    };
 
     const calculateCoopSize = () => {
         const regularCount = parseFloat(numRegularChickens) || 0;
@@ -25,7 +74,9 @@ export default function ChickenCoopSizeCalculator() {
         }
         // Updated space requirements: 0.37161 m² (4 ft²) for regular chickens and 0.18581 m² (2 ft²) for bantams
         const coopSizeInSquareMeters = (regularCount * 0.37161) + (bantamCount * 0.18581);
-        const coopSizeDisplay = convertValue(coopSizeInSquareMeters, 'm2', coopSizeUnit);
+
+        // Convert to selected unit using type-safe conversion
+        const coopSizeDisplay = coopSizeInSquareMeters / areaConversions[coopSizeUnit];
         setCoopSize(coopSizeDisplay);
     };
 
@@ -175,7 +226,7 @@ export default function ChickenCoopSizeCalculator() {
                             />
                             <UnitDropdown
                                 value={coopSizeUnit}
-                                onChange={(e) => setCoopSizeUnit(e.target.value)}
+                                onChange={(e) => handleCoopSizeUnitChange(e.target.value)}
                                 unitValues={coopSizeUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
