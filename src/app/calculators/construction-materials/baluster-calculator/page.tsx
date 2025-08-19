@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
+import { convertLength } from "@/lib/conversions/length";
 
 export default function BalusterCalculator() {
   const [railingLength, setRailingLength] = useState("");
@@ -24,19 +25,58 @@ export default function BalusterCalculator() {
   });
   const [spacingWarning, setSpacingWarning] = useState("");
 
+  // Add state for composite units for Railing length only
+  const [railingLengthFeet, setRailingLengthFeet] = useState("");
+  const [railingLengthInches, setRailingLengthInches] = useState("");
+  const [railingLengthMeters, setRailingLengthMeters] = useState("");
+  const [railingLengthCentimeters, setRailingLengthCentimeters] = useState("");
+
   // Validation function
   const validateField = (fieldName: string, value: string) => {
     const numValue = Number.parseFloat(value);
     if (value === "") {
       return "";
     }
-    if (isNaN(numValue) || numValue <= 0) {
+    // FIX: Add missing parenthesis below
+    if (isNaN(numValue)) {
+      return "Value must be a number";
+    }
+    if (numValue <= 0) {
       return "Value must be greater than 0";
     }
     if (fieldName === "numberOfPosts" && !Number.isInteger(numValue)) {
       return "Number of posts must be a whole number";
     }
     return "";
+  };
+
+  // Convert composite units (ft/in or m/cm) to inches
+  const convertCompositeToInches = (value: string, unit: string) => {
+    if (unit === "ft/in") {
+      const ft = Number.parseFloat(railingLengthFeet) || 0;
+      const inches = Number.parseFloat(railingLengthInches) || 0;
+      return ft * 12 + inches;
+    } else if (unit === "m/cm") {
+      const m = Number.parseFloat(railingLengthMeters) || 0;
+      const cm = Number.parseFloat(railingLengthCentimeters) || 0;
+      return (m * 100 + cm) / 2.54;
+    }
+    return convertLength(Number.parseFloat(value) || 0, unit, "in");
+  };
+
+  // Convert inches to composite units (ft/in or m/cm)
+  const convertInchesToComposite = (inches: number, targetUnit: string) => {
+    if (targetUnit === "ft/in") {
+      const ft = Math.floor(inches / 12);
+      const remainingInches = inches % 12;
+      return `${ft} ${remainingInches.toFixed(2)}`;
+    } else if (targetUnit === "m/cm") {
+      const totalCm = inches * 2.54;
+      const meters = Math.floor(totalCm / 100);
+      const remainingCm = totalCm % 100;
+      return `${meters} ${remainingCm.toFixed(2)}`;
+    }
+    return convertLength(inches, "in", targetUnit).toString();
   };
 
   // Handle input changes with validation
@@ -80,74 +120,74 @@ export default function BalusterCalculator() {
     }));
   };
 
-  // Improved conversion function with higher precision
-  const convertToInches = (value: string, unit: string) => {
-    const val = Number.parseFloat(value);
-    if (isNaN(val)) return 0;
-    switch (unit) {
-      case "mm":
-        return val / 25.4;
-      case "cm":
-        return val / 2.54;
-      case "m":
-        return val * 39.3701;
-      case "ft":
-        return val * 12;
-      case "in":
-        return val;
-      default:
-        return val;
-    }
-  };
-
-  // Convert from inches to target unit
-  const convertFromInches = (inches: number, targetUnit: string) => {
-    if (isNaN(inches) || inches === 0) return 0;
-    switch (targetUnit) {
-      case "mm":
-        return inches * 25.4;
-      case "cm":
-        return inches * 2.54;
-      case "m":
-        return inches / 39.3701;
-      case "ft":
-        return inches / 12;
-      case "in":
-        return inches;
-      default:
-        return inches;
-    }
-  };
-
   // Handle unit changes with conversion
   const handleRailingLengthUnitChange = (newUnit: string) => {
-    if (railingLength && !isNaN(Number.parseFloat(railingLength))) {
-      const currentValueInInches = convertToInches(
-        railingLength,
-        railingLengthUnit
-      );
-      const newValue = convertFromInches(currentValueInInches, newUnit);
-      const roundedValue =
+    let currentValueInInches = 0;
+
+    // Get the current value in inches, regardless of current unit
+    if (railingLengthUnit === "ft/in") {
+      const ft = Number.parseFloat(railingLengthFeet) || 0;
+      const inches = Number.parseFloat(railingLengthInches) || 0;
+      currentValueInInches = ft * 12 + inches;
+    } else if (railingLengthUnit === "m/cm") {
+      const m = Number.parseFloat(railingLengthMeters) || 0;
+      const cm = Number.parseFloat(railingLengthCentimeters) || 0;
+      currentValueInInches = (m * 100 + cm) / 2.54;
+    } else if (railingLength !== "" && !isNaN(Number.parseFloat(railingLength))) {
+      currentValueInInches = convertLength(Number.parseFloat(railingLength), railingLengthUnit, "in");
+    }
+
+    // Now convert to the new unit
+    if (newUnit === "ft/in") {
+      const ft = Math.floor(currentValueInInches / 12);
+      const inches = currentValueInInches - ft * 12;
+      setRailingLengthFeet(ft ? ft.toString() : "");
+      setRailingLengthInches(inches ? inches.toFixed(2) : "");
+      setRailingLength("");
+      setRailingLengthMeters("");
+      setRailingLengthCentimeters("");
+    } else if (newUnit === "m/cm") {
+      const totalCm = currentValueInInches * 2.54;
+      const m = Math.floor(totalCm / 100);
+      const cm = totalCm - m * 100;
+      setRailingLengthMeters(m ? m.toString() : "");
+      setRailingLengthCentimeters(cm ? cm.toFixed(2) : "");
+      setRailingLength("");
+      setRailingLengthFeet("");
+      setRailingLengthInches("");
+    } else {
+      // Convert to single unit
+      const newValue = convertLength(currentValueInInches, "in", newUnit);
+      setRailingLength(
         newUnit === "mm"
-          ? Math.round(newValue * 10) / 10
+          ? (Math.round(newValue * 10) / 10).toString()
           : newUnit === "cm"
-          ? Math.round(newValue * 100) / 100
+          ? (Math.round(newValue * 100) / 100).toString()
           : newUnit === "m"
-          ? Math.round(newValue * 1000) / 1000
+          ? (Math.round(newValue * 1000) / 1000).toString()
           : newUnit === "ft"
-          ? Math.round(newValue * 100) / 100
-          : Math.round(newValue * 100) / 100;
-      setRailingLength(roundedValue.toString());
+          ? (Math.round(newValue * 100) / 100).toString()
+          : (Math.round(newValue * 100) / 100).toString()
+      );
+      setRailingLengthFeet("");
+      setRailingLengthInches("");
+      setRailingLengthMeters("");
+      setRailingLengthCentimeters("");
     }
     setRailingLengthUnit(newUnit);
   };
 
   const handlePostWidthUnitChange = (newUnit: string) => {
     if (postWidth && !isNaN(Number.parseFloat(postWidth))) {
-      const currentValueInInches = convertToInches(postWidth, postWidthUnit);
-      const newValue = convertFromInches(currentValueInInches, newUnit);
-      const roundedValue =
-        newUnit === "mm"
+      const currentValueInInches = convertCompositeToInches(postWidth, postWidthUnit);
+      let newValue;
+      
+      if (newUnit === "ft/in" || newUnit === "m/cm") {
+        newValue = convertInchesToComposite(currentValueInInches, newUnit);
+      } else {
+        newValue = convertLength(currentValueInInches, "in", newUnit);
+        // Round based on unit
+        newValue = newUnit === "mm"
           ? Math.round(newValue * 10) / 10
           : newUnit === "cm"
           ? Math.round(newValue * 100) / 100
@@ -156,20 +196,28 @@ export default function BalusterCalculator() {
           : newUnit === "ft"
           ? Math.round(newValue * 100) / 100
           : Math.round(newValue * 100) / 100;
-      setPostWidth(roundedValue.toString());
+        newValue = newValue.toString();
+      }
+      
+      setPostWidth(newValue);
     }
     setPostWidthUnit(newUnit);
   };
 
   const handleBalusterWidthUnitChange = (newUnit: string) => {
     if (balusterWidth && !isNaN(Number.parseFloat(balusterWidth))) {
-      const currentValueInInches = convertToInches(
+      const currentValueInInches = convertCompositeToInches(
         balusterWidth,
         balusterWidthUnit
       );
-      const newValue = convertFromInches(currentValueInInches, newUnit);
-      const roundedValue =
-        newUnit === "mm"
+      let newValue;
+      
+      if (newUnit === "ft/in" || newUnit === "m/cm") {
+        newValue = convertInchesToComposite(currentValueInInches, newUnit);
+      } else {
+        newValue = convertLength(currentValueInInches, "in", newUnit);
+        // Round based on unit
+        newValue = newUnit === "mm"
           ? Math.round(newValue * 10) / 10
           : newUnit === "cm"
           ? Math.round(newValue * 100) / 100
@@ -178,20 +226,28 @@ export default function BalusterCalculator() {
           : newUnit === "ft"
           ? Math.round(newValue * 100) / 100
           : Math.round(newValue * 100) / 100;
-      setBalusterWidth(roundedValue.toString());
+        newValue = newValue.toString();
+      }
+      
+      setBalusterWidth(newValue);
     }
     setBalusterWidthUnit(newUnit);
   };
 
   const handleBalusterSpacingUnitChange = (newUnit: string) => {
     if (balusterSpacing && !isNaN(Number.parseFloat(balusterSpacing))) {
-      const currentValueInInches = convertToInches(
+      const currentValueInInches = convertCompositeToInches(
         balusterSpacing,
         balusterSpacingUnit
       );
-      const newValue = convertFromInches(currentValueInInches, newUnit);
-      const roundedValue =
-        newUnit === "mm"
+      let newValue;
+      
+      if (newUnit === "ft/in" || newUnit === "m/cm") {
+        newValue = convertInchesToComposite(currentValueInInches, newUnit);
+      } else {
+        newValue = convertLength(currentValueInInches, "in", newUnit);
+        // Round based on unit
+        newValue = newUnit === "mm"
           ? Math.round(newValue * 10) / 10
           : newUnit === "cm"
           ? Math.round(newValue * 100) / 100
@@ -200,9 +256,42 @@ export default function BalusterCalculator() {
           : newUnit === "ft"
           ? Math.round(newValue * 100) / 100
           : Math.round(newValue * 100) / 100;
-      setBalusterSpacing(roundedValue.toString());
+        newValue = newValue.toString();
+      }
+      
+      setBalusterSpacing(newValue);
     }
     setBalusterSpacingUnit(newUnit);
+  };
+
+  // Helper to get the current railing length in inches for calculation
+  const getRailingLengthInches = () => {
+    // Always check composite fields for ft/in and m/cm, otherwise use single value
+    if (railingLengthUnit === "ft/in") {
+      const ft = Number.parseFloat(railingLengthFeet);
+      const inches = Number.parseFloat(railingLengthInches);
+      // Only treat as "empty" if both are empty strings
+      if (
+        (railingLengthFeet === "" && railingLengthInches === "") ||
+        (isNaN(ft) && isNaN(inches))
+      ) {
+        return 0;
+      }
+      return (isNaN(ft) ? 0 : ft) * 12 + (isNaN(inches) ? 0 : inches);
+    } else if (railingLengthUnit === "m/cm") {
+      const m = Number.parseFloat(railingLengthMeters);
+      const cm = Number.parseFloat(railingLengthCentimeters);
+      if (
+        (railingLengthMeters === "" && railingLengthCentimeters === "") ||
+        (isNaN(m) && isNaN(cm))
+      ) {
+        return 0;
+      }
+      return ((isNaN(m) ? 0 : m) * 100 + (isNaN(cm) ? 0 : cm)) / 2.54;
+    } else if (railingLength !== "" && !isNaN(Number.parseFloat(railingLength))) {
+      return convertLength(Number.parseFloat(railingLength), railingLengthUnit, "in");
+    }
+    return 0;
   };
 
   // Auto-calculate balusters when inputs change
@@ -212,70 +301,72 @@ export default function BalusterCalculator() {
       (error) => error !== ""
     );
 
+    // --- Only check for empty fields for non-composite units ---
+    const isComposite =
+      railingLengthUnit === "ft/in" || railingLengthUnit === "m/cm";
+    const isCompositeEmpty =
+      (railingLengthUnit === "ft/in" &&
+        railingLengthFeet === "" &&
+        railingLengthInches === "") ||
+      (railingLengthUnit === "m/cm" &&
+        railingLengthMeters === "" &&
+        railingLengthCentimeters === "");
+
     if (
-      !railingLength ||
+      (!isComposite && !railingLength) ||
       !numberOfPosts ||
       !postWidth ||
       !balusterWidth ||
       !balusterSpacing ||
-      hasErrors
+      hasErrors ||
+      (isComposite && isCompositeEmpty)
     ) {
       setResult({ balustersNeeded: 0 });
       setSpacingWarning("");
       return;
     }
 
-    const railingLengthInches = convertToInches(
-      railingLength,
-      railingLengthUnit
-    );
-    const postWidthInches = convertToInches(postWidth, postWidthUnit);
-    const balusterWidthInches = convertToInches(
+    // Parse numberOfPosts as integer (not float)
+    const numPosts = parseInt(numberOfPosts, 10);
+    if (isNaN(numPosts) || numPosts <= 0) {
+      setResult({ balustersNeeded: 0 });
+      return;
+    }
+
+    // All values must be in inches for calculation
+    const railingLengthInches = getRailingLengthInches();
+    const postWidthInches = convertCompositeToInches(postWidth, postWidthUnit);
+    const balusterWidthInches = convertCompositeToInches(
       balusterWidth,
       balusterWidthUnit
     );
-    const balusterSpacingInches = convertToInches(
+    const balusterSpacingInches = convertCompositeToInches(
       balusterSpacing,
       balusterSpacingUnit
     );
 
-    console.log("[v0] === BALUSTER CALCULATION DEBUG ===");
-    console.log("[v0] Input values:");
-    console.log(
-      "[v0] - Railing length:",
-      railingLength,
-      railingLengthUnit,
-      "=",
-      railingLengthInches,
-      "inches"
-    );
-    console.log("[v0] - Number of posts:", numberOfPosts);
-    console.log(
-      "[v0] - Post width:",
-      postWidth,
-      postWidthUnit,
-      "=",
-      postWidthInches,
-      "inches"
-    );
-    console.log(
-      "[v0] - Baluster width:",
-      balusterWidth,
-      balusterWidthUnit,
-      "=",
-      balusterWidthInches,
-      "inches"
-    );
-    console.log(
-      "[v0] - Baluster spacing:",
-      balusterSpacing,
-      balusterSpacingUnit,
-      "=",
-      balusterSpacingInches,
-      "inches"
-    );
+    // --- Enhanced: Show error and red border if baluster spacing > 4 inches (10.16 cm) ---
+    let spacingError = "";
+    let showRed = false;
+    // Convert 4 inches to current unit for comparison
+    let maxSpacing = 4;
+    if (balusterSpacingUnit === "cm") {
+      maxSpacing = 10.16;
+    } else if (balusterSpacingUnit === "mm") {
+      maxSpacing = 101.6;
+    } else if (balusterSpacingUnit === "m") {
+      maxSpacing = 0.1016;
+    } else if (balusterSpacingUnit === "ft") {
+      maxSpacing = 4 / 12;
+    } // else keep as 4 inches
 
-    // Check for maximum spacing warning (4 inches or 99mm)
+    const spacingValue = Number.parseFloat(balusterSpacing);
+    if (!isNaN(spacingValue) && spacingValue > maxSpacing) {
+      spacingError = 'The maximum baluster spacing is 4" (10 cm).';
+      showRed = true;
+    }
+
+    // Also keep the old warning for > 4 inches in any unit
     if (balusterSpacingInches > 4) {
       setSpacingWarning(
         'Warning: Baluster spacing exceeds 4" (99mm) maximum allowed in most areas!'
@@ -283,78 +374,46 @@ export default function BalusterCalculator() {
     } else {
       setSpacingWarning("");
     }
+
     if (
       railingLengthInches <= 0 ||
-      Number(numberOfPosts) <= 0 ||
+      numPosts <= 0 ||
       postWidthInches <= 0 ||
       balusterWidthInches <= 0 ||
       balusterSpacingInches <= 0
     ) {
-      return;
-    }
-
-    // Formula: (railing length - (number of posts × single post's width)) / (baluster width + baluster spacing)
-    const totalPostWidth = Number.parseFloat(numberOfPosts) * postWidthInches;
-    const availableLength = railingLengthInches - totalPostWidth;
-    const balusterPitch = balusterWidthInches + balusterSpacingInches;
-
-    console.log("[v0] Calculation steps:");
-    console.log(
-      "[v0] - Total post width:",
-      numberOfPosts,
-      "×",
-      postWidthInches,
-      "=",
-      totalPostWidth,
-      "inches"
-    );
-    console.log(
-      "[v0] - Available length:",
-      railingLengthInches,
-      "-",
-      totalPostWidth,
-      "=",
-      availableLength,
-      "inches"
-    );
-    console.log(
-      "[v0] - Baluster pitch:",
-      balusterWidthInches,
-      "+",
-      balusterSpacingInches,
-      "=",
-      balusterPitch,
-      "inches"
-    );
-
-    if (availableLength <= 0 || balusterPitch <= 0) {
-      console.log(
-        "[v0] ERROR: Invalid calculation - availableLength or balusterPitch <= 0"
-      );
       setResult({ balustersNeeded: 0 });
       return;
     }
 
-    const balustersNeeded = availableLength / balusterPitch;
-    const roundedResult = Math.ceil(balustersNeeded);
+    // Formula: (railing length - (number of posts × single post's width)) / (baluster width + baluster spacing)
+    const totalPostWidth = numPosts * postWidthInches;
+    const availableLength = railingLengthInches - totalPostWidth;
+    const balusterPitch = balusterWidthInches + balusterSpacingInches;
 
-    console.log(
-      "[v0] - Balusters needed (exact):",
-      availableLength,
-      "÷",
-      balusterPitch,
-      "=",
-      balustersNeeded
-    );
-    console.log("[v0] - Balusters needed (rounded up):", roundedResult);
-    console.log("[v0] === END DEBUG ===");
+    if (availableLength <= 0 || balusterPitch <= 0) {
+      setResult({ balustersNeeded: 0 });
+      return;
+    }
+
+    const balustersNeeded = Math.ceil(availableLength / balusterPitch);
 
     setResult({
       balustersNeeded,
     });
+
+    // Set error for spacing field if needed
+    setValidationErrors((prev) => ({
+      ...prev,
+      balusterSpacing: spacingError,
+    }));
   }, [
     railingLength,
     railingLengthUnit,
+    railingLengthFeet,
+    railingLengthInches,
+    railingLengthMeters,
+    railingLengthCentimeters,
     numberOfPosts,
     postWidth,
     postWidthUnit,
@@ -368,9 +427,22 @@ export default function BalusterCalculator() {
   const unitOptions = [
     { label: "Millimeters (mm)", value: "mm" },
     { label: "Centimeters (cm)", value: "cm" },
+    { label: "Meters (m)", value: "m" },
     { label: "Inches (in)", value: "in" },
     { label: "Feet (ft)", value: "ft" },
-    { label: "Meters (m)", value: "m" },
+    { label: "Feet & Inches (ft in)", value: "ft/in" },
+    { label: "Meters & Centimeters (m cm)", value: "m/cm" },
+  ];
+
+  const unitOptions2 = [
+    { label: "Centimeters (cm)", value: "cm" },
+    { label: "Inches (in)", value: "in" },
+  ];
+
+  const unitOptions3 = [
+    { label: "Millimeters (mm)", value: "mm" },
+    { label: "Centimeters (cm)", value: "cm" },
+    { label: "Inches (in)", value: "in" },
   ];
 
   const clearAllFields = () => {
@@ -389,67 +461,41 @@ export default function BalusterCalculator() {
     setSpacingWarning("");
   };
 
-  const reloadCalculator = () => {
-    if (
-      railingLength &&
-      numberOfPosts &&
-      postWidth &&
-      balusterWidth &&
-      balusterSpacing
-    ) {
-      const railingLengthInches = convertToInches(
-        railingLength,
-        railingLengthUnit
-      );
-      const postWidthInches = convertToInches(postWidth, postWidthUnit);
-      const balusterWidthInches = convertToInches(
-        balusterWidth,
-        balusterWidthUnit
-      );
-      const balusterSpacingInches = convertToInches(
-        balusterSpacing,
-        balusterSpacingUnit
-      );
+  // Helper function to format input placeholder based on unit
+  const getPlaceholder = (unit: string) => {
+    if (unit === "ft/in") return "5 6.5 (5ft 6.5in)";
+    if (unit === "m/cm") return "1 75 (1m 75cm)";
+    return "";
+  };
 
-      console.log("[v0] RELOAD - Input verification:");
-      console.log(
-        "[v0] - Railing:",
-        railingLength,
-        railingLengthUnit,
-        "=",
-        railingLengthInches,
-        "inches"
-      );
-      console.log(
-        "[v0] - Posts:",
-        numberOfPosts,
-        "×",
-        postWidth,
-        postWidthUnit,
-        "=",
-        numberOfPosts,
-        "×",
-        postWidthInches,
-        "inches"
-      );
-
-      const totalPostWidth = Number.parseFloat(numberOfPosts) * postWidthInches;
-      const availableLength = railingLengthInches - totalPostWidth;
-      const balusterPitch = balusterWidthInches + balusterSpacingInches;
-
-      if (availableLength > 0 && balusterPitch > 0) {
-        const balustersNeeded = availableLength / balusterPitch;
-        console.log(
-          "[v0] RELOAD - Final result:",
-          Math.ceil(balustersNeeded),
-          "balusters"
-        );
-
-        setResult({
-          balustersNeeded,
-        });
-      }
-    }
+  // Update handleRailingLengthChange for composite units
+  const handleRailingLengthFeetChange = (value: string) => {
+    setRailingLengthFeet(value);
+    setValidationErrors((prev) => ({
+      ...prev,
+      railingLength: validateField("railingLength", value),
+    }));
+  };
+  const handleRailingLengthInchesChange = (value: string) => {
+    setRailingLengthInches(value);
+    setValidationErrors((prev) => ({
+      ...prev,
+      railingLength: validateField("railingLength", value),
+    }));
+  };
+  const handleRailingLengthMetersChange = (value: string) => {
+    setRailingLengthMeters(value);
+    setValidationErrors((prev) => ({
+      ...prev,
+      railingLength: validateField("railingLength", value),
+    }));
+  };
+  const handleRailingLengthCentimetersChange = (value: string) => {
+    setRailingLengthCentimeters(value);
+    setValidationErrors((prev) => ({
+      ...prev,
+      railingLength: validateField("railingLength", value),
+    }));
   };
 
   return (
@@ -470,7 +516,7 @@ export default function BalusterCalculator() {
               className="w-full max-w-sm h-auto object-contain"
             />
           </div>
-          c{/* Railing Length */}
+          {/* Railing Length */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-gray-700">
@@ -491,39 +537,119 @@ export default function BalusterCalculator() {
               </button>
             </div>
             <div className="relative">
-              <input
-                type="number"
-                value={railingLength}
-                onChange={(e) => handleRailingLengthChange(e.target.value)}
-                placeholder="20"
-                step="any"
-                className={`w-full px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400 transition-colors pr-32 ${
-                  validationErrors.railingLength
-                    ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                    : "border-gray-300"
-                }`}
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-1">
-                <select
-                  value={railingLengthUnit}
-                  onChange={(e) =>
-                    handleRailingLengthUnitChange(e.target.value)
-                  }
-                  className="h-8 py-0 pl-2 pr-8 border border-gray-200 rounded bg-gray-50 text-gray-700 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer min-w-0"
-                  style={{ width: "120px" }}
-                >
-                  {unitOptions.map((u) => (
-                    <option key={u.value} value={u.value}>
-                      {u.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 h-3 w-3 text-gray-400 pointer-events-none" />
-              </div>
+              {railingLengthUnit === "ft/in" ? (
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={railingLengthFeet}
+                    onChange={(e) => handleRailingLengthFeetChange(e.target.value)}
+                    placeholder="ft"
+                    min="0"
+                    className="w-20 px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 border-gray-300"
+                  />
+                  <span className="self-center">ft</span>
+                  <input
+                    type="number"
+                    value={railingLengthInches}
+                    onChange={(e) => handleRailingLengthInchesChange(e.target.value)}
+                    placeholder="in"
+                    min="0"
+                    className="w-20 px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 border-gray-300"
+                  />
+                  <span className="self-center">in</span>
+                  <div className="relative w-32 ml-2">
+                    <select
+                      value={railingLengthUnit}
+                      onChange={(e) => handleRailingLengthUnitChange(e.target.value)}
+                      className="h-8 py-0 pl-2 pr-8 border border-gray-200 rounded bg-gray-50 text-gray-700 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer min-w-0 w-full"
+                    >
+                      {unitOptions.map((u) => (
+                        <option key={u.value} value={u.value}>
+                          {u.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 h-3 w-3 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+              ) : railingLengthUnit === "m/cm" ? (
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={railingLengthMeters}
+                    onChange={(e) => handleRailingLengthMetersChange(e.target.value)}
+                    placeholder="m"
+                    min="0"
+                    className="w-20 px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 border-gray-300"
+                  />
+                  <span className="self-center">m</span>
+                  <input
+                    type="number"
+                    value={railingLengthCentimeters}
+                    onChange={(e) => handleRailingLengthCentimetersChange(e.target.value)}
+                    placeholder="cm"
+                    min="0"
+                    className="w-20 px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 border-gray-300"
+                  />
+                  <span className="self-center">cm</span>
+                  <div className="relative w-32 ml-2">
+                    <select
+                      value={railingLengthUnit}
+                      onChange={(e) => handleRailingLengthUnitChange(e.target.value)}
+                      className="h-8 py-0 pl-2 pr-8 border border-gray-200 rounded bg-gray-50 text-gray-700 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer min-w-0 w-full"
+                    >
+                      {unitOptions.map((u) => (
+                        <option key={u.value} value={u.value}>
+                          {u.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 h-3 w-3 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+              ) : (
+                // Default single input
+                <div>
+                  <input
+                    type="number"
+                    value={railingLength}
+                    onChange={(e) => handleRailingLengthChange(e.target.value)}
+                    placeholder={getPlaceholder(railingLengthUnit) || "20"}
+                    step="any"
+                    className={`w-full px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400 transition-colors pr-32 ${
+                      validationErrors.railingLength
+                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                        : "border-gray-300"
+                    }`}
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-1">
+                    <select
+                      value={railingLengthUnit}
+                      onChange={(e) => handleRailingLengthUnitChange(e.target.value)}
+                      className="h-8 py-0 pl-2 pr-8 border border-gray-200 rounded bg-gray-50 text-gray-700 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer min-w-0"
+                      style={{ width: "120px" }}
+                    >
+                      {unitOptions.map((u) => (
+                        <option key={u.value} value={u.value}>
+                          {u.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 h-3 w-3 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+              )}
             </div>
             {validationErrors.railingLength && (
               <p className="text-red-500 text-xs mt-1">
                 {validationErrors.railingLength}
+              </p>
+            )}
+            {(railingLengthUnit === "ft/in" || railingLengthUnit === "m/cm") && (
+              <p className="text-xs text-gray-500">
+                {railingLengthUnit === "ft/in"
+                  ? "Enter feet and inches separately."
+                  : "Enter meters and centimeters separately."}
               </p>
             )}
           </div>
@@ -587,10 +713,10 @@ export default function BalusterCalculator() {
             </div>
             <div className="relative">
               <input
-                type="number"
+                type={postWidthUnit === "ft/in" || postWidthUnit === "m/cm" ? "text" : "number"}
                 value={postWidth}
                 onChange={(e) => handlePostWidthChange(e.target.value)}
-                placeholder="2"
+                placeholder={getPlaceholder(postWidthUnit) || "2"}
                 step="any"
                 className={`w-full px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400 transition-colors pr-32 ${
                   validationErrors.postWidth
@@ -605,7 +731,7 @@ export default function BalusterCalculator() {
                   className="h-8 py-0 pl-2 pr-8 border border-gray-200 rounded bg-gray-50 text-gray-700 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer min-w-0"
                   style={{ width: "120px" }}
                 >
-                  {unitOptions.map((u) => (
+                  {unitOptions2.map((u) => (
                     <option key={u.value} value={u.value}>
                       {u.label}
                     </option>
@@ -617,6 +743,13 @@ export default function BalusterCalculator() {
             {validationErrors.postWidth && (
               <p className="text-red-500 text-xs mt-1">
                 {validationErrors.postWidth}
+              </p>
+            )}
+            {(postWidthUnit === "ft/in" || postWidthUnit === "m/cm") && (
+              <p className="text-xs text-gray-500">
+                {postWidthUnit === "ft/in" 
+                  ? "Enter feet and inches separated by space (e.g., '0 3.5' for 0ft 3.5in)"
+                  : "Enter meters and centimeters separated by space (e.g., '0 8.5' for 0m 8.5cm)"}
               </p>
             )}
           </div>
@@ -642,10 +775,10 @@ export default function BalusterCalculator() {
             </div>
             <div className="relative">
               <input
-                type="number"
+                type={balusterWidthUnit === "ft/in" || balusterWidthUnit === "m/cm" ? "text" : "number"}
                 value={balusterWidth}
                 onChange={(e) => handleBalusterWidthChange(e.target.value)}
-                placeholder="2"
+                placeholder={getPlaceholder(balusterWidthUnit) || "2"}
                 step="any"
                 className={`w-full px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400 transition-colors pr-32 ${
                   validationErrors.balusterWidth
@@ -662,7 +795,7 @@ export default function BalusterCalculator() {
                   className="h-8 py-0 pl-2 pr-8 border border-gray-200 rounded bg-gray-50 text-gray-700 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer min-w-0"
                   style={{ width: "120px" }}
                 >
-                  {unitOptions.map((u) => (
+                  {unitOptions2.map((u) => (
                     <option key={u.value} value={u.value}>
                       {u.label}
                     </option>
@@ -674,6 +807,13 @@ export default function BalusterCalculator() {
             {validationErrors.balusterWidth && (
               <p className="text-red-500 text-xs mt-1">
                 {validationErrors.balusterWidth}
+              </p>
+            )}
+            {(balusterWidthUnit === "ft/in" || balusterWidthUnit === "m/cm") && (
+              <p className="text-xs text-gray-500">
+                {balusterWidthUnit === "ft/in" 
+                  ? "Enter feet and inches separated by space (e.g., '0 1.5' for 0ft 1.5in)"
+                  : "Enter meters and centimeters separated by space (e.g., '0 4' for 0m 4cm)"}
               </p>
             )}
           </div>
@@ -699,10 +839,10 @@ export default function BalusterCalculator() {
             </div>
             <div className="relative">
               <input
-                type="number"
+                type={balusterSpacingUnit === "ft/in" || balusterSpacingUnit === "m/cm" ? "text" : "number"}
                 value={balusterSpacing}
                 onChange={(e) => handleBalusterSpacingChange(e.target.value)}
-                placeholder="3"
+                placeholder={getPlaceholder(balusterSpacingUnit) || "3"}
                 step="any"
                 className={`w-full px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400 transition-colors pr-32 ${
                   validationErrors.balusterSpacing
@@ -719,7 +859,7 @@ export default function BalusterCalculator() {
                   className="h-8 py-0 pl-2 pr-8 border border-gray-200 rounded bg-gray-50 text-gray-700 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer min-w-0"
                   style={{ width: "120px" }}
                 >
-                  {unitOptions.map((u) => (
+                  {unitOptions3.map((u) => (
                     <option key={u.value} value={u.value}>
                       {u.label}
                     </option>
@@ -733,12 +873,20 @@ export default function BalusterCalculator() {
                 {validationErrors.balusterSpacing}
               </p>
             )}
+            {(balusterSpacingUnit === "ft/in" || balusterSpacingUnit === "m/cm") && (
+              <p className="text-xs text-gray-500">
+                {balusterSpacingUnit === "ft/in" 
+                  ? "Enter feet and inches separated by space (e.g., '0 3.5' for 0ft 3.5in)"
+                  : "Enter meters and centimeters separated by space (e.g., '0 8.5' for 0m 8.5cm)"}
+              </p>
+            )}
             {spacingWarning && (
               <p className="text-orange-500 text-xs mt-1 bg-orange-50 p-2 rounded">
                 {spacingWarning}
               </p>
             )}
           </div>
+          
           {/* Balusters Needed */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -763,21 +911,17 @@ export default function BalusterCalculator() {
               type="text"
               value={
                 result.balustersNeeded > 0
-                  ? Math.ceil(result.balustersNeeded).toString()
+                  ? result.balustersNeeded.toString()
                   : "0"
               }
               readOnly
               className="w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-blue-600 font-semibold hover:border-gray-400 transition-colors"
             />
           </div>
+          
           {/* Action Buttons */}
           <div className="flex space-x-2 pt-4">
-            <button
-              onClick={reloadCalculator}
-              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-            >
-              Reload calculator
-            </button>
+           
             <button
               onClick={clearAllFields}
               className="flex-1 px-4 py-2.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
@@ -785,29 +929,8 @@ export default function BalusterCalculator() {
               Clear all changes
             </button>
           </div>
-          {/* Share Section */}
-          <div className="flex items-center space-x-2 pt-2">
-            <button className="flex items-center justify-center w-10 h-10 bg-red-500 rounded-full text-white hover:bg-red-600">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3.027 3.027 0 000-.74l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-              </svg>
-            </button>
-            <span className="text-sm text-gray-600">Share result</span>
-          </div>
-          {/* Bottom Question */}
-          <div className="text-center pt-4 border-t">
-            <p className="text-sm text-gray-600 mb-3">
-              Did we solve your problem today?
-            </p>
-            <div className="flex justify-center space-x-4">
-              <button className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
-                👍 Yes
-              </button>
-              <button className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
-                👎 No
-              </button>
-            </div>
-          </div>
+         
+         
         </div>
       </div>
     </div>
