@@ -2,6 +2,80 @@
 
 import { useState, useEffect } from 'react';
 
+// Update type definitions at the top
+type SingleUnitType = 'mm' | 'cm' | 'm' | 'in' | 'ft';
+type DualUnitType = 'ft/in' | 'm/cm';
+type UnitType = SingleUnitType | DualUnitType;
+type ConversionMap = Record<UnitType, number>;
+
+// Helper functions for type safety
+const isSingleUnit = (unit: UnitType): unit is SingleUnitType => {
+  return ['mm', 'cm', 'm', 'in', 'ft'].includes(unit);
+};
+
+const isDualUnit = (unit: UnitType): unit is DualUnitType => {
+  return unit === 'ft/in' || unit === 'm/cm';
+};
+
+const isUnitType = (value: string): value is UnitType => {
+  return ['mm', 'cm', 'm', 'in', 'ft', 'ft/in', 'm/cm'].includes(value);
+};
+
+// Safe conversion helper
+const getSafeConversionFactor = (unit: UnitType, conversions: ConversionMap): number => {
+  return conversions[unit] || 1;
+};
+
+const handleUnitConversion = (
+  currentUnit: UnitType,
+  newUnit: UnitType,
+  value: string,
+  conversionTable: ConversionMap
+): number => {
+  if (!value) return 0;
+  const numValue = Number(value);
+  if (isNaN(numValue)) return 0;
+  const standardValue = numValue * conversionTable[currentUnit];
+  return standardValue / conversionTable[newUnit];
+};
+
+const lengthConversions: ConversionMap = {
+  'mm': 0.0393701 / 12,
+  'cm': 0.393701 / 12,
+  'm': 3.28084,
+  'in': 1/12,
+  'ft': 1,
+  'ft/in': 1,
+  'm/cm': 3.28084
+};
+
+const dimensionConversions: ConversionMap = {
+  'mm': 0.0393701,
+  'cm': 0.393701,
+  'm': 39.3701,
+  'in': 1,
+  'ft': 12,
+  'ft/in': 1,
+  'm/cm': 39.3701
+};
+
+const convertFtInToMCm = (feet: string, inches: string) => {
+  const totalFeet = Number(feet || 0);
+  const totalInches = Number(inches || 0);
+  const totalMeters = (totalFeet * 0.3048) + (totalInches * 0.0254);
+  const meters = Math.floor(totalMeters);
+  const centimeters = Math.round((totalMeters - meters) * 100);
+  return { meters, centimeters };
+};
+
+const convertMCmToFtIn = (meters: string, centimeters: string) => {
+  const totalMeters = Number(meters || 0) + (Number(centimeters || 0) / 100);
+  const totalInches = totalMeters * 39.3701;
+  const feet = Math.floor(totalInches / 12);
+  const inches = Number((totalInches % 12).toFixed(2));
+  return { feet, inches };
+};
+
 export default function BoardFootCalculator() {
   const [numPieces, setNumPieces] = useState<string>('');
   const [thickness, setThickness] = useState<string>('');
