@@ -403,6 +403,7 @@ export default function DeckStainCalculator() {
     return areaInSelected ? Number(formatNumber(areaInSelected, 4)) : '';
   }, [floorAreaDerivedM2, state.floorAreaUnit]);
 
+  // Enhanced steps area calculation with comprehensive formulas
   const stepsAreaDerivedM2 = useMemo(() => {
         const stepsCountNum = parseFloat(String(state.stepsCount));
         const stepsWidthNum = parseFloat(String(state.stepsWidth));
@@ -410,10 +411,17 @@ export default function DeckStainCalculator() {
 
         // Convert to meters using type-safe conversion
         const widthM = stepsWidthNum * lengthConversions[state.stepsWidthUnit];
-        // Assuming standard step depth of 0.3m (approximately 1 foot)
-        const stepDepth = 0.3;
-        // Calculate total area: width * depth * number of steps
-        return widthM * stepDepth * stepsCountNum;
+
+        // Standard step dimensions (building code compliant)
+        const stepRun = 0.28; // 28cm run (tread depth)
+        const stepRise = 0.18; // 18cm rise (riser height)
+
+        // Steps Area = Number of Steps × Width × (Run + Rise) for comprehensive coverage
+        // This includes both the horizontal tread and vertical riser surfaces
+        const stepSurfaceDepth = stepRun + stepRise; // Total surface per step
+        const totalStepsArea = widthM * stepSurfaceDepth * stepsCountNum;
+
+        return totalStepsArea;
     }, [state.stepsCount, state.stepsWidth, state.stepsWidthUnit]);
 
     const stepsAreaDisplay = useMemo(() => {
@@ -467,6 +475,68 @@ export default function DeckStainCalculator() {
     state.balustersWidthUnit,
   ]);
 
+  // Posts area calculation - comprehensive formula
+  const postsAreaDerivedM2 = useMemo(() => {
+    const lenNum = parseFloat(String(state.railingLength));
+    const hNum = parseFloat(String(state.railingHeight));
+    const postsWidthNum = parseFloat(String(state.postsWidth));
+
+    if (
+      isNaN(lenNum) || lenNum <= 0 ||
+      isNaN(hNum) || hNum <= 0 ||
+      isNaN(postsWidthNum) || postsWidthNum <= 0
+    ) return 0;
+
+    // Convert all dimensions to meters using type-safe conversion
+    const lenM = lenNum * lengthConversions[state.railingLengthUnit];
+    const hM = hNum * lengthConversions[state.railingHeightUnit];
+    const postsWidthM = postsWidthNum * lengthConversions[state.postsWidthUnit];
+
+    // Calculate number of posts (assuming posts every 2 meters + corner posts)
+    const postSpacing = 2.0; // meters
+    const numPosts = Math.ceil(lenM / postSpacing) + 1;
+
+    // Posts area = Number of Posts × 2 × Height × Width (2 faces per post)
+    const postsArea = numPosts * 2 * hM * postsWidthM;
+
+    return postsArea;
+  }, [
+    state.railingLength,
+    state.railingLengthUnit,
+    state.railingHeight,
+    state.railingHeightUnit,
+    state.postsWidth,
+    state.postsWidthUnit,
+  ]);
+
+  // Rails area calculation - comprehensive formula
+  const railsAreaDerivedM2 = useMemo(() => {
+    const lenNum = parseFloat(String(state.railingLength));
+
+    if (isNaN(lenNum) || lenNum <= 0) return 0;
+
+    // Convert length to meters using type-safe conversion
+    const lenM = lenNum * lengthConversions[state.railingLengthUnit];
+
+    // Assume 3 horizontal rails (top, middle, bottom)
+    const numRails = 3;
+    const railHeight = 0.05; // 5cm rail height assumption
+    const railWidth = 0.10; // 10cm rail width assumption
+
+    // Rails area = Number of Rails × Length × (Rail Height + Rail Width) for all surfaces
+    const railsArea = numRails * lenM * (railHeight + railWidth);
+
+    return railsArea;
+  }, [
+    state.railingLength,
+    state.railingLengthUnit,
+  ]);
+
+  // Enhanced railing frame area calculation
+  const railingFrameAreaDerivedM2 = useMemo(() => {
+    return postsAreaDerivedM2 + railsAreaDerivedM2;
+  }, [postsAreaDerivedM2, railsAreaDerivedM2]);
+
   const railingBallDerivedM2 = useMemo(() => {
     const diff = railingNoFillDerivedM2 - balustersAreaDerivedM2;
     return diff > 0 ? diff : 0;
@@ -485,6 +555,19 @@ export default function DeckStainCalculator() {
     Number(formatNumber(railingBallDerivedM2 / areaConversions[state.RailingAreaBallUnit], 4))
   , [railingBallDerivedM2, state.RailingAreaBallUnit]);
 
+  // New display conversions for comprehensive calculations
+  const postsAreaDisplay = useMemo(() =>
+    Number(formatNumber(postsAreaDerivedM2 / areaConversions[state.balustersAreaUnit], 4))
+  , [postsAreaDerivedM2, state.balustersAreaUnit]);
+
+  const railsAreaDisplay = useMemo(() =>
+    Number(formatNumber(railsAreaDerivedM2 / areaConversions[state.balustersAreaUnit], 4))
+  , [railsAreaDerivedM2, state.balustersAreaUnit]);
+
+  const railingFrameAreaDisplay = useMemo(() =>
+    Number(formatNumber(railingFrameAreaDerivedM2 / areaConversions[state.balustersAreaUnit], 4))
+  , [railingFrameAreaDerivedM2, state.balustersAreaUnit]);
+
 
   // Total area functions
 
@@ -501,14 +584,16 @@ export default function DeckStainCalculator() {
         total += state.customRailingArea * areaConversions[state.customRailingAreaUnit];
       }
     } else if (state.isRailingSelected) {
-      // With railing
+      // With railing - comprehensive calculation
       if (state.isBalustersSelected) {
-        // Include the no-fill panel area and the balusters area; exclude the 'balusters' voids
+        // Include the no-fill panel area, balusters area, and railing frame (posts + rails)
         total += railingNoFillDerivedM2;
         total += balustersAreaDerivedM2;
+        total += railingFrameAreaDerivedM2; // Posts + Rails area
       } else {
-        // No filling: include the simple panel area
+        // No filling: include the simple panel area and railing frame
         total += railingNoFillDerivedM2;
+        total += railingFrameAreaDerivedM2; // Posts + Rails area
       }
     }
 
@@ -526,6 +611,44 @@ export default function DeckStainCalculator() {
 
 
   const getTotalAreaFt2 = () => getTotalAreaM2() / areaConversions['ft2'];
+
+  // Enhanced validation logic following Floor Area Ratio Calculator pattern
+  const validateAreaRelationships = useMemo(() => {
+    const errors: string[] = [];
+
+    // Validate that balusters area doesn't exceed railing no-fill area
+    if (state.isBalustersSelected && balustersAreaDerivedM2 > railingNoFillDerivedM2) {
+      errors.push("Balusters area cannot exceed railing panel area");
+    }
+
+    // Validate that posts width is reasonable for railing height
+    const postsWidthNum = parseFloat(String(state.postsWidth));
+    const railingHeightNum = parseFloat(String(state.railingHeight));
+    if (!isNaN(postsWidthNum) && !isNaN(railingHeightNum) && postsWidthNum > 0 && railingHeightNum > 0) {
+      const postsWidthM = postsWidthNum * lengthConversions[state.postsWidthUnit];
+      const railingHeightM = railingHeightNum * lengthConversions[state.railingHeightUnit];
+      if (postsWidthM > railingHeightM * 0.5) {
+        errors.push("Posts width should typically be less than 50% of railing height");
+      }
+    }
+
+    // Validate steps dimensions
+    const stepsCountNum = parseFloat(String(state.stepsCount));
+    if (!isNaN(stepsCountNum) && stepsCountNum > 20) {
+      errors.push("Number of steps seems unusually high (>20)");
+    }
+
+    return errors;
+  }, [
+    state.isBalustersSelected,
+    balustersAreaDerivedM2,
+    railingNoFillDerivedM2,
+    state.postsWidth,
+    state.postsWidthUnit,
+    state.railingHeight,
+    state.railingHeightUnit,
+    state.stepsCount,
+  ]);
 
   const totalAreaM2 = useMemo(() => getTotalAreaM2(), [
     floorAreaDisplay,
@@ -545,6 +668,12 @@ export default function DeckStainCalculator() {
     state.stepsArea,
     state.stepsAreaUnit,
     stepsAreaDerivedM2,
+    railingNoFillDerivedM2,
+    balustersAreaDerivedM2,
+    railingBallDerivedM2,
+    railingFrameAreaDerivedM2, // Include comprehensive railing calculations
+    postsAreaDerivedM2,
+    railsAreaDerivedM2,
   ]);
 
   // Stain calculation (placed after totalAreaM2 to avoid TDZ)
