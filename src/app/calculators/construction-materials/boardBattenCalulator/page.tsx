@@ -97,8 +97,8 @@ const materialUnits = [
   { value: 'yd', label: 'yards (yd)' },
 ]
 
-// 60 cm recommended spacing for horizontal furring (adjust if needed)
-const FURRING_SPACING_M = 0.6
+// Set default furring strip spacing (0.55m as per example)
+const FURRING_SPACING_M = 0.55
 
 export default function BoardBattenCalculator() {
   const [openSections, setOpenSections] = useState({
@@ -218,52 +218,25 @@ export default function BoardBattenCalculator() {
   // 1) wall area auto from width/height (shown in chosen unit)
   useEffect(() => {
     if (state.wallWidth > 0 && state.wallHeight > 0) {
-      const wM = convertLength(state.wallWidth, state.wallWidthUnit, "m")
-      const hM = convertLength(state.wallHeight, state.wallHeightUnit, "m")
-      const areaM2 = wM * hM
-      const finalArea = convertArea(areaM2, "m2", state.wallAreaUnit)
-      updateState("wallArea", Number(finalArea.toFixed(4)))
+      const wM = convertLength(state.wallWidth, state.wallWidthUnit, "m");
+      const hM = convertLength(state.wallHeight, state.wallHeightUnit, "m");
+      const areaM2 = wM * hM;
+      const finalArea = convertArea(areaM2, "m2", state.wallAreaUnit);
+      updateState("wallArea", Number(finalArea.toFixed(4)));
     } else {
-      updateState("wallArea", 0)
+      updateState("wallArea", 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.wallWidth, state.wallWidthUnit, state.wallHeight, state.wallHeightUnit, state.wallAreaUnit])
 
-  // 2) boards/battens count (independent of openings)
+  // 2) rows of furring strips (derived from height and spacing)
   useEffect(() => {
-    if (state.wallWidth > 0 && state.boardWidth > 0 && state.boardSpacing > 0) {
-      // Convert all measurements to meters
-      const wallWidthInM = convertLength(state.wallWidth, state.wallWidthUnit, "m");
-      const boardWidthInM = convertLength(state.boardWidth, state.boardWidthUnit, "m");
-      const spacingInM = convertLength(state.boardSpacing, state.boardSpacingUnit, "m");
-
-      // Example: 3m wall, 5cm (0.05m) board, 8cm (0.08m) spacing
-      // Total width per section = board + spacing = 0.05m + 0.08m = 0.13m
-      const totalWidthPerSection = boardWidthInM + spacingInM;
-
-      // Number of boards = wall width / section width
-      // 3m / 0.13m ≈ 23.07... rounded up to 24 boards
-      const numberOfBoards = Math.ceil(wallWidthInM / totalWidthPerSection);
-
-      // Number of battens is always one less than boards
-      // 24 boards - 1 = 23 battens
-      const numberOfBattens = numberOfBoards > 0 ? numberOfBoards - 1 : 0;
-
-      updateState("numberOfBoards", numberOfBoards);
-      updateState("numberOfBattens", numberOfBattens);
-    } else {
-      updateState("numberOfBoards", 0);
-      updateState("numberOfBattens", 0);
-    }
-  }, [state.wallWidth, state.wallWidthUnit, state.boardWidth, state.boardWidthUnit, state.boardSpacing, state.boardSpacingUnit])
-
-  // 3) derive rows of furring strips from height
-  useEffect(() => {
-    const wallHeightInM = convertLength(state.wallHeight, state.wallHeightUnit, 'm')
-    if (wallHeightInM > 0) {
-      const recommended = Math.max(1, Math.floor(wallHeightInM / FURRING_SPACING_M) + 1)
-      if (state.rowsOfFurringStrip !== recommended) {
-        updateState('rowsOfFurringStrip', recommended)
+    const wallHeightM = convertLength(state.wallHeight, state.wallHeightUnit, "m")
+    if (wallHeightM > 0) {
+      // Rows = ceil(wallHeight / spacing) + 1 (to cover both ends)
+      const rows = Math.max(1, Math.ceil(wallHeightM / FURRING_SPACING_M) + 1)
+      if (state.rowsOfFurringStrip !== rows) {
+        updateState('rowsOfFurringStrip', rows)
       }
     } else if (state.rowsOfFurringStrip !== 0) {
       updateState('rowsOfFurringStrip', 0)
@@ -271,81 +244,107 @@ export default function BoardBattenCalculator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.wallHeight, state.wallHeightUnit])
 
-  // helper: how many boards (and battens) lie across a given horizontal span
-  function boardsAcrossWidth(openWidthM: number, boardWidthM: number, spacingM: number) {
-    const cycle = boardWidthM + spacingM
-    if (cycle <= 0) return 0
-    return Math.floor((openWidthM + spacingM) / cycle) // same logic we used for full wall
-  }
-
-  // 4) materials — now updated with exact formulas
+  // 3) boards/battens count (independent of openings)
   useEffect(() => {
-    const wallHeightInM = convertLength(state.wallHeight, state.wallHeightUnit, 'm');
-    const wallWidthInM = convertLength(state.wallWidth, state.wallWidthUnit, 'm');
-    const boardWidthInM = convertLength(state.boardWidth, state.boardWidthUnit, 'm');
-    const spacingInM = convertLength(state.boardSpacing, state.boardSpacingUnit, 'm');
+    if (state.wallWidth > 0 && state.boardWidth > 0 && state.boardSpacing >= 0) {
+      const wallWidthM = convertLength(state.wallWidth, state.wallWidthUnit, "m");
+      const boardWidthM = convertLength(state.boardWidth, state.boardWidthUnit, "m");
+      const spacingM = convertLength(state.boardSpacing, state.boardSpacingUnit, "m");
+      const totalSection = boardWidthM + spacingM;
 
-    // Calculate board and batten materials only if we have all required dimensions
-    if (wallHeightInM > 0 && wallWidthInM > 0 && boardWidthInM > 0 && spacingInM > 0) {
-      // Calculate number of boards using the exact formula
-      const numberOfBoards = Math.ceil(wallWidthInM / (boardWidthInM + spacingInM));
-      
-      // Total Board Material = Number of Boards × Board Width × Wall Height
-      const totalBoardLength = numberOfBoards * boardWidthInM * wallHeightInM;
-      const boardLengthInSelectedUnit = convertLength(totalBoardLength, 'm', state.boardMaterialUnit);
-      updateState('boardMaterialValue', Math.ceil(boardLengthInSelectedUnit));
+      // Boards = ceil(wallWidth / (boardWidth + spacing))
+      const numberOfBoards = totalSection > 0
+        ? Math.ceil(wallWidthM / totalSection)
+        : 0;
 
-      // Number of battens is always one less than boards
-      const numberOfBattens = Math.max(0, numberOfBoards - 1);
-      
-      // Total Batten Material = Number of Battens × Batten Width × Wall Height
-      // (using same width as boards for battens)
-      const totalBattenLength = numberOfBattens * boardWidthInM * wallHeightInM;
-      const battenLengthInSelectedUnit = convertLength(totalBattenLength, 'm', state.battenMaterialUnit);
-      updateState('battenMaterialValue', Math.ceil(battenLengthInSelectedUnit));
+      // Battens: cover all seams (including first and last edge)
+      const numberOfBattens = numberOfBoards > 0 ? numberOfBoards + 1 : 0;
+
+      updateState("numberOfBoards", numberOfBoards);
+      updateState("numberOfBattens", numberOfBattens);
     } else {
-      updateState('boardMaterialValue', 0);
-      updateState('battenMaterialValue', 0);
+      updateState("numberOfBoards", 0);
+      updateState("numberOfBattens", 0);
+    }
+  }, [
+    state.wallWidth, state.wallWidthUnit,
+    state.boardWidth, state.boardWidthUnit,
+    state.boardSpacing, state.boardSpacingUnit
+  ]);
+
+  // 4) materials — use standard formulas, always in meters for calculation, adjust for doors/windows
+  useEffect(() => {
+    const wallHeightM = convertLength(state.wallHeight, state.wallHeightUnit, 'm');
+    const wallWidthM = convertLength(state.wallWidth, state.wallWidthUnit, 'm');
+    const boardWidthM = convertLength(state.boardWidth, state.boardWidthUnit, 'm');
+    const spacingM = convertLength(state.boardSpacing, state.boardSpacingUnit, 'm');
+    const battenWidthM = boardWidthM; // If you want to allow separate batten width, add a field
+
+    // Boards/battens
+    const totalSection = boardWidthM + spacingM;
+    const numberOfBoards = (wallWidthM > 0 && boardWidthM > 0 && spacingM >= 0 && totalSection > 0)
+      ? Math.ceil(wallWidthM / totalSection)
+      : 0;
+    // Battens: cover all seams (including first and last edge)
+    const numberOfBattens = numberOfBoards > 0 ? numberOfBoards + 1 : 0;
+
+    // Openings area
+    const doorArea = state.numberOfDoors *
+      convertLength(state.doorHeight, state.doorHeightUnit, "m") *
+      convertLength(state.doorWidth, state.doorWidthUnit, "m");
+    const windowArea = state.numberOfWindows *
+      convertLength(state.windowHeight, state.windowHeightUnit, "m") *
+      convertLength(state.windowWidth, state.windowWidthUnit, "m");
+    const totalOpeningsArea = doorArea + windowArea;
+
+    // Board material (before adjustment)
+    let boardMaterial = numberOfBoards * wallHeightM;
+    // Batten material (before adjustment)
+    let battenMaterial = numberOfBattens * wallHeightM;
+
+    // Adjust for openings (subtract opening area divided by width)
+    if (totalOpeningsArea > 0 && boardWidthM > 0) {
+      boardMaterial -= totalOpeningsArea / boardWidthM;
+      battenMaterial -= totalOpeningsArea / battenWidthM;
+      boardMaterial = Math.max(0, boardMaterial);
+      battenMaterial = Math.max(0, battenMaterial);
     }
 
-    // Rest of the existing material calculations (furring strips and trim)
-    // Calculate door perimeter if any
-    let doorPerimeter = 0;
-    if (state.numberOfDoors > 0) {
-      const doorHeightM = convertLength(state.doorHeight, state.doorHeightUnit, 'm');
-      const doorWidthM = convertLength(state.doorWidth, state.doorWidthUnit, 'm');
-      doorPerimeter = state.numberOfDoors * 2 * (doorHeightM + doorWidthM);
-    }
+    // Convert to selected units and round up
+    const boardLengthInSelectedUnit = convertLength(boardMaterial, 'm', state.boardMaterialUnit);
+    updateState('boardMaterialValue', Math.ceil(boardLengthInSelectedUnit));
 
-    // Calculate window perimeter if any
-    let windowPerimeter = 0;
-    if (state.numberOfWindows > 0) {
-      const windowHeightM = convertLength(state.windowHeight, state.windowHeightUnit, 'm');
-      const windowWidthM = convertLength(state.windowWidth, state.windowWidthUnit, 'm');
-      windowPerimeter = state.numberOfWindows * 2 * (windowHeightM + windowWidthM);
-    }
+    const battenLengthInSelectedUnit = convertLength(battenMaterial, 'm', state.battenMaterialUnit);
+    updateState('battenMaterialValue', Math.ceil(battenLengthInSelectedUnit));
 
-    // Total Furring Strip Length = Number of Rows × Wall Width
-    const rows = Math.max(0, state.rowsOfFurringStrip);
-    const furringLengthTotal = wallWidthInM * rows;
+    // Furring strip material: ⌈Wall Height / Furring Spacing⌉ × Wall Width
+    const furringRows = wallHeightM > 0 ? Math.ceil(wallHeightM / FURRING_SPACING_M) : 0;
+    const furringLengthTotal = furringRows * wallWidthM;
     const furringLengthInSelectedUnit = convertLength(furringLengthTotal, 'm', state.furringStripUnit);
     updateState('furringStripValue', Math.ceil(furringLengthInSelectedUnit));
 
-    // Trim Length = 2 × Wall Width + Σ(Door/Window Perimeters)
-    const totalTrimLength = (2 * wallWidthInM) + doorPerimeter + windowPerimeter;
-    const trimLengthInSelectedUnit = convertLength(totalTrimLength, 'm', state.trimUnit);
+    // Trim material: number of trims × wall height
+    const trims = Number.isFinite(state.numberOfTrims) && state.numberOfTrims > 0
+      ? state.numberOfTrims
+      : 2;
+    const trimLengthTotal = trims * wallHeightM;
+    const trimLengthInSelectedUnit = convertLength(trimLengthTotal, 'm', state.trimUnit);
     updateState('trimValue', Math.ceil(trimLengthInSelectedUnit));
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     state.wallHeight, state.wallHeightUnit,
     state.wallWidth, state.wallWidthUnit,
+    state.boardWidth, state.boardWidthUnit,
+    state.boardSpacing, state.boardSpacingUnit,
     state.rowsOfFurringStrip,
+    state.numberOfTrims,
     state.numberOfDoors, state.doorHeight, state.doorHeightUnit,
     state.doorWidth, state.doorWidthUnit,
     state.numberOfWindows, state.windowHeight, state.windowHeightUnit,
     state.windowWidth, state.windowWidthUnit,
-    state.furringStripUnit, state.trimUnit
+    state.furringStripUnit, state.trimUnit,
+    state.boardMaterialUnit, state.battenMaterialUnit
   ])
 
   // Results (areas & counts)
@@ -469,7 +468,7 @@ export default function BoardBattenCalculator() {
                       <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Select unit" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-gray-50">
                         {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                       </SelectContent>
                     </Select>
@@ -490,7 +489,7 @@ export default function BoardBattenCalculator() {
                       <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Select unit" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-gray-50">
                         {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                       </SelectContent>
                     </Select>
@@ -512,7 +511,7 @@ export default function BoardBattenCalculator() {
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Select unit" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-50">
                       {areaUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                     </SelectContent>
                   </Select>
@@ -534,7 +533,7 @@ export default function BoardBattenCalculator() {
                       <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Select unit" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-gray-50">
                         {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                       </SelectContent>
                     </Select>
@@ -555,7 +554,7 @@ export default function BoardBattenCalculator() {
                       <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Select unit" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-gray-50">
                         {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                       </SelectContent>
                     </Select>
@@ -611,7 +610,7 @@ export default function BoardBattenCalculator() {
                         <SelectTrigger className="w-[140px]">
                           <SelectValue placeholder="Select unit" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-50">
                           {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                         </SelectContent>
                       </Select>
@@ -633,7 +632,7 @@ export default function BoardBattenCalculator() {
                         <SelectTrigger className="w-[140px]">
                           <SelectValue placeholder="Select unit" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-50">
                           {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                         </SelectContent>
                       </Select>
@@ -670,7 +669,7 @@ export default function BoardBattenCalculator() {
                         <SelectTrigger className="w-[140px]">
                           <SelectValue placeholder="Select unit" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-50">
                           {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                         </SelectContent>
                       </Select>
@@ -692,7 +691,7 @@ export default function BoardBattenCalculator() {
                         <SelectTrigger className="w-[140px]">
                           <SelectValue placeholder="Select unit" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-50">
                           {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                         </SelectContent>
                       </Select>
@@ -809,7 +808,7 @@ export default function BoardBattenCalculator() {
                     </SelectTrigger>
                     <SelectContent>
                       {lengthUnits.map((unit) => (
-                        <SelectItem key={unit.value} value={unit.value}>
+                        <SelectItem key={unit.value} value={unit.value} className="bg-gray-50">
                           {unit.label}
                         </SelectItem>
                       ))}
@@ -835,7 +834,7 @@ export default function BoardBattenCalculator() {
                     </SelectTrigger>
                     <SelectContent>
                       {lengthUnits.map((unit) => (
-                        <SelectItem key={unit.value} value={unit.value}>
+                        <SelectItem key={unit.value} value={unit.value} className="bg-gray-50">
                           {unit.label}
                         </SelectItem>
                       ))}
@@ -861,7 +860,7 @@ export default function BoardBattenCalculator() {
                     </SelectTrigger>
                     <SelectContent>
                       {lengthUnits.map((unit) => (
-                        <SelectItem key={unit.value} value={unit.value}>
+                        <SelectItem className="bg-gray-50" key={unit.value} value={unit.value}>
                           {unit.label}
                         </SelectItem>
                       ))}
@@ -887,7 +886,7 @@ export default function BoardBattenCalculator() {
                     </SelectTrigger>
                     <SelectContent>
                       {lengthUnits.map((unit) => (
-                        <SelectItem key={unit.value} value={unit.value}>
+                        <SelectItem key={unit.value} value={unit.value} className="bg-gray-50">
                           {unit.label}
                         </SelectItem>
                       ))}
@@ -912,5 +911,3 @@ export default function BoardBattenCalculator() {
     </div>
   )
 }
-
-
