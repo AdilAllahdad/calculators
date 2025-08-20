@@ -78,11 +78,13 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'hp(E)', label: 'hp(E)', type: 'BTU' },
   { value: 'tons', label: 'tons', type: 'BTU' },
 
-  // Boiler Units
+
   { value: 'LPM', label: 'Liters per Minute (LPM)', type: 'boiler' },
   { value: 'GPM', label: 'Gallons per Minute (GPM)', type: 'boiler' },
   { value: 'kW', label: 'kW', type: 'boiler' },
   { value: 'hp', label: 'hp', type: 'boiler' },
+
+
   
   // Density units
   { value: 't/m3', label: 'tons per cubic meter (t/m³)', type: 'density' },
