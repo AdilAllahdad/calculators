@@ -104,8 +104,8 @@ export default function ChickenCoopSizeCalculator() {
     };
 
     const clearAll = () => {
-        setNumRegularChickens(0);
-        setNumBantamChickens(0);
+        setNumRegularChickens('0');
+        setNumBantamChickens('0');
         setCoopSize(0);
     };
 
