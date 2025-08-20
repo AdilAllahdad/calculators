@@ -468,7 +468,7 @@ export default function BoardBattenCalculator() {
                       <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Select unit" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-gray-50">
                         {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                       </SelectContent>
                     </Select>
@@ -489,7 +489,7 @@ export default function BoardBattenCalculator() {
                       <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Select unit" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-gray-50">
                         {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                       </SelectContent>
                     </Select>
@@ -511,7 +511,7 @@ export default function BoardBattenCalculator() {
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Select unit" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-50">
                       {areaUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                     </SelectContent>
                   </Select>
@@ -533,7 +533,7 @@ export default function BoardBattenCalculator() {
                       <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Select unit" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-gray-50">
                         {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                       </SelectContent>
                     </Select>
@@ -554,7 +554,7 @@ export default function BoardBattenCalculator() {
                       <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Select unit" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-gray-50">
                         {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                       </SelectContent>
                     </Select>
@@ -610,7 +610,7 @@ export default function BoardBattenCalculator() {
                         <SelectTrigger className="w-[140px]">
                           <SelectValue placeholder="Select unit" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-50">
                           {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                         </SelectContent>
                       </Select>
@@ -632,7 +632,7 @@ export default function BoardBattenCalculator() {
                         <SelectTrigger className="w-[140px]">
                           <SelectValue placeholder="Select unit" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-50">
                           {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                         </SelectContent>
                       </Select>
@@ -669,7 +669,7 @@ export default function BoardBattenCalculator() {
                         <SelectTrigger className="w-[140px]">
                           <SelectValue placeholder="Select unit" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-50">
                           {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                         </SelectContent>
                       </Select>
@@ -691,7 +691,7 @@ export default function BoardBattenCalculator() {
                         <SelectTrigger className="w-[140px]">
                           <SelectValue placeholder="Select unit" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-50">
                           {lengthUnits.map((u) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}
                         </SelectContent>
                       </Select>
@@ -808,7 +808,7 @@ export default function BoardBattenCalculator() {
                     </SelectTrigger>
                     <SelectContent>
                       {lengthUnits.map((unit) => (
-                        <SelectItem key={unit.value} value={unit.value}>
+                        <SelectItem key={unit.value} value={unit.value} className="bg-gray-50">
                           {unit.label}
                         </SelectItem>
                       ))}
@@ -834,7 +834,7 @@ export default function BoardBattenCalculator() {
                     </SelectTrigger>
                     <SelectContent>
                       {lengthUnits.map((unit) => (
-                        <SelectItem key={unit.value} value={unit.value}>
+                        <SelectItem key={unit.value} value={unit.value} className="bg-gray-50">
                           {unit.label}
                         </SelectItem>
                       ))}
@@ -860,7 +860,7 @@ export default function BoardBattenCalculator() {
                     </SelectTrigger>
                     <SelectContent>
                       {lengthUnits.map((unit) => (
-                        <SelectItem key={unit.value} value={unit.value}>
+                        <SelectItem className="bg-gray-50" key={unit.value} value={unit.value}>
                           {unit.label}
                         </SelectItem>
                       ))}
@@ -886,7 +886,7 @@ export default function BoardBattenCalculator() {
                     </SelectTrigger>
                     <SelectContent>
                       {lengthUnits.map((unit) => (
-                        <SelectItem key={unit.value} value={unit.value}>
+                        <SelectItem key={unit.value} value={unit.value} className="bg-gray-50">
                           {unit.label}
                         </SelectItem>
                       ))}
