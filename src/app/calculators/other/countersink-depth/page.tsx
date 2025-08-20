@@ -56,6 +56,7 @@ export default function CountersinkDepthCalculator() {
   // State for validation errors
   const [diameterError, setDiameterError] = useState<string | null>(null);
   const [angleError, setAngleError] = useState<string | null>(null);
+  const [depthError, setDepthError] = useState<string | null>(null);
   
   // Calculate depth in real-time
   const calculateDepth = () => {
@@ -116,6 +117,13 @@ export default function CountersinkDepthCalculator() {
     
     // Calculate depth using the formula: depth = diameter / (2 * tan(angle/2))
     const depthInMM = diameterInMM / (2 * Math.tan(angleInRadians / 2));
+    
+    // Check if the calculated depth is negative and set an error, but still show the value
+    if (depthInMM <= 0) {
+      setDepthError("Please enter a value greater than zero for depth.");
+    } else {
+      setDepthError(null);
+    }
     
     // Convert to the selected depth unit
     if (depthUnit === 'ft-in') {
@@ -352,6 +360,9 @@ export default function CountersinkDepthCalculator() {
     setAngleUnit("rad");
     setDepthUnit("cm");
     setShowFeedback(false);
+    setDiameterError(null);
+    setAngleError(null);
+    setDepthError(null);
   };
 
   const shareResult = () => {
@@ -519,14 +530,14 @@ export default function CountersinkDepthCalculator() {
                 <div className="flex-1 flex">
                   <input 
                     type="number" 
-                    className="flex-1 px-3 py-2 border rounded-l-md bg-gray-50 focus:outline-none"
+                    className={`flex-1 px-3 py-2 border rounded-l-md bg-gray-50 focus:outline-none ${depthError ? 'border-red-500' : ''}`}
                     value={depthFeet || ''}
                     readOnly
                   />
                   <div className="flex items-center px-2 border-t border-b border-slate-300 bg-slate-50">ft</div>
                   <input 
                     type="number" 
-                    className="flex-1 px-3 py-2 border-t border-b border-r bg-gray-50 focus:outline-none"
+                    className={`flex-1 px-3 py-2 border-t border-b border-r bg-gray-50 focus:outline-none ${depthError ? 'border-red-500' : ''}`}
                     value={depthInches || ''}
                     readOnly
                   />
@@ -544,14 +555,14 @@ export default function CountersinkDepthCalculator() {
                 <div className="flex-1 flex">
                   <input 
                     type="number" 
-                    className="flex-1 px-3 py-2 border rounded-l-md bg-gray-50 focus:outline-none"
+                    className={`flex-1 px-3 py-2 border rounded-l-md bg-gray-50 focus:outline-none ${depthError ? 'border-red-500' : ''}`}
                     value={depthMeters || ''}
                     readOnly
                   />
                   <div className="flex items-center px-2 border-t border-b border-slate-300 bg-slate-50">m</div>
                   <input 
                     type="number" 
-                    className="flex-1 px-3 py-2 border-t border-b border-r bg-gray-50 focus:outline-none"
+                    className={`flex-1 px-3 py-2 border-t border-b border-r bg-gray-50 focus:outline-none ${depthError ? 'border-red-500' : ''}`}
                     value={depthCentimeters || ''}
                     readOnly
                   />
@@ -568,7 +579,7 @@ export default function CountersinkDepthCalculator() {
               <div className="flex">
                 <input 
                   type="text" 
-                  className="flex-1 px-3 py-2 border rounded-l-md bg-gray-50 focus:outline-none"
+                  className={`flex-1 px-3 py-2 border rounded-l-md bg-gray-50 focus:outline-none ${depthError ? 'border-red-500' : ''}`}
                   value={formatInputValue(depth)}
                   readOnly
                 />
@@ -578,6 +589,14 @@ export default function CountersinkDepthCalculator() {
                   unitValues={depthUnitValues.map((unit: UnitOption) => unit.value)}
                   className="w-24 rounded-l-none rounded-r-md border-l-0"
                 />
+              </div>
+            )}
+            {depthError && (
+              <div className="mt-1 flex items-center text-red-500 text-xs">
+                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                {depthError}
               </div>
             )}
           </div>

@@ -45,7 +45,7 @@ const UnitDropdown: React.FC<UnitDropdownProps> = ({
     >
       {units.map((unit, index) => (
         <option key={`${dropdownId}-${index}-${unit.value}`} value={unit.value}>
-          {unit.label}
+          {unit.value}
         </option>
       ))}
     </select>

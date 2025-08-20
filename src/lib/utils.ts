@@ -99,7 +99,7 @@ const conversionFactors = {
   angle: {
     'deg': Math.PI / 180,
     'rad': 1,
-    'pirad': Math.PI
+    '× π rad': Math.PI
   },
   
   // Weight (base: kilograms)
