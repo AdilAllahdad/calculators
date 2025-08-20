@@ -1,6 +1,10 @@
-/**
- * Utility functions for calculations
- */
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
 
 import { UNIT_OPTIONS } from '@/constants';
 import { UnitOption } from '@/types/calculator';
@@ -99,6 +103,19 @@ const conversionFactors = {
     'lb/yd3': 0.593276,
     'lb/US gal': 119.826,
     'lb/UK gal': 99.776
+  },
+  // Price (base: USD per square meter for area pricing, USD per cubic meter for volume pricing, USD per kg for weight pricing)
+  price: {
+    'USD/ft2': 10.7639,      // 1 USD/ft² = 10.7639 USD/m²
+    'USD/m2': 1,             // Base unit for area pricing
+    'USD/yd2': 1.19599,      // 1 USD/yd² = 1.19599 USD/m²
+    'USD/ft3': 35.3147,      // 1 USD/ft³ = 35.3147 USD/m³
+    'USD/m3': 1,             // Base unit for volume pricing
+    'USD/yd3': 1.30795,      // 1 USD/yd³ = 1.30795 USD/m³
+    'USD/lb': 2.20462,       // 1 USD/lb = 2.20462 USD/kg
+    'USD/kg': 1,             // Base unit for weight pricing
+    'USD/ton': 0.00110231,   // 1 USD/ton = 0.00110231 USD/kg
+    'USD/t': 0.001           // 1 USD/t = 0.001 USD/kg
   }
 };
 
@@ -158,6 +175,12 @@ export const convertValue = (value: number, fromUnit: string, toUnit: string): n
   if (unitType === 'density' && fromUnit in conversionFactors.density && toUnit in conversionFactors.density) {
     const fromFactor = conversionFactors.density[fromUnit as keyof typeof conversionFactors.density];
     const toFactor = conversionFactors.density[toUnit as keyof typeof conversionFactors.density];
+    return (value * fromFactor) / toFactor;
+  }
+  
+  if (unitType === 'price' && fromUnit in conversionFactors.price && toUnit in conversionFactors.price) {
+    const fromFactor = conversionFactors.price[fromUnit as keyof typeof conversionFactors.price];
+    const toFactor = conversionFactors.price[toUnit as keyof typeof conversionFactors.price];
     return (value * fromFactor) / toFactor;
   }
   
@@ -252,3 +275,4 @@ export const formatNumberWithCommas = (num: number, maxDecimals: number = 2): st
 export const formatCurrency = (num: number): string => {
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
+
