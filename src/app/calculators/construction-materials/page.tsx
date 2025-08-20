@@ -198,7 +198,7 @@ export default function ConstructionMaterialsPage() {
       name: "Tile Calculator",
       description: "Calculate tile needed for your project",
       icon: "🧩",
-      href: "/calculators/construction-materials/tile",
+      href: "/calculators/construction-materials/tile-calculator",
     },
     {
       name: "Tonnage Calculator",
