@@ -83,7 +83,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'hp(l)', label: 'hp(l)', type: 'BTU' },
   { value: 'hp(E)', label: 'hp(E)', type: 'BTU' },
   { value: 'tons', label: 'tons', type: 'BTU' },
-<<<<<<< Updated upstream
+
 
   //Boiler Units
   { value: 'LPM', label: 'Liters per Minute (LPM)', type: 'boiler' },
@@ -93,8 +93,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
 
   // Weight units
   { value: 'st', label: 'stones (st)', type: 'weight' },
-=======
->>>>>>> Stashed changes
+
   { value: 'US ton', label: 'US short tons (US ton)', type: 'weight' },
   { value: 'long ton', label: 'imperial tons (long ton)', type: 'weight' },
   
