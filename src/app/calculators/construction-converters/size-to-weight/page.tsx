@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, ChangeEvent } from "react";
+import { formatCompoundLength } from "@/lib/format-compound-length";
 // import { FaArrowDown } from "react-icons/fa";
 // import { TbDimensions } from "react-icons/tb";
 // import { FaWeight } from "react-icons/fa6";
@@ -175,6 +176,15 @@ export default function SizeToWeightPage() {
     return { meters: wholeMeters, centimeters };
   };
   
+  // Helper function to convert between UI compound unit format and formatCompoundLength format
+  const getCompoundFormatType = (unitFormat: string): 'ft-in' | 'm-cm' | null => {
+    if (unitFormat === "ft / in") return 'ft-in';
+    if (unitFormat === "m / cm") return 'm-cm';
+    if (unitFormat === "ft" || unitFormat === "in") return 'ft-in';
+    if (unitFormat === "m" || unitFormat === "cm") return 'm-cm';
+    return null;
+  };
+  
   // Helper function to handle compound unit changes for length
   const updateLengthCompoundUnits = (value: number, unit: string): void => {
     if (unit === "ft / in") {
@@ -228,9 +238,37 @@ export default function SizeToWeightPage() {
 
   // Helper function to convert volume
   const calculateVolumeInCubicMeters = (): number => {
-    const lengthInM = convertLengthToMeters(length, lengthUnit);
-    const widthInM = convertLengthToMeters(width, widthUnit);
-    const heightInM = convertLengthToMeters(height, heightUnit);
+    let lengthInM, widthInM, heightInM;
+    
+    // Convert length based on the unit type
+    if (lengthUnit === "ft / in") {
+      // If in feet/inches format, convert from the component values
+      lengthInM = feetAndInchesToMeters(lengthFeet, lengthInches);
+    } else if (lengthUnit === "m / cm") {
+      // If in meters/centimeters format, convert from the component values
+      lengthInM = metersAndCentimetersToMeters(lengthMeters, lengthCentimeters);
+    } else {
+      // Otherwise use the standard conversion
+      lengthInM = convertLengthToMeters(length, lengthUnit);
+    }
+    
+    // Convert width based on the unit type
+    if (widthUnit === "ft / in") {
+      widthInM = feetAndInchesToMeters(widthFeet, widthInches);
+    } else if (widthUnit === "m / cm") {
+      widthInM = metersAndCentimetersToMeters(widthMeters, widthCentimeters);
+    } else {
+      widthInM = convertLengthToMeters(width, widthUnit);
+    }
+    
+    // Convert height based on the unit type
+    if (heightUnit === "ft / in") {
+      heightInM = feetAndInchesToMeters(heightFeet, heightInches);
+    } else if (heightUnit === "m / cm") {
+      heightInM = metersAndCentimetersToMeters(heightMeters, heightCentimeters);
+    } else {
+      heightInM = convertLengthToMeters(height, heightUnit);
+    }
     
     return lengthInM * widthInM * heightInM;
   };
@@ -440,14 +478,14 @@ export default function SizeToWeightPage() {
     }
   }, [length, width, height, density]);
 
-  // Update compound units when single units change
+  // Update compound units when unit type changes
   useEffect(() => {
     if (lengthUnit === "ft / in") {
       updateLengthCompoundUnits(length, lengthUnit);
     } else if (lengthUnit === "m / cm") {
       updateLengthCompoundUnits(length, lengthUnit);
     }
-  }, [length, lengthUnit]);
+  }, [lengthUnit]);
 
   useEffect(() => {
     if (widthUnit === "ft / in") {
@@ -455,7 +493,7 @@ export default function SizeToWeightPage() {
     } else if (widthUnit === "m / cm") {
       updateWidthCompoundUnits(width, widthUnit);
     }
-  }, [width, widthUnit]);
+  }, [widthUnit]);
 
   useEffect(() => {
     if (heightUnit === "ft / in") {
@@ -463,7 +501,58 @@ export default function SizeToWeightPage() {
     } else if (heightUnit === "m / cm") {
       updateHeightCompoundUnits(height, heightUnit);
     }
-  }, [height, heightUnit]);
+  }, [heightUnit]);
+
+  // Recalculate length when compound values change
+  useEffect(() => {
+    if (lengthUnit === "ft / in") {
+      // Calculate total length in inches
+      const totalInches = (lengthFeet * 12) + lengthInches;
+      setLength(totalInches);
+    }
+  }, [lengthFeet, lengthInches, lengthUnit]);
+
+  useEffect(() => {
+    if (lengthUnit === "m / cm") {
+      // Calculate total length in meters
+      const totalMeters = lengthMeters + (lengthCentimeters / 100);
+      setLength(totalMeters);
+    }
+  }, [lengthMeters, lengthCentimeters, lengthUnit]);
+
+  // Recalculate width when compound values change
+  useEffect(() => {
+    if (widthUnit === "ft / in") {
+      // Calculate total width in inches
+      const totalInches = (widthFeet * 12) + widthInches;
+      setWidth(totalInches);
+    }
+  }, [widthFeet, widthInches, widthUnit]);
+
+  useEffect(() => {
+    if (widthUnit === "m / cm") {
+      // Calculate total width in meters
+      const totalMeters = widthMeters + (widthCentimeters / 100);
+      setWidth(totalMeters);
+    }
+  }, [widthMeters, widthCentimeters, widthUnit]);
+
+  // Recalculate height when compound values change
+  useEffect(() => {
+    if (heightUnit === "ft / in") {
+      // Calculate total height in inches
+      const totalInches = (heightFeet * 12) + heightInches;
+      setHeight(totalInches);
+    }
+  }, [heightFeet, heightInches, heightUnit]);
+
+  useEffect(() => {
+    if (heightUnit === "m / cm") {
+      // Calculate total height in meters
+      const totalMeters = heightMeters + (heightCentimeters / 100);
+      setHeight(totalMeters);
+    }
+  }, [heightMeters, heightCentimeters, heightUnit]);
   
   // Calculate volume and weight whenever dimensions or density change, but not when units change
   useEffect(() => {
@@ -519,7 +608,11 @@ export default function SizeToWeightPage() {
             <div className="mb-3">
               <div className="flex justify-between mb-1">
                 <label className="text-base font-medium text-gray-700">Length</label>
-               
+                {length > 0 && lengthUnit !== "ft / in" && lengthUnit !== "m / cm" && (
+                  <div className="text-sm text-gray-500">
+                    {formatCompoundLength(length, lengthUnit, getCompoundFormatType(lengthUnit) || 'm-cm')}
+                  </div>
+                )}
               </div>
               
               {lengthUnit === "ft / in" ? (
@@ -532,9 +625,9 @@ export default function SizeToWeightPage() {
                       onChange={(e) => {
                         const feet = Number(e.target.value);
                         setLengthFeet(feet);
-                        // Update length in inches (for internal calculations)
-                        const totalInches = (feet * 12) + lengthInches;
-                        setLength(totalInches);
+                        
+                        // Store the physical value but don't update 'length'
+                        // This ensures we only use the compound values for calculations
                         setLengthError(feet < 0 ? "Length cannot be negative." : null);
                       }}
                       placeholder="0"
@@ -551,9 +644,9 @@ export default function SizeToWeightPage() {
                       onChange={(e) => {
                         const inches = Number(e.target.value);
                         setLengthInches(inches);
-                        // Update length in inches (for internal calculations)
-                        const totalInches = (lengthFeet * 12) + inches;
-                        setLength(totalInches);
+                        
+                        // Store the physical value but don't update 'length'
+                        // This ensures we only use the compound values for calculations
                         setLengthError(inches < 0 ? "Length cannot be negative." : null);
                       }}
                       placeholder="0"
@@ -563,9 +656,11 @@ export default function SizeToWeightPage() {
                       value={lengthUnit}
                       onChange={(e) => {
                         const newUnit = e.target.value;
-                        // Convert the compound value to the simple unit format
+                        // Store original physical dimension in meters
+                        const lengthInMeters = feetAndInchesToMeters(lengthFeet, lengthInches);
+                        
                         if (newUnit !== "ft / in") {
-                          const lengthInMeters = feetAndInchesToMeters(lengthFeet, lengthInches);
+                          // Convert to the new unit while preserving the physical dimension
                           const convertedLength = convertMetersToLength(lengthInMeters, newUnit);
                           setLength(convertedLength);
                         }
@@ -588,9 +683,9 @@ export default function SizeToWeightPage() {
                       onChange={(e) => {
                         const meters = Number(e.target.value);
                         setLengthMeters(meters);
-                        // Update length in meters (for internal calculations)
-                        const totalMeters = meters + (lengthCentimeters / 100);
-                        setLength(totalMeters);
+                        
+                        // Store the physical value but don't update 'length'
+                        // This ensures we only use the compound values for calculations
                         setLengthError(meters < 0 ? "Length cannot be negative." : null);
                       }}
                       placeholder="0"
@@ -607,9 +702,9 @@ export default function SizeToWeightPage() {
                       onChange={(e) => {
                         const cm = Number(e.target.value);
                         setLengthCentimeters(cm);
-                        // Update length in meters (for internal calculations)
-                        const totalMeters = lengthMeters + (cm / 100);
-                        setLength(totalMeters);
+                        
+                        // Store the physical value but don't update 'length'
+                        // This ensures we only use the compound values for calculations
                         setLengthError(cm < 0 ? "Length cannot be negative." : null);
                       }}
                       placeholder="0"
@@ -619,9 +714,11 @@ export default function SizeToWeightPage() {
                       value={lengthUnit}
                       onChange={(e) => {
                         const newUnit = e.target.value;
-                        // Convert the compound value to the simple unit format
+                        // Store original physical dimension in meters
+                        const lengthInMeters = metersAndCentimetersToMeters(lengthMeters, lengthCentimeters);
+                        
                         if (newUnit !== "m / cm") {
-                          const lengthInMeters = metersAndCentimetersToMeters(lengthMeters, lengthCentimeters);
+                          // Convert to the new unit while preserving the physical dimension
                           const convertedLength = convertMetersToLength(lengthInMeters, newUnit);
                           setLength(convertedLength);
                         }
@@ -652,25 +749,28 @@ export default function SizeToWeightPage() {
                     value={lengthUnit}
                     onChange={(e) => {
                       const newUnit = e.target.value;
-                      // Convert the current length to meters, then to the new unit
+                      // Store the original length in meters for consistent conversion
                       const lengthInMeters = convertLengthToMeters(length, lengthUnit);
                       
                       if (newUnit === "ft / in") {
-                        // Convert meters to feet and inches
+                        // Convert meters to feet and inches for display only
                         const { feet, inches } = metersToFeetAndInches(lengthInMeters);
                         setLengthFeet(feet);
                         setLengthInches(inches);
-                        // Calculate total inches for internal value
-                        setLength(feet * 12 + inches);
+                        
+                        // Important: Set the length value to equivalent in inches for consistent volume calculation
+                        const totalInches = (feet * 12) + inches;
+                        setLength(totalInches);
                       } else if (newUnit === "m / cm") {
-                        // Convert meters to meters and centimeters
+                        // Convert meters to meters and centimeters for display only
                         const { meters, centimeters } = metersToMetersAndCentimeters(lengthInMeters);
                         setLengthMeters(meters);
                         setLengthCentimeters(centimeters);
-                        // Use meters for internal value
+                        
+                        // Important: Set the length value to the total in meters for consistent volume calculation
                         setLength(lengthInMeters);
                       } else {
-                        // Standard conversion
+                        // Standard conversion - convert to the new unit while preserving physical length
                         const convertedLength = convertMetersToLength(lengthInMeters, newUnit);
                         setLength(convertedLength);
                       }
@@ -698,7 +798,11 @@ export default function SizeToWeightPage() {
             <div className="mb-3">
               <div className="flex justify-between mb-1">
                 <label className="text-base font-medium text-gray-700">Width</label>
-             
+                {width > 0 && widthUnit !== "ft / in" && widthUnit !== "m / cm" && (
+                  <div className="text-sm text-gray-500">
+                    {formatCompoundLength(width, widthUnit, getCompoundFormatType(widthUnit) || 'm-cm')}
+                  </div>
+                )}
               </div>
               {widthUnit === "ft / in" ? (
                 <div className="flex">
@@ -710,9 +814,9 @@ export default function SizeToWeightPage() {
                       onChange={(e) => {
                         const feet = Number(e.target.value);
                         setWidthFeet(feet);
-                        // Update width in inches (for internal calculations)
-                        const totalInches = (feet * 12) + widthInches;
-                        setWidth(totalInches);
+                        
+                        // Store the physical value but don't update 'width'
+                        // This ensures we only use the compound values for calculations
                         setWidthError(feet < 0 ? "Width cannot be negative." : null);
                       }}
                       placeholder="0"
@@ -729,9 +833,9 @@ export default function SizeToWeightPage() {
                       onChange={(e) => {
                         const inches = Number(e.target.value);
                         setWidthInches(inches);
-                        // Update width in inches (for internal calculations)
-                        const totalInches = (widthFeet * 12) + inches;
-                        setWidth(totalInches);
+                        
+                        // Store the physical value but don't update 'width'
+                        // This ensures we only use the compound values for calculations
                         setWidthError(inches < 0 ? "Width cannot be negative." : null);
                       }}
                       placeholder="0"
@@ -741,9 +845,11 @@ export default function SizeToWeightPage() {
                       value={widthUnit}
                       onChange={(e) => {
                         const newUnit = e.target.value;
-                        // Convert the compound value to the simple unit format
+                        // Store original physical dimension in meters
+                        const widthInMeters = feetAndInchesToMeters(widthFeet, widthInches);
+                        
                         if (newUnit !== "ft / in") {
-                          const widthInMeters = feetAndInchesToMeters(widthFeet, widthInches);
+                          // Convert to the new unit while preserving the physical dimension
                           const convertedWidth = convertMetersToLength(widthInMeters, newUnit);
                           setWidth(convertedWidth);
                         }
@@ -766,9 +872,9 @@ export default function SizeToWeightPage() {
                       onChange={(e) => {
                         const meters = Number(e.target.value);
                         setWidthMeters(meters);
-                        // Update width in meters (for internal calculations)
-                        const totalMeters = meters + (widthCentimeters / 100);
-                        setWidth(totalMeters);
+                        
+                        // Store the physical value but don't update 'width'
+                        // This ensures we only use the compound values for calculations
                         setWidthError(meters < 0 ? "Width cannot be negative." : null);
                       }}
                       placeholder="0"
@@ -785,9 +891,9 @@ export default function SizeToWeightPage() {
                       onChange={(e) => {
                         const cm = Number(e.target.value);
                         setWidthCentimeters(cm);
-                        // Update width in meters (for internal calculations)
-                        const totalMeters = widthMeters + (cm / 100);
-                        setWidth(totalMeters);
+                        
+                        // Store the physical value but don't update 'width'
+                        // This ensures we only use the compound values for calculations
                         setWidthError(cm < 0 ? "Width cannot be negative." : null);
                       }}
                       placeholder="0"
@@ -797,9 +903,11 @@ export default function SizeToWeightPage() {
                       value={widthUnit}
                       onChange={(e) => {
                         const newUnit = e.target.value;
-                        // Convert the compound value to the simple unit format
+                        // Store original physical dimension in meters
+                        const widthInMeters = metersAndCentimetersToMeters(widthMeters, widthCentimeters);
+                        
                         if (newUnit !== "m / cm") {
-                          const widthInMeters = metersAndCentimetersToMeters(widthMeters, widthCentimeters);
+                          // Convert to the new unit while preserving the physical dimension
                           const convertedWidth = convertMetersToLength(widthInMeters, newUnit);
                           setWidth(convertedWidth);
                         }
@@ -830,25 +938,28 @@ export default function SizeToWeightPage() {
                     value={widthUnit}
                     onChange={(e) => {
                       const newUnit = e.target.value;
-                      // Convert the current width to meters, then to the new unit
+                      // Store the original width in meters for consistent conversion
                       const widthInMeters = convertLengthToMeters(width, widthUnit);
                       
                       if (newUnit === "ft / in") {
-                        // Convert meters to feet and inches
+                        // Convert meters to feet and inches for display only
                         const { feet, inches } = metersToFeetAndInches(widthInMeters);
                         setWidthFeet(feet);
                         setWidthInches(inches);
-                        // Calculate total inches for internal value
-                        setWidth(feet * 12 + inches);
+                        
+                        // Important: Set the width value to equivalent in inches for consistent volume calculation
+                        const totalInches = (feet * 12) + inches;
+                        setWidth(totalInches);
                       } else if (newUnit === "m / cm") {
-                        // Convert meters to meters and centimeters
+                        // Convert meters to meters and centimeters for display only
                         const { meters, centimeters } = metersToMetersAndCentimeters(widthInMeters);
                         setWidthMeters(meters);
                         setWidthCentimeters(centimeters);
-                        // Use meters for internal value
+                        
+                        // Important: Set the width value to the total in meters for consistent volume calculation
                         setWidth(widthInMeters);
                       } else {
-                        // Standard conversion
+                        // Standard conversion - convert to the new unit while preserving physical width
                         const convertedWidth = convertMetersToLength(widthInMeters, newUnit);
                         setWidth(convertedWidth);
                       }
@@ -876,7 +987,11 @@ export default function SizeToWeightPage() {
             <div className="mb-3">
               <div className="flex justify-between mb-1">
                 <label className="text-base font-medium text-gray-700">Height</label>
-              
+                {height > 0 && heightUnit !== "ft / in" && heightUnit !== "m / cm" && (
+                  <div className="text-sm text-gray-500">
+                    {formatCompoundLength(height, heightUnit, getCompoundFormatType(heightUnit) || 'm-cm')}
+                  </div>
+                )}
               </div>
               {heightUnit === "ft / in" ? (
                 <div className="flex">
@@ -888,9 +1003,9 @@ export default function SizeToWeightPage() {
                       onChange={(e) => {
                         const feet = Number(e.target.value);
                         setHeightFeet(feet);
-                        // Update height in inches (for internal calculations)
-                        const totalInches = (feet * 12) + heightInches;
-                        setHeight(totalInches);
+                        
+                        // Store the physical value but don't update 'height'
+                        // This ensures we only use the compound values for calculations
                         setHeightError(feet < 0 ? "Height cannot be negative." : null);
                       }}
                       placeholder="0"
@@ -907,9 +1022,9 @@ export default function SizeToWeightPage() {
                       onChange={(e) => {
                         const inches = Number(e.target.value);
                         setHeightInches(inches);
-                        // Update height in inches (for internal calculations)
-                        const totalInches = (heightFeet * 12) + inches;
-                        setHeight(totalInches);
+                        
+                        // Store the physical value but don't update 'height'
+                        // This ensures we only use the compound values for calculations
                         setHeightError(inches < 0 ? "Height cannot be negative." : null);
                       }}
                       placeholder="0"
@@ -919,9 +1034,11 @@ export default function SizeToWeightPage() {
                       value={heightUnit}
                       onChange={(e) => {
                         const newUnit = e.target.value;
-                        // Convert the compound value to the simple unit format
+                        // Store original physical dimension in meters
+                        const heightInMeters = feetAndInchesToMeters(heightFeet, heightInches);
+                        
                         if (newUnit !== "ft / in") {
-                          const heightInMeters = feetAndInchesToMeters(heightFeet, heightInches);
+                          // Convert to the new unit while preserving the physical dimension
                           const convertedHeight = convertMetersToLength(heightInMeters, newUnit);
                           setHeight(convertedHeight);
                         }
@@ -944,9 +1061,9 @@ export default function SizeToWeightPage() {
                       onChange={(e) => {
                         const meters = Number(e.target.value);
                         setHeightMeters(meters);
-                        // Update height in meters (for internal calculations)
-                        const totalMeters = meters + (heightCentimeters / 100);
-                        setHeight(totalMeters);
+                        
+                        // Store the physical value but don't update 'height'
+                        // This ensures we only use the compound values for calculations
                         setHeightError(meters < 0 ? "Height cannot be negative." : null);
                       }}
                       placeholder="0"
@@ -963,9 +1080,9 @@ export default function SizeToWeightPage() {
                       onChange={(e) => {
                         const cm = Number(e.target.value);
                         setHeightCentimeters(cm);
-                        // Update height in meters (for internal calculations)
-                        const totalMeters = heightMeters + (cm / 100);
-                        setHeight(totalMeters);
+                        
+                        // Store the physical value but don't update 'height'
+                        // This ensures we only use the compound values for calculations
                         setHeightError(cm < 0 ? "Height cannot be negative." : null);
                       }}
                       placeholder="0"
@@ -975,9 +1092,11 @@ export default function SizeToWeightPage() {
                       value={heightUnit}
                       onChange={(e) => {
                         const newUnit = e.target.value;
-                        // Convert the compound value to the simple unit format
+                        // Store original physical dimension in meters
+                        const heightInMeters = metersAndCentimetersToMeters(heightMeters, heightCentimeters);
+                        
                         if (newUnit !== "m / cm") {
-                          const heightInMeters = metersAndCentimetersToMeters(heightMeters, heightCentimeters);
+                          // Convert to the new unit while preserving the physical dimension
                           const convertedHeight = convertMetersToLength(heightInMeters, newUnit);
                           setHeight(convertedHeight);
                         }
@@ -1008,25 +1127,28 @@ export default function SizeToWeightPage() {
                     value={heightUnit}
                     onChange={(e) => {
                       const newUnit = e.target.value;
-                      // Convert the current height to meters, then to the new unit
+                      // Store the original height in meters for consistent conversion
                       const heightInMeters = convertLengthToMeters(height, heightUnit);
                       
                       if (newUnit === "ft / in") {
-                        // Convert meters to feet and inches
+                        // Convert meters to feet and inches for display only
                         const { feet, inches } = metersToFeetAndInches(heightInMeters);
                         setHeightFeet(feet);
                         setHeightInches(inches);
-                        // Calculate total inches for internal value
-                        setHeight(feet * 12 + inches);
+                        
+                        // Important: Set the height value to equivalent in inches for consistent volume calculation
+                        const totalInches = (feet * 12) + inches;
+                        setHeight(totalInches);
                       } else if (newUnit === "m / cm") {
-                        // Convert meters to meters and centimeters
+                        // Convert meters to meters and centimeters for display only
                         const { meters, centimeters } = metersToMetersAndCentimeters(heightInMeters);
                         setHeightMeters(meters);
                         setHeightCentimeters(centimeters);
-                        // Use meters for internal value
+                        
+                        // Important: Set the height value to the total in meters for consistent volume calculation
                         setHeight(heightInMeters);
                       } else {
-                        // Standard conversion
+                        // Standard conversion - convert to the new unit while preserving physical height
                         const convertedHeight = convertMetersToLength(heightInMeters, newUnit);
                         setHeight(convertedHeight);
                       }
