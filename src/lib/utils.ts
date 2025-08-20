@@ -9,15 +9,33 @@ export function cn(...inputs: ClassValue[]) {
 import { UNIT_OPTIONS } from '@/constants';
 import { UnitOption } from '@/types/calculator';
 
-// Filter units by type
+// Filter units by type and remove duplicates
 export const getUnitsByType = (type: string | string[]): UnitOption[] => {
   const types = Array.isArray(type) ? type : [type];
-  return UNIT_OPTIONS.filter(unit => types.includes(unit.type));
+  // Use a Map to track unique unit values
+  const uniqueUnits = new Map<string, UnitOption>();
+  
+  UNIT_OPTIONS.forEach(unit => {
+    if (types.includes(unit.type) && !uniqueUnits.has(unit.value)) {
+      uniqueUnits.set(unit.value, unit);
+    }
+  });
+  
+  return Array.from(uniqueUnits.values());
 };
 
-// Filter units by specific values
+// Filter units by specific values and remove duplicates
 export const getUnitsByValues = (values: string[]): UnitOption[] => {
-  return UNIT_OPTIONS.filter(unit => values.includes(unit.value));
+  // Use a Map to track unique unit values
+  const uniqueUnits = new Map<string, UnitOption>();
+  
+  UNIT_OPTIONS.forEach(unit => {
+    if (values.includes(unit.value) && !uniqueUnits.has(unit.value)) {
+      uniqueUnits.set(unit.value, unit);
+    }
+  });
+  
+  return Array.from(uniqueUnits.values());
 };
 
 // Conversion factors to base units (SI)
@@ -77,6 +95,13 @@ const conversionFactors = {
     'gal': 0.003785,
     'gal-uk': 0.00454609
   },
+  // Angle (base: radians)
+  angle: {
+    'deg': Math.PI / 180,
+    'rad': 1,
+    'pirad': Math.PI
+  },
+  
   // Weight (base: kilograms)
   weight: {
     'µg': 0.000000001,
@@ -164,7 +189,7 @@ export const convertValue = (value: number, fromUnit: string, toUnit: string): n
   }
   
   // Get conversion factors based on unit type
-  if (unitType === 'length' && fromUnit in conversionFactors.length && toUnit in conversionFactors.length) {
+  if ((unitType === 'length' || unitType === 'perimeter') && fromUnit in conversionFactors.length && toUnit in conversionFactors.length) {
     const fromFactor = conversionFactors.length[fromUnit as keyof typeof conversionFactors.length];
     const toFactor = conversionFactors.length[toUnit as keyof typeof conversionFactors.length];
     return (value * fromFactor) / toFactor;
