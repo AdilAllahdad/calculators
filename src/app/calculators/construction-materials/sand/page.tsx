@@ -1185,21 +1185,7 @@ export default function SandCalculator() {
 
         {/* Action Buttons */}
         <div className="grid grid-cols-1 gap-4 mt-4">
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={shareResult}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-            >
-              <span className="text-white">🔗</span>
-              Share result
-            </button>
-            <button
-              onClick={reloadCalculator}
-              className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
-            >
-              Reload calculator
-            </button>
-          </div>
+         
           <button
             onClick={clearAll}
             className="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
@@ -1208,31 +1194,7 @@ export default function SandCalculator() {
           </button>
         </div>
 
-        {/* Helpful Information */}
-        <div className="mt-6 pt-6 border-t border-slate-200">
-          <h4 className="text-lg font-semibold mb-3 text-slate-800">How to use this sand calculator:</h4>
-          <div className="text-sm text-slate-600 space-y-2">
-            <p>1. Enter the length, width, and depth of your excavation</p>
-            <p>2. The calculator will automatically compute the volume of sand needed</p>
-            <p>3. Enter price per weight or volume to calculate total cost</p>
-            <p>4. Sand density is preset to 1601.95 kg/m³ (typical sand density)</p>
-          </div>
-        </div>
-
-        {/* Feedback Section */}
-        <div className="mt-6 pt-6 border-t border-slate-200">
-          <p className="text-sm text-slate-600 mb-3">Did we solve your problem today?</p>
-          <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors">
-              <span>👍</span>
-              Yes
-            </button>
-            <button className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors">
-              <span>👎</span>
-              No
-            </button>
-          </div>
-        </div>
+     
       </div>
     </div>
   );
