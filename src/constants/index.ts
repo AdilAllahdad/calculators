@@ -53,9 +53,6 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'cu ft', label: 'cubic feet (cu ft)', type: 'volume' },
   { value: 'yd3', label: 'cubic yards (yd³)', type: 'volume' },
   { value: 'cu yd', label: 'cubic yards (cu yd)', type: 'volume' },
-  { value: 'in3', label: 'cubic inches (cu in)', type: 'volume' },
-  { value: 'ft3', label: 'cubic feet (cu ft)', type: 'volume' },
-  { value: 'yd3', label: 'cubic yards (cu yd)', type: 'volume' },
   { value: 'gal', label: 'gallons (US) (gal)', type: 'volume' },
   { value: 'gal-uk', label: 'gallons (UK) (gal)', type: 'volume' },
   
@@ -86,6 +83,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'hp(l)', label: 'hp(l)', type: 'BTU' },
   { value: 'hp(E)', label: 'hp(E)', type: 'BTU' },
   { value: 'tons', label: 'tons', type: 'BTU' },
+<<<<<<< Updated upstream
 
   //Boiler Units
   { value: 'LPM', label: 'Liters per Minute (LPM)', type: 'boiler' },
@@ -95,6 +93,8 @@ export const UNIT_OPTIONS: UnitOption[] = [
 
   // Weight units
   { value: 'st', label: 'stones (st)', type: 'weight' },
+=======
+>>>>>>> Stashed changes
   { value: 'US ton', label: 'US short tons (US ton)', type: 'weight' },
   { value: 'long ton', label: 'imperial tons (long ton)', type: 'weight' },
   
