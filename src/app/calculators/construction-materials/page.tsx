@@ -12,13 +12,13 @@ export default function ConstructionMaterialsPage() {
       name: "Baluster Calculator",
       description: "Calculate spacing and quantity of balusters needed",
       icon: "🏗️",
-      href: "/calculators/construction-materials/baluster",
+      href: "/calculators/construction-materials/baluster-calculator",
     },
     {
       name: "Board and Batten Calculator",
       description: "Calculate board and batten siding materials",
       icon: "🪵",
-      href: "/calculators/construction-materials/board-and-batten",
+      href: "/calculators/construction-materials/boardBattenCalulator",
     },
     {
       name: "Brick Calculator",
