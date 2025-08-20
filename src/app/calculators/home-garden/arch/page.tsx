@@ -3,38 +3,118 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown,ChevronUp } from '@/components/icons';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue } from '@/lib/utils';
 
-// Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
-const archHeightUnitValues = ['m', 'mm', 'ft', 'in', 'cm'];
-const archLengthUnitValues = ['m', 'mm', 'ft', 'in', 'cm'];
+// Type definitions for unit system
+type LengthUnitType = 'm' | 'mm' | 'ft' | 'in' | 'cm';
+type ConversionMap<T extends string> = Record<T, number>;
 
-const f1UnitValues = ['m', 'mm', 'ft', 'in', 'cm'];
-const f2UnitValues = ['m', 'mm', 'ft', 'in', 'cm'];
+// Helper functions for type safety
+const isLengthUnit = (unit: string): unit is LengthUnitType => {
+  return ['m', 'mm', 'ft', 'in', 'cm'].includes(unit);
+};
+
+// Define the unit values needed for each dropdown
+const archHeightUnitValues: LengthUnitType[] = ['m', 'mm', 'ft', 'in', 'cm'];
+const archLengthUnitValues: LengthUnitType[] = ['m', 'mm', 'ft', 'in', 'cm'];
+const f1UnitValues: LengthUnitType[] = ['m', 'mm', 'ft', 'in', 'cm'];
+const f2UnitValues: LengthUnitType[] = ['m', 'mm', 'ft', 'in', 'cm'];
+
+// Conversion map (all to meters as base unit)
+const lengthConversions: ConversionMap<LengthUnitType> = {
+  'm': 1,           // meters (base)
+  'mm': 0.001,      // millimeters to meters
+  'ft': 0.3048,     // feet to meters
+  'in': 0.0254,     // inches to meters
+  'cm': 0.01        // centimeters to meters
+};
+
+// Unit conversion helper
+const handleUnitConversion = (
+  currentUnit: LengthUnitType,
+  newUnit: LengthUnitType,
+  value: string,
+  conversionTable: ConversionMap<LengthUnitType>
+): number => {
+  if (!value) return 0;
+  const numValue = Number(value);
+  if (isNaN(numValue)) return 0;
+  const standardValue = numValue * conversionTable[currentUnit];
+  return standardValue / conversionTable[newUnit];
+};
+
+// Format number helper
+const formatNumber = (value: number, decimals: number = 2): string => {
+  if (value === 0) return '0';
+  if (value % 1 === 0) return value.toString();
+  return value.toFixed(decimals);
+};
 
 export default function ArchCalculator() {
-    const [archHeight, setArchHeight] = useState<number>(0);
-    const [archHeightUnit, setArchHeightUnit] = useState<string>('m');
-    const [archLength, setArchLength] = useState<number>(0);
-    const [archLengthUnit, setArchLengthUnit] = useState<string>('m');
+    const [archHeight, setArchHeight] = useState<string>('');
+    const [archHeightUnit, setArchHeightUnit] = useState<LengthUnitType>('m');
+    const [archLength, setArchLength] = useState<string>('');
+    const [archLengthUnit, setArchLengthUnit] = useState<LengthUnitType>('m');
     const [showFocus, setShowFocus] = useState<boolean>(false);
     const [f1, setF1] = useState<number>(0);
-    const [f1Unit, setF1Unit] = useState<string>('m');
+    const [f1Unit, setF1Unit] = useState<LengthUnitType>('m');
     const [f2, setF2] = useState<number>(0);
-    const [f2Unit, setF2Unit] = useState<string>('m');
+    const [f2Unit, setF2Unit] = useState<LengthUnitType>('m');
     const [error, setError] = useState<string>('');
 
-    const validateDimensions = () => {
-        const archHeightInM = convertValue(archHeight, archHeightUnit, 'm');
-        const archLengthInM = convertValue(archLength, archLengthUnit, 'm');
+    // Unit change handlers with type safety
+    const handleArchHeightUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
 
-        if (archLengthInM <= 0 || archHeightInM <= 0) {
+        if (!archHeight || archHeight === '') {
+            setArchHeightUnit(newUnit);
+            return;
+        }
+
+        const result = handleUnitConversion(archHeightUnit, newUnit, archHeight, lengthConversions);
+        setArchHeight(result.toFixed(4));
+        setArchHeightUnit(newUnit);
+    };
+
+    const handleArchLengthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!archLength || archLength === '') {
+            setArchLengthUnit(newUnit);
+            return;
+        }
+
+        const result = handleUnitConversion(archLengthUnit, newUnit, archLength, lengthConversions);
+        setArchLength(result.toFixed(4));
+        setArchLengthUnit(newUnit);
+    };
+
+    const handleF1UnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        setF1Unit(newUnitValue);
+    };
+
+    const handleF2UnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        setF2Unit(newUnitValue);
+    };
+
+    const validateDimensions = () => {
+        const archHeightNum = parseFloat(archHeight);
+        const archLengthNum = parseFloat(archLength);
+
+        if (isNaN(archHeightNum) || isNaN(archLengthNum) || archHeightNum <= 0 || archLengthNum <= 0) {
             setError('Both length and height must be greater than 0');
             return false;
         }
 
-        if (archLengthInM <= archHeightInM) {
-            setError('Base length must be greater than the arch height');
+        // Convert to meters using type-safe conversion
+        const archHeightInM = archHeightNum * lengthConversions[archHeightUnit];
+        const archLengthInM = archLengthNum * lengthConversions[archLengthUnit];
+
+        if (archLengthInM <= 2 * archHeightInM) {
+            setError('Base length should be greater than twice the arch height for a proper elliptical arch');
             return false;
         }
 
@@ -43,8 +123,11 @@ export default function ArchCalculator() {
     };
 
     const calculateFoci = () => {
+        const archHeightNum = parseFloat(archHeight);
+        const archLengthNum = parseFloat(archLength);
+
         // Only calculate if both height and length are greater than 0
-        if (archHeight <= 0 || archLength <= 0) {
+        if (isNaN(archHeightNum) || isNaN(archLengthNum) || archHeightNum <= 0 || archLengthNum <= 0) {
             setF1(0);
             setF2(0);
             return;
@@ -56,90 +139,90 @@ export default function ArchCalculator() {
             return;
         }
 
-        const archHeightInM = convertValue(archHeight, archHeightUnit, 'm');
-        const archLengthInM = convertValue(archLength, archLengthUnit, 'm');
+        // Convert to meters using type-safe conversion
+        const archHeightInM = archHeightNum * lengthConversions[archHeightUnit];
+        const archLengthInM = archLengthNum * lengthConversions[archLengthUnit];
 
-        // Calculate the value under the square root
-        const underSqrt = Math.pow(archHeightInM, 2) - Math.pow(archLengthInM / 2, 2);
+        // For elliptical arch: focal distance = sqrt(a² - b²)
+        // where a = half the base length, b = rise/height
+        const a = archLengthInM / 2;  // half the base length
+        const b = archHeightInM;      // rise/height
 
-        // Calculate foci positions (allow negative values)
-        let fociValue;
+        // Calculate the value under the square root: a² - b²
+        const underSqrt = Math.pow(b, 2) - Math.pow(a, 2);  
+
+        // Calculate focal distance (always positive)
+        let focalDistance;
         if (underSqrt < 0) {
-            // For negative values under square root, calculate as imaginary and return negative
-            fociValue = -Math.sqrt(Math.abs(underSqrt));
+            // For cases where height > half-base, focal points are imaginary
+            focalDistance = Math.sqrt(Math.abs(underSqrt));
         } else {
-            fociValue = Math.sqrt(underSqrt);
+            focalDistance = Math.sqrt(underSqrt);
         }
 
         // Check if the result is NaN or invalid (shouldn't happen)
-        if (isNaN(fociValue) || !isFinite(fociValue)) {
+        if (isNaN(focalDistance) || !isFinite(focalDistance)) {
             setF1(0);
             setF2(0);
             return;
         }
 
-        // Convert to selected units
-        const f1Display = convertValue(fociValue, 'm', f1Unit);
-        const f2Display = convertValue(fociValue, 'm', f2Unit);
+        // F1 is to the left of center (negative), F2 is to the right of center (positive)
+        const f1Value = -focalDistance;  // Left focus point (negative)
+        const f2Value = focalDistance;   // Right focus point (positive)
 
-        // Ensure the converted values are valid numbers and round them
-        setF1(isNaN(f1Display) || !isFinite(f1Display) ? 0 : Math.round(f1Display * 100) / 100);
-        setF2(isNaN(f2Display) || !isFinite(f2Display) ? 0 : Math.round(f2Display * 100) / 100);
+        // Convert to selected units using type-safe conversion
+        const f1Display = f1Value / lengthConversions[f1Unit];
+        const f2Display = f2Value / lengthConversions[f2Unit];
+
+        // Ensure the converted values are valid numbers
+        setF1(isNaN(f1Display) || !isFinite(f1Display) ? 0 : f1Display);
+        setF2(isNaN(f2Display) || !isFinite(f2Display) ? 0 : f2Display);
     };
 
     // Check if focus sections should be visible
-    const shouldShowFocusSections = archHeight > 0 && archLength > 0 && showFocus;
+    const shouldShowFocusSections = parseFloat(archHeight) > 0 && parseFloat(archLength) > 0 && !error;
 
-    const handleArchHeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const inputValue = e.target.value;
-        // Allow empty string or valid numbers (including decimals)
-        if (inputValue === '' || (!isNaN(Number(inputValue)) && inputValue !== '.')) {
-            setArchHeight(inputValue === '' ? 0 : Number(inputValue));
+    const handleNumberInput = (value: string, setter: (val: string) => void) => {
+        // Allow only digits and a single dot
+        let sanitized = value.replace(/[^0-9.]/g, '');
+        const firstDot = sanitized.indexOf('.');
+        if (firstDot !== -1) {
+          sanitized = sanitized.slice(0, firstDot + 1) + sanitized.slice(firstDot + 1).replace(/\./g, '');
         }
+        setter(sanitized);
     };
 
-    const handleArchHeightUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setArchHeightUnit(e.target.value);
-    };
-
-    const handleArchLengthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const inputValue = e.target.value;
-        // Allow empty string or valid numbers (including decimals)
-        if (inputValue === '' || (!isNaN(Number(inputValue)) && inputValue !== '.')) {
-            setArchLength(inputValue === '' ? 0 : Number(inputValue));
-        }
-    };
-
-    const handleArchLengthUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setArchLengthUnit(e.target.value);
-    };
-
-    const handleF1UnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setF1Unit(e.target.value);
-    };
-
-    const handleF2UnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setF2Unit(e.target.value);
-    };
-
-    const handleFocus = (currentValue: number, e: React.FocusEvent<HTMLInputElement>) => {
-        if (currentValue === 0) {
+    const handleFocus = (currentValue: string, e: React.FocusEvent<HTMLInputElement>) => {
+        if (currentValue === '' || currentValue === '0') {
           e.target.select();
         }
     };
 
+    const handleArchHeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        handleNumberInput(e.target.value, setArchHeight);
+    };
+
+    const handleArchLengthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        handleNumberInput(e.target.value, setArchLength);
+    };
+
+
+
     const reloadCalculator = () => {
-        setArchHeight(0);
-        setArchLength(0);
+        setArchHeight('');
+        setArchLength('');
         setF1(0);
         setF2(0);
+        setError('');
     };
 
     const clearAll = () => {
-        setArchHeight(0);
-        setArchLength(0);
+        setArchHeight('');
+        setArchLength('');
         setF1(0);
         setF2(0);
+        setError('');
     };
 
     const shareResult = () => {
@@ -181,18 +264,19 @@ export default function ArchCalculator() {
                         </label>
                         <div className="flex gap-2">
                             <input
-                                type="number"
-                                value={isNaN(archLength) || !isFinite(archLength) ? '' : archLength}
+                                type="text"
+                                inputMode="decimal"
+                                pattern="[0-9]*[.,]?[0-9]*"
+                                value={archLength}
                                 onChange={handleArchLengthChange}
                                 onFocus={(e) => handleFocus(archLength, e)}
                                 className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                                step="0.01"
                                 placeholder='Enter Length'
                             />
                             <UnitDropdown
                                 value={archLengthUnit}
-                                onChange={handleArchLengthUnitChange}
+                                onChange={(e) => handleArchLengthUnitChange(e.target.value)}
                                 unitValues={archLengthUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -204,18 +288,19 @@ export default function ArchCalculator() {
                         </label>
                         <div className="flex gap-2">
                             <input
-                                type="number"
-                                value={isNaN(archHeight) || !isFinite(archHeight) ? '' : archHeight}
+                                type="text"
+                                inputMode="decimal"
+                                pattern="[0-9]*[.,]?[0-9]*"
+                                value={archHeight}
                                 onChange={handleArchHeightChange}
                                 onFocus={(e) => handleFocus(archHeight, e)}
                                 className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                                step="0.01"
                                 placeholder='Enter Height'
                             />
                             <UnitDropdown
                                 value={archHeightUnit}
-                                onChange={handleArchHeightUnitChange}
+                                onChange={(e) => handleArchHeightUnitChange(e.target.value)}
                                 unitValues={archHeightUnitValues}
                                 className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                             />
@@ -243,14 +328,14 @@ export default function ArchCalculator() {
                             <div className="flex gap-2 mb-4">
                                 <input
                                     type="number"
-                                    value={isNaN(f1) || !isFinite(f1) ? 0 : f1}
+                                    value={isNaN(f1) || !isFinite(f1) ? '' : formatNumber(f1)}
                                     readOnly
                                     className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50"
                                     style={{ color: '#1e293b' }}
                                 />
                                 <UnitDropdown
                                     value={f1Unit}
-                                    onChange={handleF1UnitChange}
+                                    onChange={(e) => handleF1UnitChange(e.target.value)}
                                     unitValues={f1UnitValues}
                                     className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                 />
@@ -261,14 +346,14 @@ export default function ArchCalculator() {
                             <div className="flex gap-2">
                                 <input
                                     type="number"
-                                    value={isNaN(f2) || !isFinite(f2) ? 0 : f2}
+                                    value={isNaN(f2) || !isFinite(f2) ? '' : formatNumber(f2)}
                                     readOnly
                                     className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50"
                                     style={{ color: '#1e293b' }}
                                 />
                                 <UnitDropdown
                                     value={f2Unit}
-                                    onChange={handleF2UnitChange}
+                                    onChange={(e) => handleF2UnitChange(e.target.value)}
                                     unitValues={f2UnitValues}
                                     className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                 />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { UnitOption } from '@/types/calculator';
 import { getUnitsByType, getUnitsByValues } from '@/lib/utils';
 
@@ -26,11 +26,14 @@ const UnitDropdown: React.FC<UnitDropdownProps> = ({
   name,
 }) => {
   // Get units based on provided criteria
-  const units: UnitOption[] = unitValues 
+  const units: UnitOption[] = unitValues
     ? getUnitsByValues(unitValues)
-    : unitType 
-      ? getUnitsByType(unitType) 
+    : unitType
+      ? getUnitsByType(unitType)
       : [];
+
+  // Generate a unique identifier for this dropdown instance
+  const dropdownId = useMemo(() => id || Math.random().toString(36).substr(2, 9), [id]);
 
   return (
     <select
@@ -40,9 +43,9 @@ const UnitDropdown: React.FC<UnitDropdownProps> = ({
       onChange={onChange}
       className={`border border-slate-300 rounded px-2 py-2 bg-white ${className}`}
     >
-      {units.map(unit => (
-        <option key={unit.value} value={unit.value}>
-          {unit.value}
+      {units.map((unit, index) => (
+        <option key={`${dropdownId}-${index}-${unit.value}`} value={unit.value}>
+          {unit.label}
         </option>
       ))}
     </select>

@@ -3,14 +3,73 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown,ChevronUp } from '@/components/icons';
 import UnitDropdown from '@/components/UnitDropdown';
-import { convertValue } from '@/lib/utils';
 
-// Define the unit values needed for each dropdown (avoid mixed units like ft-in to prevent inaccuracies)
-const lengthUnitValues = ['m', 'ft', 'cm'];
-const widthUnitValues = ['m', 'ft', 'cm'];
-const floorAreaUnitValues = ['m2', 'ft2'];
-const ceilingHeightUnitValues = ['m', 'ft', 'cm'];
-const btuUnitValues = ['BTU', 'kW', 'watts', 'hp(l)', 'hp(E)', 'tons'];
+// Type definitions for unit system
+type LengthUnitType = 'm' | 'ft' | 'cm';
+type AreaUnitType = 'm2' | 'ft2';
+type BTUUnitType = 'BTU' | 'kW' | 'watts' | 'hp(l)' | 'hp(E)' | 'tons';
+type ConversionMap<T extends string> = Record<T, number>;
+
+// Helper functions for type safety
+const isLengthUnit = (unit: string): unit is LengthUnitType => {
+  return ['m', 'ft', 'cm'].includes(unit);
+};
+
+const isAreaUnit = (unit: string): unit is AreaUnitType => {
+  return ['m2', 'ft2'].includes(unit);
+};
+
+const isBTUUnit = (unit: string): unit is BTUUnitType => {
+  return ['BTU', 'kW', 'watts', 'hp(l)', 'hp(E)', 'tons'].includes(unit);
+};
+
+// Define the unit values needed for each dropdown
+const lengthUnitValues: LengthUnitType[] = ['m', 'ft', 'cm'];
+const widthUnitValues: LengthUnitType[] = ['m', 'ft', 'cm'];
+const floorAreaUnitValues: AreaUnitType[] = ['m2', 'ft2'];
+const ceilingHeightUnitValues: LengthUnitType[] = ['m', 'ft', 'cm'];
+const btuUnitValues: BTUUnitType[] = ['BTU', 'kW', 'watts', 'hp(l)', 'hp(E)', 'tons'];
+
+// Conversion maps (all to base units)
+const lengthConversions: ConversionMap<LengthUnitType> = {
+  'm': 1,           // meters (base)
+  'ft': 0.3048,     // feet to meters
+  'cm': 0.01        // centimeters to meters
+};
+
+const areaConversions: ConversionMap<AreaUnitType> = {
+  'm2': 1,          // square meters (base)
+  'ft2': 0.092903   // square feet to square meters
+};
+
+const btuConversions: ConversionMap<BTUUnitType> = {
+  'BTU': 1,         // BTU (base)
+  'kW': 3412.14,    // kilowatts to BTU
+  'watts': 3.41214, // watts to BTU
+  'hp(l)': 2544.43, // horsepower (metric) to BTU
+  'hp(E)': 2544.43, // horsepower (electric) to BTU
+  'tons': 12000     // tons to BTU
+};
+
+// Unit conversion helper
+const handleUnitConversion = <T extends string>(
+  currentUnit: T,
+  newUnit: T,
+  value: number | string,
+  conversionTable: ConversionMap<T>
+): number => {
+  const numValue = Number(value);
+  if (!numValue || isNaN(numValue)) return 0;
+  const standardValue = numValue * conversionTable[currentUnit];
+  return standardValue / conversionTable[newUnit];
+};
+
+// Format number helper
+const formatNumber = (value: number, decimals: number = 2): string => {
+  if (value === 0) return '0';
+  if (value % 1 === 0) return value.toString();
+  return value.toFixed(decimals);
+};
 
 // Reference table: area (ft²) -> base BTU per hour
 const areaToBTUTable: { min: number; max: number; btu: number }[] = [
@@ -52,15 +111,68 @@ export default function AirConditionerBTUCalculator() {
     const [numPeopleStr,setNumPeopleStr] = useState<string>('');
     const [currentAirConditioner,setCurrentAirConditoner] = useState<boolean>(false);
     const [lengthStr, setLengthStr] = useState<string>('');
-    const [lengthUnit, setLengthUnit] = useState<string>('m');
+    const [lengthUnit, setLengthUnit] = useState<LengthUnitType>('m');
     const [widthStr, setWidthStr] = useState<string>('');
-    const [widthUnit, setWidthUnit] = useState<string>('m');
+    const [widthUnit, setWidthUnit] = useState<LengthUnitType>('m');
     const [floorArea, setFloorArea] = useState<number>(0);
-    const [floorAreaUnit, setFloorAreaUnit] = useState<string>('m2');
+    const [floorAreaUnit, setFloorAreaUnit] = useState<AreaUnitType>('m2');
     const [ceilingHeightStr, setCeilingHeightStr] = useState<string>('');
-    const [ceilingHeightUnit, setCeilingHeightUnit] = useState<string>('m');
+    const [ceilingHeightUnit, setCeilingHeightUnit] = useState<LengthUnitType>('m');
     const [btu, setBTU] = useState<number>(0);
-    const [btuUnit, setBTUUnit] = useState<string>('BTU');
+    const [btuUnit, setBTUUnit] = useState<BTUUnitType>('BTU');
+
+    // Unit change handlers with type safety
+    const handleLengthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!lengthStr || lengthStr === '') {
+            setLengthUnit(newUnit);
+            return;
+        }
+
+        const result = handleUnitConversion(lengthUnit, newUnit, lengthStr, lengthConversions);
+        setLengthStr(result.toFixed(4));
+        setLengthUnit(newUnit);
+    };
+
+    const handleWidthUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!widthStr || widthStr === '') {
+            setWidthUnit(newUnit);
+            return;
+        }
+
+        const result = handleUnitConversion(widthUnit, newUnit, widthStr, lengthConversions);
+        setWidthStr(result.toFixed(4));
+        setWidthUnit(newUnit);
+    };
+
+    const handleFloorAreaUnitChange = (newUnitValue: string) => {
+        if (!isAreaUnit(newUnitValue)) return;
+        setFloorAreaUnit(newUnitValue);
+    };
+
+    const handleCeilingHeightUnitChange = (newUnitValue: string) => {
+        if (!isLengthUnit(newUnitValue)) return;
+        const newUnit = newUnitValue;
+
+        if (!ceilingHeightStr || ceilingHeightStr === '') {
+            setCeilingHeightUnit(newUnit);
+            return;
+        }
+
+        const result = handleUnitConversion(ceilingHeightUnit, newUnit, ceilingHeightStr, lengthConversions);
+        setCeilingHeightStr(result.toFixed(4));
+        setCeilingHeightUnit(newUnit);
+    };
+
+    const handleBTUUnitChange = (newUnitValue: string) => {
+        if (!isBTUUnit(newUnitValue)) return;
+        setBTUUnit(newUnitValue);
+    };
 
     const calculateBTU = () => {
         // Parse numeric values from inputs (empty string -> 0)
@@ -68,24 +180,25 @@ export default function AirConditionerBTUCalculator() {
         const width = parseFloat(widthStr) || 0;
         const ceilingHeight = parseFloat(ceilingHeightStr) || 0;
 
-        // Convert length and width to meters first for consistent calculation
-        const lengthInMeters = convertValue(length, lengthUnit, 'm');
-        const widthInMeters = convertValue(width, widthUnit, 'm');
+        // Convert length and width to meters using type-safe conversion
+        const lengthInMeters = length * lengthConversions[lengthUnit];
+        const widthInMeters = width * lengthConversions[widthUnit];
 
         // Calculate floor area in square meters
         const floorAreaInSquareMeters = lengthInMeters * widthInMeters;
 
-        // Convert to selected floor area unit for display
-        const floorAreaDisplay = convertValue(floorAreaInSquareMeters, 'm2', floorAreaUnit);
+        // Convert to selected floor area unit for display using type-safe conversion
+        const floorAreaDisplay = floorAreaInSquareMeters / areaConversions[floorAreaUnit];
 
         // Convert floor area to square feet for BTU calculation
-        const floorAreaInSquareFeet = convertValue(floorAreaInSquareMeters, 'm2', 'ft2');
+        // Convert to square feet using type-safe conversion
+        const floorAreaInSquareFeet = floorAreaInSquareMeters / areaConversions['ft2'];
 
         // Base BTU from reference table (ranges of area in ft²)
         let btuValue = lookupBaseBTU(floorAreaInSquareFeet);
 
         // Adjust for ceiling height: add 1000 BTU for each foot above 8 feet (fractional allowed)
-        const ceilingHeightInFeet = convertValue(ceilingHeight, ceilingHeightUnit, 'ft');
+        const ceilingHeightInFeet = ceilingHeight * lengthConversions[ceilingHeightUnit] / lengthConversions['ft'];
         if (ceilingHeightInFeet > 8) {
             const extraFeet = Math.max(0, ceilingHeightInFeet - 8);
             btuValue += 1000 * extraFeet;
@@ -110,8 +223,8 @@ export default function AirConditionerBTUCalculator() {
             btuValue += (people - 2) * 600;
         }
 
-        // Convert to selected BTU unit
-        const btuDisplay = convertValue(btuValue, 'BTU', btuUnit);
+        // Convert to selected BTU unit using type-safe conversion
+        const btuDisplay = btuValue / btuConversions[btuUnit];
 
         setFloorArea(floorAreaDisplay);
         setBTU(btuDisplay);
@@ -261,7 +374,7 @@ export default function AirConditionerBTUCalculator() {
                         />
                         <UnitDropdown
                             value={btuUnit}
-                            onChange={(e) => setBTUUnit(e.target.value)}
+                            onChange={(e) => handleBTUUnitChange(e.target.value)}
                             unitValues={btuUnitValues}
                             className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                         />
@@ -407,7 +520,7 @@ export default function AirConditionerBTUCalculator() {
                   />
                   <UnitDropdown
                     value={lengthUnit}
-                    onChange={(e) => setLengthUnit(e.target.value)}
+                    onChange={(e) => handleLengthUnitChange(e.target.value)}
                     unitValues={lengthUnitValues}
                     className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                   />
@@ -431,7 +544,7 @@ export default function AirConditionerBTUCalculator() {
                   />
                   <UnitDropdown
                     value={widthUnit}
-                    onChange={(e) => setWidthUnit(e.target.value)}
+                    onChange={(e) => handleWidthUnitChange(e.target.value)}
                     unitValues={widthUnitValues}
                     className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                   />
@@ -444,14 +557,14 @@ export default function AirConditionerBTUCalculator() {
                 <div className="flex gap-2">
                   <input
                     type="number"
-                    value={floorArea.toFixed(2)}
+                    value={formatNumber(floorArea)}
                     readOnly
                     className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-700"
                     style={{ color: '#374151', backgroundColor: '#f8fafc' }}
                   />
                   <UnitDropdown
                     value={floorAreaUnit}
-                    onChange={(e) => setFloorAreaUnit(e.target.value)}
+                    onChange={(e) => handleFloorAreaUnitChange(e.target.value)}
                     unitValues={floorAreaUnitValues}
                     className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                   />
@@ -475,7 +588,7 @@ export default function AirConditionerBTUCalculator() {
                   />
                   <UnitDropdown
                     value={ceilingHeightUnit}
-                    onChange={(e) => setCeilingHeightUnit(e.target.value)}
+                    onChange={(e) => handleCeilingHeightUnitChange(e.target.value)}
                     unitValues={ceilingHeightUnitValues}
                     className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                   />
@@ -495,14 +608,14 @@ export default function AirConditionerBTUCalculator() {
                   <div className="flex gap-2">
                     <input
                       type="number"
-                      value={btu.toFixed(btuUnit === 'BTU' ? 0 : 2)}
+                      value={formatNumber(btu, btuUnit === 'BTU' ? 0 : 2)}
                       readOnly
                       className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-700"
                       style={{ color: '#374151', backgroundColor: '#f8fafc' }}
                     />
                     <UnitDropdown
                       value={btuUnit}
-                      onChange={(e) => setBTUUnit(e.target.value)}
+                      onChange={(e) => handleBTUUnitChange(e.target.value)}
                       unitValues={btuUnitValues}
                       className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                     />

@@ -31,7 +31,9 @@ const conversionFactors = {
     'in': 0.0254,
     'ft': 0.3048,
     'yd': 0.9144,
-    'mi': 1609.344
+    'mi': 1609.344,
+    'ft in': 0.0254,
+    'm cm': 0.01
   },
   // Area (base: square meters)
   area: {
@@ -44,7 +46,20 @@ const conversionFactors = {
     'ft2': 0.092903,
     'yd2': 0.836127,
     'ac': 4046.86,
+    'sf': 7142.857142857143,
     'mi2': 2589988.11
+  },
+  // Perimeter (base: meters)
+  perimeter: {
+    'cm': 0.01,
+    'm': 1,
+    'km': 1000,
+    'in': 0.0254,
+    'ft': 0.3048,
+    'yd': 0.9144,
+    'mi': 1609.344,
+    'ft in': 0.0254,
+    'm cm': 0.01
   },
   // Volume (base: cubic meters)
   volume: {
@@ -103,6 +118,13 @@ const conversionFactors = {
     'lb/yd3': 0.593276,
     'lb/US gal': 119.826,
     'lb/UK gal': 99.776
+  },
+  // Boiler (base: kW)
+  boiler: {
+    'LPM': 0.006,
+    'GPM': 0.0163,
+    'kW': 1,
+    'hp': 0.7457
   },
   // Price (base: USD per square meter for area pricing, USD per cubic meter for volume pricing, USD per kg for weight pricing)
   price: {
@@ -178,6 +200,12 @@ export const convertValue = (value: number, fromUnit: string, toUnit: string): n
     return (value * fromFactor) / toFactor;
   }
   
+  if (unitType === 'boiler' && fromUnit in conversionFactors.boiler && toUnit in conversionFactors.boiler) {
+    const fromFactor = conversionFactors.boiler[fromUnit as keyof typeof conversionFactors.boiler];
+    const toFactor = conversionFactors.boiler[toUnit as keyof typeof conversionFactors.boiler];
+    return (value * fromFactor) / toFactor;
+  }
+  
   if (unitType === 'price' && fromUnit in conversionFactors.price && toUnit in conversionFactors.price) {
     const fromFactor = conversionFactors.price[fromUnit as keyof typeof conversionFactors.price];
     const toFactor = conversionFactors.price[toUnit as keyof typeof conversionFactors.price];
@@ -229,9 +257,17 @@ export const convertUnit = (value: number, fromUnit: string, toUnit: string): nu
   return value; // No conversion needed
 };
 
-// Format number with proper decimals
+// Format number with proper decimals (removes unnecessary trailing zeros)
 export const formatNumber = (num: number, decimals: number = 2): string => {
-  return num.toFixed(decimals);
+  if (isNaN(num) || !isFinite(num)) return '0';
+
+  // If it's a whole number, return without decimals
+  if (num % 1 === 0) {
+    return num.toString();
+  }
+
+  // Otherwise, use toFixed but remove trailing zeros
+  return parseFloat(num.toFixed(decimals)).toString();
 };
 
 // Validate positive number input
