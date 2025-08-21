@@ -30,7 +30,7 @@ export default function ConstructionMaterialsPage() {
       name: "Decking Calculator",
       description: "Calculate materials needed for deck construction",
       icon: "🏠",
-      href: "/calculators/construction-materials/decking",
+      href: "/calculators/construction-materials/decking-cal",
     },
     {
       name: "DIY Shed Cost Calculator",
@@ -78,7 +78,7 @@ export default function ConstructionMaterialsPage() {
       name: "Limestone Calculator",
       description: "Calculate limestone needed for your project",
       icon: "🪨",
-      href: "/calculators/construction-materials/limestone",
+      href: "/calculators/construction-materials/limeStone-cal",
     },
     {
       name: "Log Weight Calculator",
