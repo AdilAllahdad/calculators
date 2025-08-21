@@ -764,7 +764,7 @@ const ConcreteEstimatorTubePage = () => {
         </FieldGroup>
 
         <FieldGroup label="Total cost" menu>
-          <div className="flex items-center">
+          <div className="flex items-center">1000
             <div className={trailingStatic}>PKR</div>
             <input
               type="text"

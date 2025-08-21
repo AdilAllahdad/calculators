@@ -1,0 +1,134 @@
+body {}
+
+#pw-320x50_atf {
+ max-height: 50px !important;
+}
+
+#med_rect_btf {
+ max-height: 250px !important;
+}
+
+#pw-oop-left_rail {
+    top: 55% !important;
+    margin-top: -225px !important;
+}
+
+#pw-oop-bottom_rail.pw-tag {
+     background-color: transparent !important;
+     border-top: none !important;
+}
+
+/* Unset Overflow Auto to allow in_content unit to be sticky.*/
+
+div.CalculatorPagePartRight.jsx-3432269885 {
+     overflow-x: unset !important;
+}
+
+/*  Take into account Navbar size for in_content scrolling behavior.  */
+div[id^="in_content"] {
+     top: 76px !important
+}
+
+/*Rogue ad*/
+#bh-expandable-container, #bh-wrapper-iframe {
+    display: none !important;
+}
+
+
+/*970px is the min width that screen size must be for backgrounds to show*/
+@media only screen and (min-width: 970px) {
+  /*FLEX SKINS START*/
+  body.flex-skin-active #__next > div,
+  body.flex-skin-docked #__next > div {
+     background: #FFFFFF;
+  }
+
+  /*Set content width to 1100px*/
+  body.flex-skin-active #__next,
+  body.flex-skin-docked #__next {
+        width: 1100px !important;
+        margin: auto !important;
+   }
+
+
+  body.flex-skin-active [data-testid="header-bar"],
+  body.flex-skin-docked [data-testid="header-bar"] {
+       padding: 0 !important;
+       z-index: 2;
+       position: sticky;
+       top: 100px;
+    }
+
+  body.flex-skin-active [data-testid="header-bar"] > header,
+  body.flex-skin-docked [data-testid="header-bar"] > header {
+       position: unset !important;
+   }
+
+  body.flex-skin-active [data-testid="left-ad-column"],
+  body.flex-skin-docked [data-testid="left-ad-column"], 
+  body.flex-skin-active [data-testid="right-ad-column"],
+  body.flex-skin-docked [data-testid="right-ad-column"] {
+        display: none !important;
+   }
+
+  body.flex-skin-active #__next > div > div,
+  body.flex-skin-docked #__next > div > div {
+         grid-template-columns: 0 1fr 0 !important;
+    }
+
+  body.flex-skin-active [data-testid="calculator-page-container"] > div > div,
+  body.flex-skin-docked [data-testid="calculator-page-container"] > div > div {
+        top: 220px !important;
+    }
+}
+
+/*Example Breakpoint for mobile breakpoint (may fall into the above)*/
+@media only screen and (max-width: 600px) {
+    body.flex-skin-active [data-testid="header-bar"] > * ,
+    body.flex-skin-docked [data-testid="header-bar"] > *  {
+          position: unset !important;
+     }
+
+    body.flex-skin-active > #pw-oop-flex_leaderboard_container > div,
+    body.flex-skin-docked > #pw-oop-flex_leaderboard_container > div {
+         z-index: 3 !important;
+    }
+
+    body.flex-skin-active [data-testid="header-bar"],
+    body.flex-skin-docked [data-testid="header-bar"] {
+         background: #F7F9FF;
+         top: 70px;
+         z-index: 3;
+         display: flex;
+         padding: 0;
+         position: sticky;
+         flex-direction: column-reverse;
+    }
+}
+
+/*FLEX SKINS END*/
+
+
+/*Top dock navbar overlap fix*/
+#__next .pw-sticky-video-wrapper.pw-docked {
+     top: 56px !important;
+}
+
+/*Gum Gum skin overide*/
+body:has(.gumgum-accommodate) [data-testid="left-atf-ads-wrapper"] .pw-tag#pw-160x600_atf,
+body:has(.gumgum-accommodate) [data-testid="left-btf-ads-wrapper"] .pw-tag#pw-160x600_btf,
+body:has(.gumgum-accommodate) .pw-tag.pw-corner-ad-video-container#corner_ad_video,
+body:has(.gumgum-accommodate) [data-testid="leaderboard-ad"] .pw-tag {
+    display: block !important;
+}
+
+body:has(.gumgum-accommodate) .pw-tag.pw-corner-ad-video-container#corner_ad_video {
+    margin-left: unset !important;
+    margin-right: unset !important;
+}
+
+/*removing padding and margin from IAB units*/
+body .pw-standardIAB-tag {
+    margin: 0 !important;
+    padding-bottom: 0 !important;
+}
