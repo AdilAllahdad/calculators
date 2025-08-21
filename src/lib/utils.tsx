@@ -4,6 +4,15 @@
 
 import { UNIT_OPTIONS } from '@/constants';
 import { UnitOption } from '@/types/calculator';
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+/**
+ * Utility function to conditionally join classNames together
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 // Filter units by type
 export const getUnitsByType = (type: string | string[]): UnitOption[] => {
