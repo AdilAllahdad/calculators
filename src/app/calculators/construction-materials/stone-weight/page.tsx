@@ -421,26 +421,41 @@ const PricePerMassInput = React.memo(({
   currency: string;
   onCurrencyChange: (v: string) => void;
 }) => {
+  // Store the original value in kg for calculations
+  const [originalValueInKg, setOriginalValueInKg] = useState<number | null>(null);
+  
   // Only convert the value for this input field when unit changes
   const handleUnitChange = useCallback((newUnit: string) => {
     if (unit === newUnit) {
       onUnitChange(newUnit);
       return;
     }
+    
     if (!value) {
       onUnitChange(newUnit);
       return;
     }
+    
     const num = Number(value);
     if (isNaN(num)) {
       onUnitChange(newUnit);
       return;
     }
+    
+    // Convert from current unit to new unit for display only
     const valueInKg = num * (MASS_FACTORS[unit] ?? 1);
     const newValue = valueInKg / (MASS_FACTORS[newUnit] ?? 1);
+    
+    // Update the displayed value but keep the original value in kg for calculations
     onChange(newValue.toString());
     onUnitChange(newUnit);
-  }, [value, unit, onChange, onUnitChange]);
+    
+    // Store the original value in kg for calculations
+    if (originalValueInKg === null) {
+      setOriginalValueInKg(valueInKg);
+    }
+  }, [value, unit, onChange, onUnitChange, originalValueInKg]);
+
   return (
     <div className="flex items-center border rounded-lg px-3 py-2 bg-gray-50 h-[44px] w-[360px]">
       <CurrencySelect value={currency} onChange={onCurrencyChange} />
@@ -584,6 +599,24 @@ export default function StoneCalculator() {
   const [rectAreaUnit, setRectAreaUnit] = useState("m²");
   const [rectVolumeUnit, setRectVolumeUnit] = useState("m³");
 
+  // Store the original price per mass value in kg for calculations
+  const [pricePerMassInKg, setPricePerMassInKg] = useState(0);
+
+  // Update pricePerMassInKg whenever pricePerMass or pricePerMassUnit changes
+  useEffect(() => {
+    if (pricePerMass) {
+      const num = Number(pricePerMass);
+      if (!isNaN(num)) {
+        const valueInKg = num * (MASS_FACTORS[pricePerMassUnit] ?? 1);
+        setPricePerMassInKg(valueInKg);
+      } else {
+        setPricePerMassInKg(0);
+      }
+    } else {
+      setPricePerMassInKg(0);
+    }
+  }, [pricePerMass, pricePerMassUnit]);
+
   // --- CALCULATED FIELDS --- //
   // Area, volume, and weight are always recalculated in SI, then converted for display
 
@@ -618,10 +651,9 @@ export default function StoneCalculator() {
   // Pv = Pm × ρ
   let pricePerVolumeAuto = "";
   let pricePerVolumeSI = 0;
-  if (pricePerMass && density) {
-    // Convert price per mass to price per kg
-    const pricePerMassSI = Number(pricePerMass) / (MASS_FACTORS[pricePerMassUnit] ?? 1); // $/kg
-    pricePerVolumeSI = pricePerMassSI * density; // $/m³
+  if (pricePerMassInKg > 0 && density) {
+    // Use the stored price per mass in kg for calculations
+    pricePerVolumeSI = pricePerMassInKg * density; // $/m³
     const factor = VOLUME_FACTORS[pricePerVolumeUnit] ?? 1;
     pricePerVolumeAuto = (pricePerVolumeSI * factor).toFixed(8).replace(/\.?0+$/, "");
   }
@@ -632,10 +664,9 @@ export default function StoneCalculator() {
   let calculationMethod = "";
 
   // Always auto-calculate total cost if enough data is present
-  if (pricePerMass && density && volumeSI && numStonesNum) {
+  if (pricePerMassInKg > 0 && density && volumeSI && numStonesNum) {
     // Use: C = m × Pm
-    const pricePerMassSI = Number(pricePerMass) / (MASS_FACTORS[pricePerMassUnit] ?? 1);
-    totalCostValue = totalWeightSI * pricePerMassSI;
+    totalCostValue = totalWeightSI * pricePerMassInKg;
     calculationMethod = "Weight × Price per mass";
   } else if (pricePerVolume && volumeSI && numStonesNum) {
     // Use: C = V × Pv
@@ -645,7 +676,7 @@ export default function StoneCalculator() {
   }
 
   // --- Price per volume for display ---
-  const pricePerVolumeDisplay = pricePerMass && density ? pricePerVolumeAuto : pricePerVolume;
+  const pricePerVolumeDisplay = pricePerMassInKg > 0 && density ? pricePerVolumeAuto : pricePerVolume;
 
   // --- CLEAR HANDLER --- //
   function handleClearAll() {
@@ -678,6 +709,7 @@ export default function StoneCalculator() {
     setCircularVolumeUnit("m³");
     setRectAreaUnit("m²");
     setRectVolumeUnit("m³");
+    setPricePerMassInKg(0);
   }
 
   // --- Circular ↔ Diameter sync ---
@@ -939,26 +971,18 @@ export default function StoneCalculator() {
           <div className="flex items-center text-sm font-medium mb-1">
             Price per volume
           </div>
-          <div className="flex items-center border rounded-lg px-3 py-2 bg-gray-50 h-[44px] w-[360px]">
-            <CurrencySelect value={pricePerVolumeCurrency} onChange={setPricePerVolumeCurrency} />
-            <input
-              className="flex-1 min-w-0  bg-transparent border-0 outline-none text-base ml-2"
-              type="number"
-              value={pricePerVolumeDisplay}
-              onChange={handlePricePerVolumeChange}
-              placeholder="Amount"
-              readOnly={!!(pricePerMass && density)}
-              style={pricePerMass && density ? { backgroundColor: "#f3f4f6", color: 'black'} : undefined}
-              onFocus={(e) => {
-                e.preventDefault();
-                const scrollY = window.scrollY;
-                setTimeout(() => window.scrollTo(0, scrollY), 0);
-              }}
-            />
-            <span className="mx-1">/</span>
-            <UnitSelect units={units.volume} value={pricePerVolumeUnit} onChange={setPricePerVolumeUnit} />
-          </div>
-          {pricePerMass && density && !pricePerVolume && (
+          <PricePerVolumeInput
+            value={pricePerVolumeDisplay}
+            onChange={setPricePerVolume}
+            unit={pricePerVolumeUnit}
+            onUnitChange={setPricePerVolumeUnit}
+            unitOptions={units.volume}
+            currency={pricePerVolumeCurrency}
+            onCurrencyChange={setPricePerVolumeCurrency}
+            readOnly={!!(pricePerMass && density)}
+            style={pricePerMass && density ? { backgroundColor: "#f3f4f6", color: 'black'} : undefined}
+          />
+          {pricePerMass && density && (
             <div className="text-xs text-gray-500 mt-1">
               Calculated as: Price per mass × Density
             </div>
@@ -985,12 +1009,7 @@ export default function StoneCalculator() {
           </div>
           {calculationMethod && (
             <div className="text-xs text-gray-500 mt-1">
-              Auto-calculated as: {calculationMethod}
-            </div>
-          )}
-          {(!pricePerMass && !pricePerVolume) && (
-            <div className="text-xs text-gray-400 mt-1">
-              Enter price per mass or price per volume to calculate total cost.
+              Calculated as: {calculationMethod}
             </div>
           )}
         </div>
