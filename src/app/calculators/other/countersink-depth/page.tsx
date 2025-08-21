@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import UnitDropdown from "@/components/UnitDropdown";
-import { convertValue, formatNumberWithCommas, getUnitsByType, getUnitsByValues } from "@/lib/utils";
+import { convertValue, getUnitsByType, getUnitsByValues } from "@/lib/utils";
 import { UNIT_OPTIONS } from "@/constants";
 import { UnitOption } from "@/types/calculator";
 

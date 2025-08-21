@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import UnitDropdown from "@/components/UnitDropdown";
 import { convertValue, formatNumberWithCommas, formatCurrency } from "@/lib/utils";
-import { getUnitsByValues } from "@/lib/utils";
+// import { getUnitsByValues } from "@/lib/utils";
 import { CURRENCY_OPTIONS, CALCULATOR_UNITS } from "@/constants";
 
 // Get the unit values for this calculator
