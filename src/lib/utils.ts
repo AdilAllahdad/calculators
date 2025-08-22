@@ -96,10 +96,13 @@ const conversionFactors = {
   // BTU (base: BTU)
   BTU: {
     'BTU': 1,
+    'BTU/h': 1,           // 1 BTU/h = 1 BTU/hr
     'kW': 3412.14,        // 1 kW = 3412.14 BTU/hr
     'watts': 3.41214,     // 1 watt = 3.41214 BTU/hr
+    'W': 3.41214,         // 1 W = 3.41214 BTU/hr
     'hp(l)': 2544.43,     // 1 hp (mechanical) = 2544.43 BTU/hr
     'hp(E)': 2544.43,     // 1 hp (electrical) = 2544.43 BTU/hr
+    '(hp(E))': 2544.43,   // 1 hp (electrical) = 2544.43 BTU/hr
     'tons': 12000,         // 1 ton of refrigeration = 12000 BTU/hr
     'US ton': 907.185,
     'long ton': 1016.05
@@ -125,6 +128,13 @@ const conversionFactors = {
     'GPM': 0.0163,
     'kW': 1,
     'hp': 0.7457
+  },
+  
+  // Temperature (base: Celsius)
+  temperature: {
+    'C': 1,          // Celsius (base)
+    'F': 0.555556,   // Fahrenheit to Celsius conversion factor
+    'K': -272.15     // Kelvin to Celsius offset
   },
   // Price (base: USD per square meter for area pricing, USD per cubic meter for volume pricing, USD per kg for weight pricing)
   price: {
@@ -204,6 +214,33 @@ export const convertValue = (value: number, fromUnit: string, toUnit: string): n
     const fromFactor = conversionFactors.boiler[fromUnit as keyof typeof conversionFactors.boiler];
     const toFactor = conversionFactors.boiler[toUnit as keyof typeof conversionFactors.boiler];
     return (value * fromFactor) / toFactor;
+  }
+  
+  if (unitType === 'temperature' && fromUnit in conversionFactors.temperature && toUnit in conversionFactors.temperature) {
+    // Temperature conversion requires special handling due to offset values
+    let celsiusValue: number;
+    
+    // Convert to Celsius first
+    if (fromUnit === 'C') {
+      celsiusValue = value;
+    } else if (fromUnit === 'F') {
+      celsiusValue = (value - 32) * 5/9;
+    } else if (fromUnit === 'K') {
+      celsiusValue = value - 273.15;
+    } else {
+      return value;
+    }
+    
+    // Convert from Celsius to target unit
+    if (toUnit === 'C') {
+      return celsiusValue;
+    } else if (toUnit === 'F') {
+      return (celsiusValue * 9/5) + 32;
+    } else if (toUnit === 'K') {
+      return celsiusValue + 273.15;
+    }
+    
+    return value;
   }
   
   if (unitType === 'price' && fromUnit in conversionFactors.price && toUnit in conversionFactors.price) {

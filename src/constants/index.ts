@@ -81,11 +81,19 @@ export const UNIT_OPTIONS: UnitOption[] = [
 
   //BTU Units
   { value: 'BTU', label: 'BTU', type: 'BTU' },
+  { value: 'BTU/h', label: 'BTU/h', type: 'BTU' },
   { value: 'kW', label: 'kW', type: 'BTU' },
   { value: 'watts', label: 'Watts', type: 'BTU' },
+  { value: 'W', label: 'Watts (W)', type: 'BTU' },
   { value: 'hp(l)', label: 'hp(l)', type: 'BTU' },
   { value: 'hp(E)', label: 'hp(E)', type: 'BTU' },
+  { value: '(hp(E))', label: 'hp(E)', type: 'BTU' },
   { value: 'tons', label: 'tons', type: 'BTU' },
+
+  // Temperature units
+  { value: 'C', label: 'Celsius (°C)', type: 'temperature' },
+  { value: 'F', label: 'Fahrenheit (°F)', type: 'temperature' },
+  { value: 'K', label: 'Kelvin (K)', type: 'temperature' },
 
   //Boiler Units
   { value: 'LPM', label: 'Liters per Minute (LPM)', type: 'boiler' },
