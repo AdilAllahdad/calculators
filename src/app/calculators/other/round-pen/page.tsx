@@ -222,9 +222,8 @@ export default function RoundPenCalculator() {
     
     if (circumferenceInM <= 0 || panelLengthInM <= 0) return;
     
-    // Check for realistic relationship between panel length and circumference
-    // The "ideal calculator" seems to show an error when panel length is too large compared to diameter
-    if (panelLengthInM > circumferenceInM / 2) {
+    // Add validation for unrealistically large panel length compared to circumference
+    if (panelLengthInM > circumferenceInM) {
       setNumberOfPanels(0);
       setValidationMessage("This doesn't look right. Please recheck your input values.");
       return;
@@ -242,8 +241,9 @@ export default function RoundPenCalculator() {
       panelsNeeded = Math.ceil(circumferenceInM / panelLengthInM);
     }
     
-    // Check if the result is realistic
-    if (panelsNeeded <= 1 || panelsNeeded > 100) {
+    // Modified validation logic to match the ideal calculator
+    // Check if the calculation resulted in 0, 1, or negative panels
+    if (panelsNeeded <= 0) {
       setNumberOfPanels(0);
       setValidationMessage("This doesn't look right. Please recheck your input values.");
       return;
@@ -828,7 +828,7 @@ export default function RoundPenCalculator() {
               placeholder="0"
             />
             {validationMessage && (
-              <p className={`mt-1 text-sm ${numberOfPanels === 0 ? 'text-red-500' : 'text-gray-500'}`}>
+              <p className={`mt-1 text-sm ${validationMessage.includes("doesn't look right") ? 'text-red-500' : 'text-gray-500'}`}>
                 {validationMessage}
               </p>
             )}
