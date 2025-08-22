@@ -128,6 +128,36 @@ const DENSITY_TO_KGM3: Record<string, number> = {
   "lb/cu yd": 0.593276,
 };
 
+// Add new mass units for price per mass dropdown
+const PRICE_PER_MASS_UNITS = [
+  { label: "microgram", short: "µg" },
+  { label: "milligram", short: "mg" },
+  { label: "gram", short: "g" },
+  { label: "decagram", short: "dag" },
+  { label: "kilogram", short: "kg" },
+  { label: "metric ton", short: "t" },
+  { label: "grain", short: "gr" },
+  { label: "ounce", short: "oz" },
+  { label: "pound", short: "lb" },
+  { label: "US short ton", short: "US ton" },
+  { label: "imperial ton", short: "long ton" }
+];
+
+// Add conversion factors for all price per mass units to kg
+const PRICE_PER_MASS_FACTORS: Record<string, number> = {
+  "µg": 1e-9,
+  "mg": 1e-6,
+  "g": 1e-3,
+  "dag": 1e-2,
+  "kg": 1,
+  "t": 1000,
+  "gr": 0.00006479891,
+  "oz": 0.0283495,
+  "lb": 0.453592,
+  "US ton": 907.18474,
+  "long ton": 1016.0469088
+};
+
 // --- UNIT CONVERSION HELPERS --- //
 function convertValue(
   value: string,
@@ -409,7 +439,6 @@ const PricePerMassInput = React.memo(({
   onChange,
   unit,
   onUnitChange,
-  unitOptions,
   currency,
   onCurrencyChange,
 }: {
@@ -417,44 +446,33 @@ const PricePerMassInput = React.memo(({
   onChange: (v: string) => void;
   unit: string;
   onUnitChange: (v: string) => void;
-  unitOptions: { label: string; value: string }[];
   currency: string;
   onCurrencyChange: (v: string) => void;
 }) => {
-  // Store the original value in kg for calculations
-  const [originalValueInKg, setOriginalValueInKg] = useState<number | null>(null);
-  
   // Only convert the value for this input field when unit changes
-  const handleUnitChange = useCallback((newUnit: string) => {
+  const handleUnitChange = React.useCallback((newUnit: string) => {
     if (unit === newUnit) {
       onUnitChange(newUnit);
       return;
     }
-    
     if (!value) {
       onUnitChange(newUnit);
       return;
     }
-    
     const num = Number(value);
     if (isNaN(num)) {
       onUnitChange(newUnit);
       return;
     }
-    
-    // Convert from current unit to new unit for display only
-    const valueInKg = num * (MASS_FACTORS[unit] ?? 1);
-    const newValue = valueInKg / (MASS_FACTORS[newUnit] ?? 1);
-    
-    // Update the displayed value but keep the original value in kg for calculations
+    // Price per mass conversion: price per old unit -> price per new unit
+    // Example: 22 PKR/kg to PKR/g => 22 / 1000 = 0.022 PKR/g
+    // Example: 0.02 PKR/g to PKR/kg => 0.02 * 1000 = 20 PKR/kg
+    const fromFactor = PRICE_PER_MASS_FACTORS[unit] ?? 1;
+    const toFactor = PRICE_PER_MASS_FACTORS[newUnit] ?? 1;
+    const newValue = num * (fromFactor / toFactor);
     onChange(newValue.toString());
     onUnitChange(newUnit);
-    
-    // Store the original value in kg for calculations
-    if (originalValueInKg === null) {
-      setOriginalValueInKg(valueInKg);
-    }
-  }, [value, unit, onChange, onUnitChange, originalValueInKg]);
+  }, [value, unit, onChange, onUnitChange]);
 
   return (
     <div className="flex items-center border rounded-lg px-3 py-2 bg-gray-50 h-[44px] w-[360px]">
@@ -468,12 +486,17 @@ const PricePerMassInput = React.memo(({
         autoComplete="off"
       />
       <span className="mx-1">/</span>
-      <UnitSelect units={unitOptions} value={unit} onChange={handleUnitChange} />
+      <UnitSelect
+        units={PRICE_PER_MASS_UNITS.map(u => ({ label: u.label, value: u.short }))}
+        value={unit}
+        onChange={handleUnitChange}
+      />
     </div>
   );
 });
 PricePerMassInput.displayName = 'PricePerMassInput';
 
+// --- PricePerVolumeInput: dropdown only converts its own input field, does NOT affect price per volume or total cost ---
 const PricePerVolumeInput = React.memo(({
   value,
   onChange,
@@ -489,7 +512,7 @@ const PricePerVolumeInput = React.memo(({
   onChange: (v: string) => void;
   unit: string;
   onUnitChange: (v: string) => void;
-  unitOptions: { label: string; value: string }[];
+  unitOptions: { label: string; value: string }[]; // <-- add this prop
   currency: string;
   onCurrencyChange: (v: string) => void;
   readOnly?: boolean;
@@ -607,7 +630,7 @@ export default function StoneCalculator() {
     if (pricePerMass) {
       const num = Number(pricePerMass);
       if (!isNaN(num)) {
-        const valueInKg = num * (MASS_FACTORS[pricePerMassUnit] ?? 1);
+        const valueInKg = num * (PRICE_PER_MASS_FACTORS[pricePerMassUnit] ?? 1);
         setPricePerMassInKg(valueInKg);
       } else {
         setPricePerMassInKg(0);
@@ -962,7 +985,6 @@ export default function StoneCalculator() {
             onChange={setPricePerMass}
             unit={pricePerMassUnit}
             onUnitChange={setPricePerMassUnit}
-            unitOptions={units.mass}
             currency={pricePerMassCurrency}
             onCurrencyChange={setPricePerMassCurrency}
           />
@@ -976,7 +998,7 @@ export default function StoneCalculator() {
             onChange={setPricePerVolume}
             unit={pricePerVolumeUnit}
             onUnitChange={setPricePerVolumeUnit}
-            unitOptions={units.volume}
+            unitOptions={units.volume} // <-- pass unitOptions prop here
             currency={pricePerVolumeCurrency}
             onCurrencyChange={setPricePerVolumeCurrency}
             readOnly={!!(pricePerMass && density)}
