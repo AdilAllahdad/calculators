@@ -122,10 +122,41 @@ export default function RoundPenCalculator() {
     setPenCircumference(parseFloat(convertedCircumference.toFixed(4)));
   };
   
+  // State for validation message
+  const [validationMessage, setValidationMessage] = useState<string>("");
+  
   // Calculate number of panels required
   const calculateNumberOfPanels = () => {
     let circumferenceInM: number = 0;
     let panelLengthInM: number = 0;
+    let diameterInM: number = 0;
+    
+    setValidationMessage(""); // Clear previous message
+    
+    // Get diameter in meters for validation
+    if (penDiameterUnit === 'ft-in') {
+      const feet = typeof penDiameterFeet === 'string' ? parseFloat(penDiameterFeet) || 0 : penDiameterFeet;
+      const inches = typeof penDiameterInches === 'string' ? parseFloat(penDiameterInches) || 0 : penDiameterInches;
+      
+      if (feet > 0 || inches > 0) {
+        const valueInFeet = parseFloat((feet + (inches / 12)).toFixed(6));
+        diameterInM = convertValue(valueInFeet, 'ft', 'm');
+      }
+    } 
+    else if (penDiameterUnit === 'm-cm') {
+      const meters = typeof penDiameterMeters === 'string' ? parseFloat(penDiameterMeters) || 0 : penDiameterMeters;
+      const centimeters = typeof penDiameterCentimeters === 'string' ? parseFloat(penDiameterCentimeters) || 0 : penDiameterCentimeters;
+      
+      if (meters > 0 || centimeters > 0) {
+        diameterInM = parseFloat((meters + (centimeters / 100)).toFixed(6));
+      }
+    }
+    else {
+      const numDiameter = typeof penDiameter === 'string' ? parseFloat(penDiameter) || 0 : penDiameter;
+      if (numDiameter > 0) {
+        diameterInM = convertValue(numDiameter, penDiameterUnit, 'm');
+      }
+    }
     
     // Handle different unit types for circumference
     if (penCircumferenceUnit === 'ft-in') {
@@ -191,9 +222,35 @@ export default function RoundPenCalculator() {
     
     if (circumferenceInM <= 0 || panelLengthInM <= 0) return;
     
+    // Check for realistic relationship between panel length and circumference
+    // The "ideal calculator" seems to show an error when panel length is too large compared to diameter
+    if (panelLengthInM > circumferenceInM / 2) {
+      setNumberOfPanels(0);
+      setValidationMessage("This doesn't look right. Please recheck your input values.");
+      return;
+    }
+    
     // Calculate number of panels needed
-    const panelsNeeded = Math.ceil(circumferenceInM / panelLengthInM);
+    // Using direct P = D × π / L formula for more accurate results
+    let panelsNeeded: number;
+    
+    if (diameterInM > 0) {
+      // P = D × π / L formula
+      panelsNeeded = Math.ceil((diameterInM * Math.PI) / panelLengthInM);
+    } else {
+      // Fallback to circumference / length
+      panelsNeeded = Math.ceil(circumferenceInM / panelLengthInM);
+    }
+    
+    // Check if the result is realistic
+    if (panelsNeeded <= 1 || panelsNeeded > 100) {
+      setNumberOfPanels(0);
+      setValidationMessage("This doesn't look right. Please recheck your input values.");
+      return;
+    }
+    
     setNumberOfPanels(panelsNeeded);
+    setValidationMessage("Excluding the entrance panel or any walk-thru gates.");
   };
   
   // Handle unit changes
@@ -461,6 +518,7 @@ export default function RoundPenCalculator() {
     setPenDiameterUnit("cm");
     setPenCircumferenceUnit("cm");
     setPanelLengthUnit("cm");
+    setValidationMessage("");
   };
   
   return (
@@ -754,6 +812,7 @@ export default function RoundPenCalculator() {
                 />
               </div>
             )}
+            <p className="mt-1 text-xs text-gray-500">Standard corral panels are between 4 to 20 feet wide.</p>
           </div>
           
           {/* Number of Panels Required Output */}
@@ -768,6 +827,11 @@ export default function RoundPenCalculator() {
               readOnly
               placeholder="0"
             />
+            {validationMessage && (
+              <p className={`mt-1 text-sm ${numberOfPanels === 0 ? 'text-red-500' : 'text-gray-500'}`}>
+                {validationMessage}
+              </p>
+            )}
           </div>
         </div>
       </div>
