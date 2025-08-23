@@ -625,7 +625,7 @@ const RoofPitchCalculator: React.FC = () => {
             ))}
           </select>
         </div>
-
+        
         <label className="block font-medium mb-1">Total cost</label>
         <input
           className="w-full px-3 py-2 rounded-md border border-gray-200 bg-gray-50"

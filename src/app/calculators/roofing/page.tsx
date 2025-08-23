@@ -30,7 +30,7 @@ export default function RoofingPage() {
       name: "Roofing Calculator",
       description: "Calculate materials needed for your roofing project",
       icon: "🏡",
-      href: "/calculators/roofing/roofing-calculator",
+      href: "/calculators/roofing/roofingCal",
     },
     {
       name: "Roof Pitch Calculator",
