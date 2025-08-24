@@ -43,9 +43,10 @@ interface DropdownProps {
 }
 const Dropdown: React.FC<DropdownProps> = ({ options, value, onChange }) => (
   <select
-    className="border border-gray-700 bg-transparent text-blue-500 font-medium rounded-md h-10 px-2 min-w-[70px] outline-none text-base"
+    className="border border-gray-700 bg-white text-blue-500 font-medium rounded-md h-10 px-2 min-w-[70px] outline-none text-base"
     value={value}
     onChange={e => onChange(e.target.value)}
+    style={{ minWidth: 70 }}
   >
     {options.map(opt => (
       <option key={opt.short} value={opt.short}>{opt.short}</option>
@@ -86,21 +87,24 @@ const Field: React.FC<FieldProps & { error?: string }> = ({
       {info && <InfoIcon tip={infoTip} />}
     </div>
     <div className="flex items-center gap-2">
-      <input
-        type="text"
-        placeholder={placeholder}
-        disabled={disabled}
-        value={value}
-        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
-        className={`flex-1 px-3 py-2 border rounded-md text-base h-10 outline-none font-semibold
-          ${disabled ? 'bg-gray-50 text-gray-900 border-gray-700' : 'bg-white text-gray-900 border-gray-700'}
-          ${error === undefined ? '' : error ? 'border-red-500 bg-red-50' : 'border-gray-700'}
-        `}
-        readOnly={disabled}
-      />
-      {unitOptions && unitValue && onUnitChange && (
-        <Dropdown options={unitOptions} value={unitValue} onChange={onUnitChange} />
-      )}
+      <div className="flex flex-row w-full">
+        <input
+          type="text"
+          placeholder={placeholder}
+          disabled={disabled}
+          value={value}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+          className={`flex-1 px-3 py-2 border rounded-l-md text-base h-10 outline-none font-semibold
+            ${disabled ? 'bg-gray-50 text-gray-900 border-gray-700' : 'bg-white text-gray-900 border-gray-700'}
+            ${error === undefined ? '' : error ? 'border-red-500 bg-red-50' : 'border-gray-700'}
+            ${unitOptions ? 'rounded-r-none' : 'rounded-r-md'}
+          `}
+          readOnly={disabled}
+        />
+        {unitOptions && unitValue && onUnitChange && (
+          <Dropdown options={unitOptions} value={unitValue} onChange={onUnitChange} />
+        )}
+      </div>
       {rightLabel && (
         <span className="ml-2 text-blue-700 font-semibold">{rightLabel}</span>
       )}
