@@ -169,6 +169,12 @@ export const CALCULATOR_CATEGORIES = [
     icon: '📋'
   },
   {
+    id: 'drive-way-calculators',
+    name: 'Drive Way Calculators',
+    path: '/calculators/drive-way-cal',
+    icon: '📋'
+  },
+  {
     id: 'other',
     name: 'Other Calculators',
     path: '/calculators/other',
