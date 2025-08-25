@@ -248,7 +248,7 @@ export default function RoofPitchCalculator() {
     if (cleanValue.trim() !== '' && !isNaN(parseFloat(cleanValue))) {
       const numValue = parseFloat(cleanValue);
       
-      if (numValue < 0 || numValue > 90) {
+      if (numValue < 0 || numValue > 89) {
         setErrors(prev => ({ ...prev, pitch: 'Value must be between 0 and 90 degrees' }));
         return;
       } else {
