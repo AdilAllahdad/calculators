@@ -16,7 +16,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'mi', label: 'miles (mi)', type: 'length' },
   { value: 'ft-in', label: 'feet / inches (ft / in)', type: 'length' },
   { value: 'm-cm', label: 'meters / centimeters (m / cm)', type: 'length' },
-  
+
   // Area units
   { value: 'mm2', label: 'square millimeters (mm²)', type: 'area' },
   { value: 'cm2', label: 'square centimeters (cm²)', type: 'area' },
@@ -40,7 +40,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'mi', label: 'miles (mi)', type: 'perimeter' },
   { value: 'ft-in', label: 'feet / inches (ft / in)', type: 'perimeter' },
   { value: 'm-cm', label: 'meters / centimeters (m / cm)', type: 'perimeter' },
-  
+
   // Volume units
   { value: 'mm3', label: 'cubic millimeters (mm³)', type: 'volume' },
   { value: 'cm3', label: 'cubic centimeters (cm³)', type: 'volume' },
@@ -58,7 +58,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'yd3', label: 'cubic yards (cu yd)', type: 'volume' },
   { value: 'gal', label: 'gallons (US) (gal)', type: 'volume' },
   { value: 'gal-uk', label: 'gallons (UK) (gal)', type: 'volume' },
-  
+
   // Weight units
   { value: 'µg', label: 'micrograms (µg)', type: 'weight' },
   { value: 'mg', label: 'milligrams (mg)', type: 'weight' },
@@ -85,9 +85,11 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'kW', label: 'kW', type: 'BTU' },
   { value: 'watts', label: 'Watts', type: 'BTU' },
   { value: 'W', label: 'Watts (W)', type: 'BTU' },
-  { value: 'hp(l)', label: 'hp(l)', type: 'BTU' },
-  { value: 'hp(E)', label: 'hp(E)', type: 'BTU' },
+  { value: 'mW', label: 'milliwatts (mW)', type: 'BTU' },
+  { value: 'MW', label: 'megawatts (MW)', type: 'BTU' },
+  { value: 'GW', label: 'gigawatts (GW)', type: 'BTU' },
   { value: '(hp(E))', label: 'hp(E)', type: 'BTU' },
+  { value: '(hp(1))', label: 'hp(1)', type: 'BTU' },
   { value: 'tons', label: 'tons', type: 'BTU' },
 
   // Temperature units
@@ -105,7 +107,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'st', label: 'stones (st)', type: 'weight' },
   { value: 'US ton', label: 'US short tons (US ton)', type: 'weight' },
   { value: 'long ton', label: 'imperial tons (long ton)', type: 'weight' },
-  
+
   // Density units
   { value: 't/m3', label: 'tons per cubic meter (t/m³)', type: 'density' },
   { value: 'kg/m3', label: 'kilograms per cubic meter (kg/m³)', type: 'density' },
@@ -119,7 +121,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'lb/yd3', label: 'pounds per cubic yard (lb/cu yd)', type: 'density' },
   { value: 'lb/US gal', label: 'pounds per gallon (US) (lb/US gal)', type: 'density' },
   { value: 'lb/UK gal', label: 'pounds per gallon (UK) (lb/UK gal)', type: 'density' },
-  
+
   // Price units
   { value: 'USD/ft2', label: 'USD per square foot', type: 'price' },
   { value: 'USD/m2', label: 'USD per square meter', type: 'price' },

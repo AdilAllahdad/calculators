@@ -200,14 +200,14 @@ const convertTemperature = (value: string, from: TemperatureUnitType, to: Temper
     // Convert to Celsius first
     let celsius = temp;
     if (from === 'F') {
-        celsius = (temp - 32) * 5/9;
+        celsius = (temp - 32) * 5 / 9;
     } else if (from === 'K') {
         celsius = temp - 273.15;
     }
 
     // Convert from Celsius to target unit
     if (to === 'F') {
-        return ((celsius * 9/5) + 32).toFixed(1);
+        return ((celsius * 9 / 5) + 32).toFixed(1);
     } else if (to === 'K') {
         return (celsius + 273.15).toFixed(1);
     }
@@ -244,7 +244,7 @@ export default function HeatLossCalculator() {
     const handleLengthUnitChange = (newUnitValue: string) => {
         if (!isDimensionsUnit(newUnitValue)) return;
         const newUnit = newUnitValue as DimensionsUnitType;
-        
+
         if (!length || length === '') {
             setLengthUnit(newUnit);
             return;
@@ -258,7 +258,7 @@ export default function HeatLossCalculator() {
     const handleWidthUnitChange = (newUnitValue: string) => {
         if (!isDimensionsUnit(newUnitValue)) return;
         const newUnit = newUnitValue as DimensionsUnitType;
-        
+
         if (!width || width === '') {
             setWidthUnit(newUnit);
             return;
@@ -272,7 +272,7 @@ export default function HeatLossCalculator() {
     const handleHeightUnitChange = (newUnitValue: string) => {
         if (!isDimensionsUnit(newUnitValue)) return;
         const newUnit = newUnitValue as DimensionsUnitType;
-        
+
         if (!height || height === '') {
             setHeightUnit(newUnit);
             return;
@@ -286,7 +286,7 @@ export default function HeatLossCalculator() {
     const handleAmbientTemperatureUnitChange = (newUnitValue: string) => {
         if (!isTemperatureUnit(newUnitValue)) return;
         const newUnit = newUnitValue as TemperatureUnitType;
-        
+
         if (!ambientTemperature || ambientTemperature === '') {
             setAmbientTemperatureUnit(newUnit);
             return;
@@ -301,7 +301,7 @@ export default function HeatLossCalculator() {
     const handleInternalTemperatureUnitChange = (newUnitValue: string) => {
         if (!isTemperatureUnit(newUnitValue)) return;
         const newUnit = newUnitValue as TemperatureUnitType;
-        
+
         if (!internalTemperature || internalTemperature === '') {
             setInternalTemperatureUnit(newUnit);
             return;
@@ -316,6 +316,24 @@ export default function HeatLossCalculator() {
     const handlePowerRequiredUnitChange = (newUnitValue: string) => {
         if (!isPowerLossUnit(newUnitValue)) return;
         const newUnit = newUnitValue as PowerLossUnitType;
+
+        if (!powerRequired || powerRequired === '') {
+            setPowerRequiredUnit(newUnit);
+            return;
+        }
+
+        // Convert power from current unit to new unit
+        const currentPower = Number(powerRequired);
+        if (!currentPower || isNaN(currentPower)) {
+            setPowerRequiredUnit(newUnit);
+            return;
+        }
+
+        // First convert to watts (base unit), then to new unit
+        const powerInWatts = currentPower * powerLossConversionMap[powerRequiredUnit];
+        const convertedPower = powerInWatts / powerLossConversionMap[newUnit];
+
+        setPowerRequired(formatNumber(convertedPower));
         setPowerRequiredUnit(newUnit);
     };
 
@@ -330,19 +348,19 @@ export default function HeatLossCalculator() {
         const lengthM = Number(length) * conversionMap[lengthUnit];
         const widthM = Number(width) * conversionMap[widthUnit];
         const heightM = Number(height) * conversionMap[heightUnit];
-        
+
         // Convert temperatures to Celsius for calculation
         let ambientC = Number(ambientTemperature);
         let internalC = Number(internalTemperature);
-        
+
         if (ambientTemperatureUnit === 'F') {
-            ambientC = (ambientC - 32) * 5/9;
+            ambientC = (ambientC - 32) * 5 / 9;
         } else if (ambientTemperatureUnit === 'K') {
             ambientC = ambientC - 273.15;
         }
-        
+
         if (internalTemperatureUnit === 'F') {
-            internalC = (internalC - 32) * 5/9;
+            internalC = (internalC - 32) * 5 / 9;
         } else if (internalTemperatureUnit === 'K') {
             internalC = internalC - 273.15;
         }
@@ -351,14 +369,14 @@ export default function HeatLossCalculator() {
         const wallArea = 2 * (lengthM * heightM + widthM * heightM);
         const floorArea = level === 'Ground Floor' ? lengthM * widthM : 0;
         const ceilingArea = level === 'Top Floor' ? lengthM * widthM : 0;
-        
+
         // Determine insulation type for calculation
         let insulationType: "none" | "mediocre" | "good" | "custom" = "mediocre";
         if (insulation === 'No extra Insulation') insulationType = 'none';
         else if (insulation === 'Mediocre Insulation') insulationType = 'mediocre';
         else if (insulation === 'Very Well Insulated') insulationType = 'good';
         else if (insulation === 'Custom U-Value') insulationType = 'custom';
-        
+
         // Calculate total heat loss using the formula
         const totalHeatLoss = calcTotalHeatLoss({
             wallArea,
@@ -368,18 +386,21 @@ export default function HeatLossCalculator() {
             ceilingArea,
             areaUnit: 'm2'
         });
-        
+
         // Calculate power required using the formula
         const temperatureDiff = Math.abs(internalC - ambientC);
         const powerWatts = calcPowerRequired(totalHeatLoss, temperatureDiff, 'W');
-        
+
+        // Convert power to the selected unit
+        const convertedPower = handleUnitConversion('W', powerRequiredUnit, powerWatts, powerLossConversionMap);
+
         setHeatloss(formatNumber(totalHeatLoss));
-        setPowerRequired(formatNumber(powerWatts));
+        setPowerRequired(formatNumber(convertedPower));
     };
 
     useEffect(() => {
         calculateHeatLoss();
-    }, [length, width, height, lengthUnit, widthUnit, heightUnit, ambientTemperature, internalTemperature, ambientTemperatureUnit, internalTemperatureUnit, level, insulation, uValue]);
+    }, [length, width, height, lengthUnit, widthUnit, heightUnit, ambientTemperature, internalTemperature, ambientTemperatureUnit, internalTemperatureUnit, level, insulation, uValue, powerRequiredUnit]);
 
     const clearAll = () => {
         setLength('');
@@ -397,6 +418,38 @@ export default function HeatLossCalculator() {
         setUValue(1);
     };
 
+    const reloadCalculator = () => {
+        setLength('');
+        setWidth('');
+        setHeight('');
+        setLevel('Ground Floor');
+        setInsulation('Mediocre Insulation');
+        setNumExternalWalls('4');
+        setNumWindows('');
+        setNumDoors('');
+        setAmbientTemperature('');
+        setInternalTemperature('');
+        setHeatloss('');
+        setPowerRequired('');
+        setUValue(1);
+        setShowAdditionalDetails(false);
+        setShowTemperature(true);
+        setShowHeatinging(true);
+    };
+
+    const shareResult = () => {
+        const result = `Heat Loss Calculator Results:\n\nRoom Dimensions:\nLength: ${length} ${lengthUnit}\nWidth: ${width} ${widthUnit}\nHeight: ${height} ${heightUnit}\nLevel: ${level}\nInsulation: ${insulation}\nExternal Walls: ${numExternalWalls}\n\nTemperature:\nAmbient: ${ambientTemperature} ${ambientTemperatureUnit}\nInternal: ${internalTemperature} ${internalTemperatureUnit}\n\nResults:\nHeat Loss: ${heatloss} W/K\nPower Required: ${powerRequired} ${powerRequiredUnit}`;
+        if (navigator.share) {
+            navigator.share({
+                title: 'Heat Loss Calculator Result',
+                text: result
+            });
+        } else {
+            navigator.clipboard.writeText(result);
+            alert('Result copied to clipboard!');
+        }
+    };
+
     return (
         <div className="flex justify-center">
             <div className="max-w-4xl mx-auto my-auto py-8">
@@ -406,7 +459,7 @@ export default function HeatLossCalculator() {
                         <span className="ml-3 text-2xl">❄️</span>
                     </h1>
                 </div>
-                
+
                 <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200 w-full max-w-lg">
                     <div className="mb-6">
                         <div className="flex items-center justify-between mb-6">
@@ -503,9 +556,9 @@ export default function HeatLossCalculator() {
                                     Level
                                 </label>
                                 <div className="flex gap-2">
-                                    <select 
-                                        name="level" 
-                                        id="level" 
+                                    <select
+                                        name="level"
+                                        id="level"
                                         value={level}
                                         onChange={(e) => setLevel(e.target.value)}
                                         className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
@@ -521,9 +574,9 @@ export default function HeatLossCalculator() {
                                     Insulation
                                 </label>
                                 <div className="flex gap-2">
-                                    <select 
-                                        name="insulation" 
-                                        id="insulation" 
+                                    <select
+                                        name="insulation"
+                                        id="insulation"
                                         value={insulation}
                                         onChange={(e) => setInsulation(e.target.value)}
                                         className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
@@ -540,9 +593,9 @@ export default function HeatLossCalculator() {
                                     Number of External Walls
                                 </label>
                                 <div className="flex gap-2">
-                                    <select 
-                                        name="numExternalWalls" 
-                                        id="numExternalWalls" 
+                                    <select
+                                        name="numExternalWalls"
+                                        id="numExternalWalls"
                                         value={numExternalWalls}
                                         onChange={(e) => setNumExternalWalls(e.target.value)}
                                         className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
@@ -576,21 +629,21 @@ export default function HeatLossCalculator() {
                                 </label>
                                 <div className="flex gap-2">
                                     {insulation === 'Custom U-Value' && (
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             value={uValue}
                                             onChange={(e) => setUValue(Number(e.target.value) || 1)}
-                                            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" 
-                                            placeholder="Enter U-Value" 
+                                            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                            placeholder="Enter U-Value"
                                         />
                                     )}
                                     {insulation !== 'Custom U-Value' && (
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             value={uValue}
                                             onChange={(e) => setUValue(Number(e.target.value) || 1)}
-                                            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" 
-                                            placeholder="Enter U-Value" 
+                                            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                            placeholder="Enter U-Value"
                                             disabled
                                         />
                                     )}
@@ -601,12 +654,12 @@ export default function HeatLossCalculator() {
                                     Number of Windows
                                 </label>
                                 <div className="flex gap-2">
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={numWindows}
                                         onChange={(e) => setNumWindows(e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" 
-                                        placeholder="Enter Number of Windows" 
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                        placeholder="Enter Number of Windows"
                                     />
                                 </div>
                             </div>
@@ -615,12 +668,12 @@ export default function HeatLossCalculator() {
                                     Number of Doors
                                 </label>
                                 <div className="flex gap-2">
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={numDoors}
                                         onChange={(e) => setNumDoors(e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" 
-                                        placeholder="Enter Number of Doors" 
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                        placeholder="Enter Number of Doors"
                                     />
                                 </div>
                             </div>
@@ -638,12 +691,12 @@ export default function HeatLossCalculator() {
                                     Ambient Temperature
                                 </label>
                                 <div className="flex gap-2">
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={ambientTemperature}
                                         onChange={(e) => setAmbientTemperature(e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" 
-                                        placeholder="Enter Ambient Temperature" 
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                        placeholder="Enter Ambient Temperature"
                                     />
                                     <UnitDropdown
                                         value={ambientTemperatureUnit}
@@ -658,12 +711,12 @@ export default function HeatLossCalculator() {
                                     Internal Temperature
                                 </label>
                                 <div className="flex gap-2">
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={internalTemperature}
                                         onChange={(e) => setInternalTemperature(e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" 
-                                        placeholder="Enter Internal Temperature" 
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                        placeholder="Enter Internal Temperature"
                                     />
                                     <UnitDropdown
                                         value={internalTemperatureUnit}
@@ -687,12 +740,12 @@ export default function HeatLossCalculator() {
                                     Heat loss
                                 </label>
                                 <div className="flex gap-2">
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={heatloss}
                                         readOnly
-                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-gray-50" 
-                                        placeholder="Calculated automatically" 
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
+                                        placeholder="Calculated automatically"
                                     />
                                     <span className="text-gray-500 text-sm ml-2">W/K</span>
                                 </div>
@@ -702,12 +755,12 @@ export default function HeatLossCalculator() {
                                     Power required
                                 </label>
                                 <div className="flex gap-2">
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={powerRequired}
                                         readOnly
-                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-gray-50" 
-                                        placeholder="Calculated automatically" 
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
+                                        placeholder="Calculated automatically"
                                     />
                                     <UnitDropdown
                                         value={powerRequiredUnit}
@@ -720,14 +773,29 @@ export default function HeatLossCalculator() {
                         </>
                     )}
                 </div>
-                
+
                 <div className="bg-white mt-4 rounded-xl p-6 shadow-lg border border-slate-200 w-full max-w-lg">
                     <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <button
+                                onClick={shareResult}
+                                className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                            >
+                                <span className="text-white">🔗</span>
+                                Share result
+                            </button>
+                            <button
+                                onClick={reloadCalculator}
+                                className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                            >
+                                Reload calculator
+                            </button>
+                        </div>
                         <button
                             onClick={clearAll}
                             className="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
                         >
-                            Clear All
+                            Clear all changes
                         </button>
                     </div>
                 </div>

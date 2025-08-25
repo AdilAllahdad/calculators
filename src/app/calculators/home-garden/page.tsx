@@ -3,191 +3,191 @@ import Link from 'next/link';
 export default function HomeGardenPage() {
   const calculators = [
     {
-      name:"Air Changes per Hour Calculator",
-      description:"Calculate air changes per hour for ventilation",
-      icon:"💨",
-      href:"/calculators/home-garden/air-changes-per-hour"
+      name: "Air Changes per Hour Calculator",
+      description: "Calculate air changes per hour for ventilation",
+      icon: "💨",
+      href: "/calculators/home-garden/air-changes-per-hour"
     },
     {
-      name:"Air Conditioner BTU Calculator",
-      description:"Calculate BTU requirements for air conditioning",
-      icon:"❄️",
-      href:"/calculators/home-garden/air-conditioner-btu"
+      name: "Air Conditioner BTU Calculator",
+      description: "Calculate BTU requirements for air conditioning",
+      icon: "❄️",
+      href: "/calculators/home-garden/air-conditioner-btu"
     },
     {
-      name:"Arch Calculator",
-      description:"Calculate arch dimensions and materials",
-      icon:"拱",
-      href:"/calculators/home-garden/arch"
+      name: "Arch Calculator",
+      description: "Calculate arch dimensions and materials",
+      icon: "拱",
+      href: "/calculators/home-garden/arch"
     },
     {
-      name:"Boiler Size Calculator",
-      description:"Calculate boiler size for heating systems",
-      icon:"🔥",
-      href:"/calculators/home-garden/boiler-size"
+      name: "Boiler Size Calculator",
+      description: "Calculate boiler size for heating systems",
+      icon: "🔥",
+      href: "/calculators/home-garden/boiler-size"
     },
     {
-      name:"Carpet Calculator",
-      description:"Calculate carpet quantities and costs",
-      icon:"🧷",
-      href:"/calculators/home-garden/carpet"
+      name: "Carpet Calculator",
+      description: "Calculate carpet quantities and costs",
+      icon: "🧷",
+      href: "/calculators/home-garden/carpet"
     },
     {
-      name:"Chicken Coop Size Calculator",
-      description:"Calculate the size of a chicken coop",
-      icon:"🐔",
-      href:"/calculators/home-garden/chicken-coop-size"
+      name: "Chicken Coop Size Calculator",
+      description: "Calculate the size of a chicken coop",
+      icon: "🐔",
+      href: "/calculators/home-garden/chicken-coop-size"
     },
     {
-      name:"Clearance Hole Calculator",
-      description:"Calculate clearance hole sizes",
-      icon:"🕳️",
-      href:"/calculators/home-garden/clearance-hole"
+      name: "Clearance Hole Calculator",
+      description: "Calculate clearance hole sizes",
+      icon: "🕳️",
+      href: "/calculators/home-garden/clearance-hole"
     },
     {
-      name:"Deck Stain Calculator",
-      description:"Calculate the amount of deck stain needed",
-      icon:"🎨",
-      href:"/calculators/home-garden/deck-stain"
+      name: "Deck Stain Calculator",
+      description: "Calculate the amount of deck stain needed",
+      icon: "🎨",
+      href: "/calculators/home-garden/deck-stain"
     },
     {
-      name:"Epoxy Calculator",
-      description:"Calculate epoxy quantities and costs",
-      icon:"🧪",
-      href:"/calculators/home-garden/epoxy"
+      name: "Epoxy Calculator",
+      description: "Calculate epoxy quantities and costs",
+      icon: "🧪",
+      href: "/calculators/home-garden/epoxy"
     },
     {
-      name:"Fence Calculator",
-      description:"Calculate fence materials and costs",
-      icon:"🚧",
-      href:"/calculators/home-garden/fence"
+      name: "Fence Calculator",
+      description: "Calculate fence materials and costs",
+      icon: "🚧",
+      href: "/calculators/home-garden/fence"
     },
     {
-      name:"Rectangle Fence Perimeter Calculator",
-      description:"Calculate the perimeter of a rectangular fence",
-      icon:"🚧",
-      href:"/calculators/home-garden/rectangle-fence-perimeter"
+      name: "Rectangle Fence Perimeter Calculator",
+      description: "Calculate the perimeter of a rectangular fence",
+      icon: "🚧",
+      href: "/calculators/home-garden/rectangle-fence-perimeter"
     },
     {
-      name:"Fence Post Depth Calculator",
-      description:"Calculate the depth of fence posts",
-      icon:"橛",
-      href:"/calculators/home-garden/fence-post-depth"
+      name: "Fence Post Depth Calculator",
+      description: "Calculate the depth of fence posts",
+      icon: "橛",
+      href: "/calculators/home-garden/fence-post-depth"
     },
     {
-      name:"Floor Area Ratio Calculator",
-      description:"Calculate the floor area ratio for building projects",
-      icon:" Büro",
-      href:"/calculators/home-garden/floor-area-ratio"
+      name: "Floor Area Ratio Calculator",
+      description: "Calculate the floor area ratio for building projects",
+      icon: " Büro",
+      href: "/calculators/home-garden/floor-area-ratio"
     },
     {
-      name:"Flooring Calculator",
-      description:"Calculate flooring quantities and costs",
-      icon:"🏠",
-      href:"/calculators/home-garden/flooring"
+      name: "Flooring Calculator",
+      description: "Calculate flooring quantities and costs",
+      icon: "🏠",
+      href: "/calculators/home-garden/flooring"
     },
     {
-      name:"Furnace Size Calculator",
-      description:"Calculate furnace size for heating systems",
-      icon:"🔥",
-      href:"/calculators/home-garden/furnace-size"
+      name: "Furnace Size Calculator",
+      description: "Calculate furnace size for heating systems",
+      icon: "🔥",
+      href: "/calculators/home-garden/furnace-size"
     },
     {
-      name:"Heat Loss Calculator",
-      description:"Calculate heat loss for building insulation",
-      icon:"❄️",
-      href:"/calculators/home-garden/heat-loss"
+      name: "Heat Loss Calculator",
+      description: "Calculate heat loss for building insulation",
+      icon: "❄️",
+      href: "/calculators/home-garden/heat-loss"
     },
     {
-      name:"Hoop House Calculator",
-      description:"Calculate hoop house dimensions and materials",
-      icon:" hoop",
-      href:"/calculators/home-garden/hoop-house"
+      name: "Hoop House Calculator",
+      description: "Calculate greenhouse surface area, heat loss, and heater requirements",
+      icon: "🏠",
+      href: "/calculators/home-garden/hoop-house"
     },
     {
-      name:"Ladder Angle Calculator",
-      description:"Calculate ladder angles for safety",
-      icon:"梯",
-      href:"/calculators/home-garden/ladder-angle"
+      name: "Ladder Angle Calculator",
+      description: "Calculate ladder angles for safety",
+      icon: "梯",
+      href: "/calculators/home-garden/ladder-angle"
     },
     {
-      name:"Paint Calculator",
-      description:"Calculate paint quantities and costs",
-      icon:"🎨",
-      href:"/calculators/home-garden/paint"
+      name: "Paint Calculator",
+      description: "Calculate paint quantities and costs",
+      icon: "🎨",
+      href: "/calculators/home-garden/paint"
     },
     {
-      name:"Paver Calculator",
-      description:"Calculate paver quantities and costs",
-      icon:" paving",
-      href:"/calculators/home-garden/paver"
+      name: "Paver Calculator",
+      description: "Calculate paver quantities and costs",
+      icon: " paving",
+      href: "/calculators/home-garden/paver"
     },
     {
-      name:"Paver Sand Calculator",
-      description:"Calculate paver sand quantities and costs",
-      icon:" paving",
-      href:"/calculators/home-garden/paver-sand"
+      name: "Paver Sand Calculator",
+      description: "Calculate paver sand quantities and costs",
+      icon: " paving",
+      href: "/calculators/home-garden/paver-sand"
     },
     {
-      name:"Plywood Calculator",
-      description:"Calculate plywood quantities and costs",
-      icon:" plywood",
-      href:"/calculators/home-garden/plywood"
+      name: "Plywood Calculator",
+      description: "Calculate plywood quantities and costs",
+      icon: " plywood",
+      href: "/calculators/home-garden/plywood"
     },
     {
-      name:"Ramp Calculator",
-      description:"Calculate ramp dimensions and materials",
-      icon:" ramp",
-      href:"/calculators/home-garden/ramp"
+      name: "Ramp Calculator",
+      description: "Calculate ramp dimensions and materials",
+      icon: " ramp",
+      href: "/calculators/home-garden/ramp"
     },
     {
-      name:"Shiplap Calculator",
-      description:"Calculate shiplap quantities and costs",
-      icon:" shiplap",
-      href:"/calculators/home-garden/shiplap"
+      name: "Shiplap Calculator",
+      description: "Calculate shiplap quantities and costs",
+      icon: " shiplap",
+      href: "/calculators/home-garden/shiplap"
     },
     {
-      name:"Siding Calculator",
-      description:"Calculate siding quantities and costs",
-      icon:" siding",
-      href:"/calculators/home-garden/siding"
+      name: "Siding Calculator",
+      description: "Calculate siding quantities and costs",
+      icon: " siding",
+      href: "/calculators/home-garden/siding"
     },
     {
-      name:"Square Yard Calculator",
-      description:"Calculate square yards for materials",
-      icon:" 📏",
-      href:"/calculators/home-garden/square-yard"
+      name: "Square Yard Calculator",
+      description: "Calculate square yards for materials",
+      icon: " 📏",
+      href: "/calculators/home-garden/square-yard"
     },
     {
-      name:"Stair Carper Calculator",
-      description:"Calculate the amount needed for the stair carpet",
-      icon:" stair",
-      href:"/calculators/home-garden/stair-carpet"
+      name: "Stair Carper Calculator",
+      description: "Calculate the amount needed for the stair carpet",
+      icon: " stair",
+      href: "/calculators/home-garden/stair-carpet"
     },
     {
-      name:"Stair Calculator",
-      description:"Calculate stair dimensions and materials",
-      icon:" stair",
-      href:"/calculators/home-garden/stair"
+      name: "Stair Calculator",
+      description: "Calculate stair dimensions and materials",
+      icon: " stair",
+      href: "/calculators/home-garden/stair"
     },
     {
-      name:"Wainscoting Calculator",
-      description:"Calculate wainscoting quantities and costs",
-      icon:" wainscoting",
-      href:"/calculators/home-garden/wainscoting"
+      name: "Wainscoting Calculator",
+      description: "Calculate wainscoting quantities and costs",
+      icon: " wainscoting",
+      href: "/calculators/home-garden/wainscoting"
     },
     {
-      name:"Wallpaper Calculator",
-      description:"Calculate wallpaper quantities and costs",
-      icon:" wallpaper",
-      href:"/calculators/home-garden/wallpaper"
+      name: "Wallpaper Calculator",
+      description: "Calculate wallpaper quantities and costs",
+      icon: " wallpaper",
+      href: "/calculators/home-garden/wallpaper"
     }
   ];
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-4 text-slate-800 flex items-center">
-          Home & Garden Calculators 
+          Home & Garden Calculators
           <span className="ml-3 text-2xl">🏠</span>
         </h1>
         <p className="text-lg text-slate-700">
@@ -196,7 +196,7 @@ export default function HomeGardenPage() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {calculators.map((calculator, index) => (
-          <Link 
+          <Link
             key={index}
             href={calculator.href}
             className="block p-6 bg-white rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group"
