@@ -35,6 +35,13 @@ export default function MaterialsSpecificationsPage() {
             <p className="text-sm text-gray-600">Calculate the amount of crushed stone needed for your driveway.</p>
           </div>
         </a>
+
+        <a href="/calculators/drive-way-cal/road-base-cal" className="p-4  rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <div className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <h3 className="font-medium">Road Base Calculator</h3>
+            <p className="text-sm text-gray-600">Calculate the amount of road base material needed for your driveway.</p>
+          </div>
+        </a>
       </div>
     </div>
   );
