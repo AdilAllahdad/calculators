@@ -152,6 +152,12 @@ const conversionFactors = {
     'USD/kg': 1,             // Base unit for weight pricing
     'USD/ton': 0.00110231,   // 1 USD/ton = 0.00110231 USD/kg
     'USD/t': 0.001           // 1 USD/t = 0.001 USD/kg
+  },
+  // Heat Loss (base: W/m²·K)
+  heatLoss: {
+    'Btu/h·ft²·°F': 0.17611, // 1 Btu/h·ft²·°F = 0.17611 W/m²·K
+    'W/m²·K': 1,             // Base unit for heat loss
+    'W/ft²·°F': 5.6782633411, // 1 W/ft²·°F = 5.6782633411 W/m²·K
   }
 };
 
@@ -217,6 +223,12 @@ export const convertValue = (value: number, fromUnit: string, toUnit: string): n
   if (unitType === 'boiler' && fromUnit in conversionFactors.boiler && toUnit in conversionFactors.boiler) {
     const fromFactor = conversionFactors.boiler[fromUnit as keyof typeof conversionFactors.boiler];
     const toFactor = conversionFactors.boiler[toUnit as keyof typeof conversionFactors.boiler];
+    return (value * fromFactor) / toFactor;
+  }
+
+  if (unitType === 'heatLoss' && fromUnit in conversionFactors.heatLoss && toUnit in conversionFactors.heatLoss) {
+    const fromFactor = conversionFactors.heatLoss[fromUnit as keyof typeof conversionFactors.heatLoss];
+    const toFactor = conversionFactors.heatLoss[toUnit as keyof typeof conversionFactors.heatLoss];
     return (value * fromFactor) / toFactor;
   }
 

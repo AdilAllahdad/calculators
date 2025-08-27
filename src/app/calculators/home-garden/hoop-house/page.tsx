@@ -79,12 +79,12 @@ const handleUnitConversion = <T extends string>(
     newUnit: T,
     value: number | string,
     conversionTable: ConversionMap<T>
-  ): number => {
+): number => {
     const numValue = Number(value);
     if (!numValue || isNaN(numValue)) return 0;
     const standardValue = numValue * conversionTable[currentUnit];
     return standardValue / conversionTable[newUnit];
-  }
+}
 
 
 interface MaterialOption {
@@ -162,12 +162,19 @@ const calculateHeaterCapacity = (heatLoss: number, efficiency: number): number =
     return heatLoss / efficiency;
 };
 
+// Calculate gable height (height from sidewall to peak)
+const calculateGableHeight = (totalHeight: number, sidewallHeight: number): number => {
+    return totalHeight - sidewallHeight;
+};
+
 export default function HoopHouseCalculator() {
     const [greenhouseType, setGreenhouseType] = useState<GreenhouseType>('gable');
     const [totalHeight, setTotalHeight] = useState<string>('');
     const [totalHeightUnit, setTotalHeightUnit] = useState<string>('m');
     const [sidewallHeight, setSidewallHeight] = useState<string>('');
     const [sidewallHeightUnit, setSidewallHeightUnit] = useState<string>('m');
+    const [gableHeight, setGableHeight] = useState<string>('');
+    const [gableHeightUnit, setGableHeightUnit] = useState<string>('m');
     const [width, setWidth] = useState<string>('');
     const [widthUnit, setWidthUnit] = useState<string>('m');
     const [length, setLength] = useState<string>('');
@@ -194,6 +201,23 @@ export default function HoopHouseCalculator() {
     const [showHeatLossDetails, setShowHeatLossDetails] = useState<boolean>(true);
     const [showMaterialCostDetails, setShowMaterialCostDetails] = useState<boolean>(true);
 
+    // Calculate gable height when total height or sidewall height changes
+    useEffect(() => {
+        if (totalHeight && sidewallHeight) {
+            const totalHeightNum = Number(totalHeight);
+            const sidewallHeightNum = Number(sidewallHeight);
+            const gableHeightNum = calculateGableHeight(totalHeightNum, sidewallHeightNum);
+
+            if (gableHeightNum > 0) {
+                setGableHeight(formatNumber(gableHeightNum));
+            } else {
+                setGableHeight('');
+            }
+        } else {
+            setGableHeight('');
+        }
+    }, [totalHeight, sidewallHeight]);
+
     // Calculate all values when inputs change
     useEffect(() => {
         if (!totalHeight || !sidewallHeight || !width || !length || !insideTemperature || !outsideTemperature) {
@@ -204,11 +228,34 @@ export default function HoopHouseCalculator() {
             return;
         }
 
+        // Validate gable height and sidewall height
+        const totalHeightNum = Number(totalHeight);
+        const sidewallHeightNum = Number(sidewallHeight);
+        const gableHeightNum = calculateGableHeight(totalHeightNum, sidewallHeightNum);
+
+        if (gableHeightNum <= 0) {
+            setSurfaceArea('');
+            setHeatLoss('');
+            setHeaterCapacity('');
+            setMaterialCost('');
+            return;
+        }
+
+        // Validate heater efficiency
+        const efficiency = Number(heaterEfficiency);
+        if (efficiency <= 0 || efficiency > 1) {
+            setSurfaceArea('');
+            setHeatLoss('');
+            setHeaterCapacity('');
+            setMaterialCost('');
+            return;
+        }
+
         // Calculate surface area
         const area = calculateSurfaceArea(
             greenhouseType,
-            Number(totalHeight),
-            Number(sidewallHeight),
+            totalHeightNum,
+            sidewallHeightNum,
             Number(width),
             Number(length)
         );
@@ -216,18 +263,22 @@ export default function HoopHouseCalculator() {
 
         // Get heat loss coefficient
         const material = materials.find(m => m.name === selectedMaterial);
-        let heatLossCoeff = material?.heatLossCoeff || 0;
+        let heatLossCoeffValue = material?.heatLossCoeff || 0;
 
-        if (heatLossCoeff > 0) {
+        // If custom material is selected, use the manually entered value
+        if (selectedMaterial === 'Custom heat loss coefficient') {
+            heatLossCoeffValue = Number(heatLossCoeff) || 0;
+        }
+
+        if (heatLossCoeffValue > 0) {
             // Calculate heat loss in watts
-            const heatLossWatts = calculateHeatLoss(area, heatLossCoeff, Number(insideTemperature), Number(outsideTemperature));
+            const heatLossWatts = calculateHeatLoss(area, heatLossCoeffValue, Number(insideTemperature), Number(outsideTemperature));
 
             // Convert to kilowatts for display
             const heatLossKW = heatLossWatts / 1000;
             setHeatLoss(formatNumber(heatLossKW));
 
             // Calculate heater capacity
-            const efficiency = Number(heaterEfficiency) || 0.8;
             const capacityWatts = calculateHeaterCapacity(heatLossWatts, efficiency);
             const capacityKW = capacityWatts / 1000;
             setHeaterCapacity(formatNumber(capacityKW));
@@ -245,8 +296,60 @@ export default function HoopHouseCalculator() {
         }
     }, [
         greenhouseType, totalHeight, sidewallHeight, width, length,
-        selectedMaterial, insideTemperature, outsideTemperature, heaterEfficiency, pricePerUnit
+        selectedMaterial, insideTemperature, outsideTemperature, heaterEfficiency, pricePerUnit, heatLossCoeff
     ]);
+
+    // Handle material selection changes
+    useEffect(() => {
+        const material = materials.find(m => m.name === selectedMaterial);
+        if (material) {
+            setHeatLossCoeffUnit(material.unit);
+            if (selectedMaterial !== 'Custom heat loss coefficient') {
+                setHeatLossCoeff(material.heatLossCoeff.toString());
+            }
+        }
+    }, [selectedMaterial]);
+
+    // Handle unit conversions for dimensions
+    const handleDimensionUnitChange = (newUnit: string, oldUnit: string, value: string, setter: (value: string) => void, unitSetter: (unit: string) => void) => {
+        if (value && oldUnit !== newUnit) {
+            const convertedValue = handleUnitConversion(oldUnit as DimensionsUnitType, newUnit as DimensionsUnitType, value, dimensionConversions);
+            setter(convertedValue.toString());
+            unitSetter(newUnit);
+        }
+    };
+
+    const handleTemperatureUnitChange = (newUnit: string, oldUnit: string, value: string, setter: (value: string) => void, unitSetter: (unit: string) => void) => {
+        if (value && oldUnit !== newUnit) {
+            const convertedValue = handleUnitConversion(oldUnit as TemperatureUnitType, newUnit as TemperatureUnitType, value, temperatureConversions);
+            setter(convertedValue.toString());
+            unitSetter(newUnit);
+        }
+    };
+
+    const handlePowerUnitChange = (newUnit: string, oldUnit: string, value: string, setter: (value: string) => void, unitSetter: (unit: string) => void) => {
+        if (value && oldUnit !== newUnit) {
+            const convertedValue = handleUnitConversion(oldUnit as PowerUnitType, newUnit as PowerUnitType, value, powerConversions);
+            setter(convertedValue.toString());
+            unitSetter(newUnit);
+        }
+    };
+
+    const handleAreaUnitChange = (newUnit: string, oldUnit: string, value: string, setter: (value: string) => void, unitSetter: (unit: string) => void) => {
+        if (value && oldUnit !== newUnit) {
+            const convertedValue = handleUnitConversion(oldUnit as AreaUnitType, newUnit as AreaUnitType, value, areaConversions);
+            setter(convertedValue.toString());
+            unitSetter(newUnit);
+        }
+    };
+
+    const handleHeatLossCoeffUnitChange = (newUnit: string, oldUnit: string, value: string, setter: (value: string) => void, unitSetter: (unit: string) => void) => {
+        if (value && oldUnit !== newUnit) {
+            const convertedValue = handleUnitConversion(oldUnit as HeatLossCoeffUnitType, newUnit as HeatLossCoeffUnitType, value, heatLossCoeffConversions);
+            setter(convertedValue.toString());
+            unitSetter(newUnit);
+        }
+    };
 
     const getImage = () => {
         switch (greenhouseType) {
@@ -272,22 +375,27 @@ export default function HoopHouseCalculator() {
     }
 
     const shareResult = () => {
+        const resultText = `Hoop House Calculator Results:
+Surface Area: ${surfaceArea} m²
+Heat Loss: ${heatLoss} kW
+Heater Capacity: ${heaterCapacity} kW
+Material Cost: ${materialCost ? `$${materialCost}` : 'Not calculated'}`;
 
         if (navigator.share) {
             navigator.share({
                 title: 'Hoop House Calculator Result',
-                text: result
+                text: resultText
             });
         } else {
-            navigator.clipboard.writeText(result);
+            navigator.clipboard.writeText(resultText);
             alert('Result copied to clipboard!');
         }
     }
 
     const clearAll = () => {
-
         setTotalHeight('');
         setSidewallHeight('');
+        setGableHeight('');
         setWidth('');
         setLength('');
         setInsideTemperature('');
@@ -298,7 +406,7 @@ export default function HoopHouseCalculator() {
         setHeatLoss('');
         setHeaterCapacity('');
         setMaterialCost('');
-    }   
+    }
 
     return (
         <div className="flex justify-center">
@@ -339,68 +447,101 @@ export default function HoopHouseCalculator() {
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">Total Height</label>
-                            <input
-                                type="text"
-                                value={totalHeight}
-                                onChange={(e) => setTotalHeight(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Enter total height"
-                            />
-                            <UnitDropdown
-                                value={totalHeightUnit}
-                                onChange={(e) => setTotalHeightUnit(e.target.value)}
-                                unitValues={dimensionUnitValues}
-                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                            />
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={totalHeight}
+                                    onChange={(e) => setTotalHeight(e.target.value)}
+                                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Enter total height"
+                                />
+                                <UnitDropdown
+                                    value={totalHeightUnit}
+                                    onChange={(e) => handleDimensionUnitChange(e.target.value, totalHeightUnit, totalHeight, setTotalHeight, setTotalHeightUnit)}
+                                    unitValues={dimensionUnitValues}
+                                    className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                />
+                            </div>
+                            {totalHeight && sidewallHeight && Number(totalHeight) <= Number(sidewallHeight) && (
+                                <p className="text-red-500 text-sm mt-1">Gable height must be greater than 0. Total height must be greater than sidewall height.</p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">Sidewall Height</label>
-                            <input
-                                type="text"
-                                value={sidewallHeight}
-                                onChange={(e) => setSidewallHeight(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Enter sidewall height"
-                            />
-                            <UnitDropdown
-                                value={sidewallHeightUnit}
-                                onChange={(e) => setSidewallHeightUnit(e.target.value)}
-                                unitValues={dimensionUnitValues}
-                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                            />
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={sidewallHeight}
+                                    onChange={(e) => setSidewallHeight(e.target.value)}
+                                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Enter sidewall height"
+                                />
+                                <UnitDropdown
+                                    value={sidewallHeightUnit}
+                                    onChange={(e) => handleDimensionUnitChange(e.target.value, sidewallHeightUnit, sidewallHeight, setSidewallHeight, setSidewallHeightUnit)}
+                                    unitValues={dimensionUnitValues}
+                                    className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                />
+                            </div>
+                            {totalHeight && sidewallHeight && Number(sidewallHeight) >= Number(totalHeight) && (
+                                <p className="text-red-500 text-sm mt-1">Sidewall height must be smaller than total height.</p>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Gable Height</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={gableHeight}
+                                    readOnly
+                                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-gray-50 cursor-not-allowed"
+                                    placeholder="Calculated automatically"
+                                />
+                                <UnitDropdown
+                                    value={totalHeightUnit}
+                                    onChange={(e) => handleDimensionUnitChange(e.target.value, totalHeightUnit, totalHeight, setTotalHeight, setTotalHeightUnit)}
+                                    unitValues={dimensionUnitValues}
+                                    className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                />
+                            </div>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">Width</label>
-                            <input
-                                type="text"
-                                value={width}
-                                onChange={(e) => setWidth(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Enter width"
-                            />
-                            <UnitDropdown
-                                value={widthUnit}
-                                onChange={(e) => setWidthUnit(e.target.value)}
-                                unitValues={dimensionUnitValues}
-                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                            />
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={width}
+                                    onChange={(e) => setWidth(e.target.value)}
+                                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Enter width"
+                                />
+                                <UnitDropdown
+                                    value={widthUnit}
+                                    onChange={(e) => handleDimensionUnitChange(e.target.value, widthUnit, width, setWidth, setWidthUnit)}
+                                    unitValues={dimensionUnitValues}
+                                    className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                />
+                            </div>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">Length</label>
-                            <input
-                                type="text"
-                                value={length}
-                                onChange={(e) => setLength(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Enter length"
-                            />
-                            <UnitDropdown
-                                value={lengthUnit}
-                                onChange={(e) => setLengthUnit(e.target.value)}
-                                unitValues={dimensionUnitValues}
-                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                            />
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={length}
+                                    onChange={(e) => setLength(e.target.value)}
+                                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Enter length"
+                                />
+                                <UnitDropdown
+                                    value={lengthUnit}
+                                    onChange={(e) => handleDimensionUnitChange(e.target.value, lengthUnit, length, setLength, setLengthUnit)}
+                                    unitValues={dimensionUnitValues}
+                                    className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                />
+                            </div>
                         </div>
+
                     </div>
                 </div>
 
@@ -417,83 +558,85 @@ export default function HoopHouseCalculator() {
                     </div>
                     {showMaterialDetails && (
                         <>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Material</label>
-                            <select
-                                value={selectedMaterial}
-                                onChange={(e) => setSelectedMaterial(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                            >
-                                {materials.map((material) => (
-                                    <option key={material.name} value={material.name}>
-                                        {material.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Material</label>
+                                <select
+                                    value={selectedMaterial}
+                                    onChange={(e) => setSelectedMaterial(e.target.value)}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                >
+                                    {materials.map((material) => (
+                                        <option key={material.name} value={material.name}>
+                                            {material.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Heat Loss Coefficient</label>
-                            <input
-                                type="text"
-                                value={heatLossCoeff}
-                                onChange={(e) => setHeatLossCoeff(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Enter heat loss coefficient"
-                            />
-                            <UnitDropdown
-                                value={heatLossCoeffUnit}
-                                onChange={(e) => setHeatLossCoeffUnit(e.target.value)}
-                                unitValues={heatLossCoeffUnitValues}
-                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                            />
-                        </div>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Heat Loss Coefficient</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={heatLossCoeff}
+                                        onChange={(e) => setHeatLossCoeff(e.target.value)}
+                                        readOnly={selectedMaterial !== 'Custom heat loss coefficient'}
+                                        className={`flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${selectedMaterial !== 'Custom heat loss coefficient' ? 'bg-gray-50 cursor-not-allowed' : ''
+                                            }`}
+                                        placeholder={selectedMaterial === 'Custom heat loss coefficient' ? "Enter heat loss coefficient" : "Auto-filled from material"}
+                                    />
+                                    <UnitDropdown
+                                        value={heatLossCoeffUnit}
+                                        onChange={(e) => handleHeatLossCoeffUnitChange(e.target.value, heatLossCoeffUnit, heatLossCoeff, setHeatLossCoeff, setHeatLossCoeffUnit)}
+                                        unitValues={heatLossCoeffUnitValues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                                </div>
+                                {selectedMaterial !== 'Custom heat loss coefficient' && (
+                                    <p className="text-sm text-gray-500 mt-1">Value automatically set based on selected material</p>
+                                )}
+                                {selectedMaterial === 'Custom heat loss coefficient' && (
+                                    <p className="text-sm text-gray-500 mt-1">Enter your custom heat loss coefficient value</p>
+                                )}
+                            </div>
 
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Inside Temperature (°C)</label>
-                            <input
-                                type="text"
-                                value={insideTemperature}
-                                onChange={(e) => setInsideTemperature(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Enter inside temperature"
-                            />
-                            <UnitDropdown
-                                value={insideTemperatureUnit}
-                                onChange={(e) => setInsideTemperatureUnit(e.target.value)}
-                                unitValues={temperatureUnitValues}
-                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                            />
-                        </div>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Inside Temperature</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={insideTemperature}
+                                        onChange={(e) => setInsideTemperature(e.target.value)}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Enter inside temperature"
+                                    />
+                                    <UnitDropdown
+                                        value={insideTemperatureUnit}
+                                        onChange={(e) => handleTemperatureUnitChange(e.target.value, insideTemperatureUnit, insideTemperature, setInsideTemperature, setInsideTemperatureUnit)}
+                                        unitValues={temperatureUnitValues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                                </div>
+                            </div>
 
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Outside Temperature (°C)</label>
-                            <input
-                                type="text"
-                                value={outsideTemperature}
-                                onChange={(e) => setOutsideTemperature(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Enter outside temperature"
-                            />
-                            <UnitDropdown
-                                value={outsideTemperatureUnit}
-                                onChange={(e) => setOutsideTemperatureUnit(e.target.value)}
-                                unitValues={temperatureUnitValues}
-                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                            />
-                        </div>
-
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Heater Efficiency</label>
-                            <input
-                                type="text"
-                                value={heaterEfficiency}
-                                onChange={(e) => setHeaterEfficiency(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Enter heater efficiency (0.0 - 1.0)"
-                            />
-                            <span className="text-sm text-gray-500">Decimal value (e.g., 0.8 for 80%)</span>
-                        </div>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Outside Temperature</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={outsideTemperature}
+                                        onChange={(e) => setOutsideTemperature(e.target.value)}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Enter outside temperature"
+                                    />
+                                    <UnitDropdown
+                                        value={outsideTemperatureUnit}
+                                        onChange={(e) => handleTemperatureUnitChange(e.target.value, outsideTemperatureUnit, outsideTemperature, setOutsideTemperature, setOutsideTemperatureUnit)}
+                                        unitValues={temperatureUnitValues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                                </div>
+                            </div>
                         </>
                     )}
                 </div>
@@ -512,39 +655,58 @@ export default function HoopHouseCalculator() {
                     {showHeatLossDetails && (
                         <div className="space-y-4">
                             <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Heat Loss</label>
-                            <input
-                                type="text"
-                                value={heatLoss}
-                                readOnly
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
-                                placeholder="Calculated automatically"
-                            />
-                            <UnitDropdown
-                                value={heatLossUnit}
-                                onChange={(e) => setHeatLossUnit(e.target.value)}
-                                unitValues={powerUnitValues}
-                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                            />
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Heat Loss</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={heatLoss}
+                                        readOnly
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
+                                        placeholder="Calculated automatically"
+                                    />
+                                    <UnitDropdown
+                                        value={heatLossUnit}
+                                        onChange={(e) => handlePowerUnitChange(e.target.value, heatLossUnit, heatLoss, setHeatLoss, setHeatLossUnit)}
+                                        unitValues={powerUnitValues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                                </div>
                             </div>
-                            
+
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Heater Efficiency</label>
+                                <input
+                                    type="text"
+                                    value={heaterEfficiency}
+                                    onChange={(e) => setHeaterEfficiency(e.target.value)}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Enter heater efficiency (0.0 - 1.0)"
+                                />
+                                <span className="text-sm text-gray-500">Decimal value (e.g., 0.8 for 80%)</span>
+                                {heaterEfficiency && (Number(heaterEfficiency) <= 0 || Number(heaterEfficiency) > 1) && (
+                                    <p className="text-red-500 text-sm mt-1">Heater efficiency must be between 0 and 1.</p>
+                                )}
+                            </div>
+
                             <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Heater Capacity Needed</label>
-                            <input
-                                type="text"
-                                value={heaterCapacity}
-                                readOnly
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
-                                placeholder="Calculated automatically"
-                            />
-                            <UnitDropdown
-                                value={heaterCapacityUnit}
-                                onChange={(e) => setHeaterCapacityUnit(e.target.value)}
-                                unitValues={powerUnitValues}
-                                className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                            />
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Heater Capacity Needed</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={heaterCapacity}
+                                        readOnly
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
+                                        placeholder="Calculated automatically"
+                                    />
+                                    <UnitDropdown
+                                        value={heaterCapacityUnit}
+                                        onChange={(e) => handlePowerUnitChange(e.target.value, heaterCapacityUnit, heaterCapacity, setHeaterCapacity, setHeaterCapacityUnit)}
+                                        unitValues={powerUnitValues}
+                                        className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    />
+                                </div>
+                            </div>
                         </div>
-                    </div>
                     )}
                 </div>
 
@@ -561,94 +723,67 @@ export default function HoopHouseCalculator() {
                     </div>
                     {showMaterialCostDetails && (
                         <>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Surface Area</label>
-                            <input
-                                type="text"
-                                value={surfaceArea}
-                                readOnly
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
-                                placeholder="Calculated automatically"
-                            />
-                            <span className="text-sm text-gray-500">m²</span>
-                        </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Price per Square Meter</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={pricePerUnit}
+                                            onChange={(e) => setPricePerUnit(e.target.value)}
+                                            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Enter price per square meter"
+                                        />
+                                        <UnitDropdown
+                                            value={pricePerUnitUnit}
+                                            onChange={(e) => handleAreaUnitChange(e.target.value, pricePerUnitUnit, pricePerUnit, setPricePerUnit, setPricePerUnitUnit)}
+                                            unitValues={areaUnitValues}
+                                            className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Material Cost</label>
+                                    <div className="flex flex-row gap-2">
+                                        <span className="text-2xl text-gray-500 mt-1">PKR</span>
+                                        <input
+                                            type="text"
+                                            value={materialCost}
+                                            readOnly
+                                            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
+                                            placeholder="Calculated automatically"
+                                        />
+                                    </div>
+                                </div>
 
 
-                        {materialCost && (
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Material Cost</label>
-                                <input
-                                    type="text"
-                                    value={materialCost}
-                                    readOnly
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
-                                    placeholder="Calculated automatically"
-                                />
-                                <UnitDropdown
-                                    value={pricePerUnitUnit}
-                                    onChange={(e) => setPricePerUnitUnit(e.target.value)}
-                                    unitValues={areaUnitValues}
-                                    className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                                />
                             </div>
-                        )}
-                    </div>
-                    </>
+                        </>
                     )}
-                </div>
-                <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200 w-full max-w-lg mb-4">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-semibold mb-4 text-slate-800">Material Cost</h2>
-                        <a onClick={() => setShowMaterialCostDetails(!showMaterialCostDetails)}>
-                            {showMaterialCostDetails ? (
-                                <ChevronUp className="text-blue-500 hover:scale-110 transition-transform duration-200" />
-                            ) : (
-                                <ChevronDown className="text-blue-500 hover:scale-110 transition-transform duration-200" />
-                            )}
-                        </a>
-                    </div>
-                    {showMaterialCostDetails && (
-                        <>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Price per Square Meter ($/m²)</label>
-                        <input
-                            type="text"
-                            value={pricePerUnit}
-                            onChange={(e) => setPricePerUnit(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Enter price per square meter"
-                        />
-                        <UnitDropdown
-                            value={pricePerUnitUnit}
-                            onChange={(e) => setPricePerUnitUnit(e.target.value)}
-                            unitValues={areaUnitValues}
-                            className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                        />
-                    </div>
-                    </>
-                    )}
-                </div>
 
-                <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200 w-full max-w-lg">
-                    <div className="grid grid-cols-2 gap-4">
+                    <hr className='border-black opacity-10 m-8' />
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <button
+                                onClick={shareResult}
+                                className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                            >
+                                <span className="text-white">🔗</span>
+                                Share result
+                            </button>
+                            <button
+                                onClick={reloadCalculator}
+                                className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                            >
+                                Reload calculator
+                            </button>
+                        </div>
                         <button
                             onClick={clearAll}
                             className="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
                         >
-                            Clear All
-                        </button>
-                        <button
-                            onClick={shareResult}
-                            className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                        >
-                            Share Result
-                        </button>
-                        <button
-                            onClick={reloadCalculator}
-                            className="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
-                        >
-                            Reload Calculator
+                            Clear all changes
                         </button>
                     </div>
                 </div>

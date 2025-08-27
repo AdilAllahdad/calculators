@@ -132,7 +132,11 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'USD/lb', label: 'USD per pound', type: 'price' },
   { value: 'USD/kg', label: 'USD per kilogram', type: 'price' },
   { value: 'USD/ton', label: 'USD per ton (US)', type: 'price' },
-  { value: 'USD/t', label: 'USD per metric ton', type: 'price' }
+  { value: 'USD/t', label: 'USD per metric ton', type: 'price' },
+
+  // Heat Loss units
+  { value: 'Btu/h·ft²·°F', label: 'Btu per hour per square foot per Fahrenheit', type: 'heatLoss' },
+  { value: 'W/m²·K', label: 'Watt per square meter per Kelvin', type: 'heatLoss' },
 ];
 
 export const CURRENCY_OPTIONS = [
