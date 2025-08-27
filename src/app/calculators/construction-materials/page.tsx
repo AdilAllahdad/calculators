@@ -114,7 +114,7 @@ export default function ConstructionMaterialsPage() {
       name: "Rebar Calculator",
       description: "Calculate rebar requirements for concrete",
       icon: "🏗️",
-      href: "/calculators/construction-materials/rebar",
+      href: "/calculators/construction-materials/rebar-calculator",
     },
     {
       name: "Retaining Wall Calculator",
