@@ -196,6 +196,37 @@ const page = () => {
   const [neutralAxis, setNeutralAxis] = useState('')
   const [neutralAxisUnit, setNeutralAxisUnit] = useState<LengthUnit>('mm')
 
+  // --- For Bend Angle: display value and calculation value separation ---
+  const [angleDisplay, setAngleDisplay] = useState('');
+  // angle: used for calculation (always in angleUnit), angleDisplay: shown in input
+
+  // When angle changes, update both display and calculation value
+  const handleAngleChange = (v: string) => {
+    setAngleDisplay(v);
+    setAngle(v);
+  };
+
+  // When angle unit changes, only convert and update the display value, not the calculation value
+  const handleAngleUnitChangeDisplayOnly = (
+    newUnit: string,
+    prevUnit: AngleUnit,
+    setUnit: (v: AngleUnit) => void,
+    angleValue: string,
+    setAngleDisplay: (v: string) => void
+  ) => {
+    if (angleValue) {
+      const num = parseFloat(angleValue);
+      if (!isNaN(num)) {
+        // Convert display value to radians, then to new unit for display only
+        const radians = toRadians[prevUnit](num);
+        const newValue = fromRadians[newUnit as AngleUnit](radians);
+        setAngleDisplay(newValue ? String(Number(newValue.toFixed(6))) : '');
+      }
+    }
+    setUnit(newUnit as AngleUnit);
+    // Do NOT update the calculation value (angle)
+  };
+
   // Handle unit changes for each field independently
   const handleLengthUnitChange = (
     value: string,
@@ -215,26 +246,8 @@ const page = () => {
     setUnit(value as LengthUnit)
   }
 
-  const handleAngleUnitChange = (
-    value: string,
-    prevUnit: AngleUnit,
-    setUnit: (v: AngleUnit) => void,
-    inputValue: string,
-    setInputValue: (v: string) => void
-  ) => {
-    if (inputValue) {
-      const num = parseFloat(inputValue)
-      if (!isNaN(num)) {
-        const radians = toRadians[prevUnit](num)
-        const newValue = fromRadians[value as AngleUnit](radians)
-        setInputValue(newValue ? String(Number(newValue.toFixed(6))) : '')
-      }
-    }
-    setUnit(value as AngleUnit)
-  }
-
   // K-factor calculation
-  // K = (180 * BA) / (π * θ * T) - (Ri / T)
+  // Use angle (not angleDisplay) for calculation
   let calcKFactor = kFactor
   let calcNeutralAxis = neutralAxis
 
@@ -247,7 +260,7 @@ const page = () => {
     const T = toMeters[thicknessUnit](parseFloat(thickness))
     const Ri = toMeters[radiusUnit](parseFloat(radius))
     const BA = toMeters[allowanceUnit](parseFloat(allowance))
-    const theta = toRadians[angleUnit](parseFloat(angle))
+    const theta = toRadians[angleUnit](parseFloat(angle)) // use angle, not angleDisplay
 
     if (T !== 0 && theta !== 0) {
       const k = ((180 * BA) / (Math.PI * parseFloat(angle) * T)) - (Ri / T)
@@ -316,11 +329,17 @@ const page = () => {
         />
         <Field
           label="Bend angle (θ)"
-          value={angle}
-          onChange={setAngle}
+          value={angleDisplay}
+          onChange={handleAngleChange}
           unitValue={angleUnit}
           onUnitChange={v =>
-            handleAngleUnitChange(v, angleUnit, setAngleUnit, angle, setAngle)
+            handleAngleUnitChangeDisplayOnly(
+              v,
+              angleUnit,
+              setAngleUnit,
+              angleDisplay,
+              setAngleDisplay
+            )
           }
           unitOptions={unitOptions.angle}
           info

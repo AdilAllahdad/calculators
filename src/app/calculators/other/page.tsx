@@ -11,7 +11,7 @@ const calculators = [
       name: "Angle of Depression Calculator", 
       description: "Determine angles of depression in construction and surveying",
       icon: "📉",
-      href: "/calculators/other/angle-of-depression"
+      href: "/calculators/other/other/angel-depression"
     },
     {
       name: "Bolt Circle Calculator",
@@ -35,7 +35,7 @@ const calculators = [
       name: "Elevation Grade Calculator",
       description: "Calculate elevation grades for landscaping and construction",
       icon: "🏞️",
-      href: "/calculators/other/elevation-grade"
+      href: "/calculators/other/alevation-grade"
     },
     {
       name: "Miter Angle Calculator",

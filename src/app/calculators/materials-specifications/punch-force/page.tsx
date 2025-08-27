@@ -25,7 +25,7 @@ const MATERIAL_OPTIONS = [
   { label: "Grey Cast Iron ASTM 40" },
   { label: "Brass UNS C28000" },
   { label: "Al 2024-T3" },
-  { label: "Balsa Panel" },
+  { label: "3M Balsa Panel" },
   { label: "Stainless Steel 316" },
   { label: "Custom" }
 ];
@@ -83,11 +83,11 @@ const FORCE_FACTORS: Record<string, number> = {
 // --- Material shear strength lookup (MPa) - STANDARD VALUES ---
 const MATERIAL_SHEAR_STRENGTH: Record<string, number> = {
   "Al 7075-T6": 331,
-  "Al 6061-O": 82.7,  // Correct value in MPa
+  "Al 6061-O": 82.7,
   "Grey Cast Iron ASTM 40": 400,
   "Brass UNS C28000": 270,
   "Al 2024-T3": 283,
-  "Balsa Panel": 2.98,  // Correct value in MPa
+  "Balsa Panel": 2.98,
   "Stainless Steel 316": 400
   // "Custom" will be user input
 };
@@ -121,12 +121,19 @@ export default function PunchForceCalculator() {
   const [punchingForce, setPunchingForce] = useState("");
   const [punchingForceUnit, setPunchingForceUnit] = useState(FORCE_UNIT_OPTIONS[0].short);
 
+  // --- Custom shear strength state for "Custom" material ---
+  const [customShearStrength, setCustomShearStrength] = useState("");
+  const [customShearStrengthUnit, setCustomShearStrengthUnit] = useState(SHEAR_STRENGTH_UNIT_OPTIONS[3].short); // Default to MPa
+
   // --- Auto-fill shear strength when material changes ---
   React.useEffect(() => {
     if (material !== "Custom" && MATERIAL_SHEAR_STRENGTH[material]) {
-      // Material values are stored in MPa, convert to selected unit
-      const valueMPa = MATERIAL_SHEAR_STRENGTH[material];
-      
+      // Always use the correct key for lookup (fix typo: "3M Balsa Panel" should be "Balsa Panel")
+      let valueMPa = MATERIAL_SHEAR_STRENGTH[material];
+      // If not found, fallback to Balsa Panel for "3M Balsa Panel"
+      if (typeof valueMPa === "undefined" && material === "3M Balsa Panel") {
+        valueMPa = MATERIAL_SHEAR_STRENGTH["Balsa Panel"];
+      }
       // Convert from MPa to selected unit
       let valueInSelectedUnit;
       switch (shearStrengthUnit) {
@@ -143,12 +150,11 @@ export default function PunchForceCalculator() {
           valueInSelectedUnit = valueMPa / 1_000;
           break;
         case "psi":
-          valueInSelectedUnit = valueMPa * 145.038; // 1 MPa = 145.038 psi
+          valueInSelectedUnit = valueMPa * 145.038;
           break;
         default:
           valueInSelectedUnit = valueMPa;
       }
-      
       setShearStrength(valueInSelectedUnit.toFixed(2));
     } else if (material === "Custom") {
       setShearStrength("");
@@ -160,13 +166,25 @@ export default function PunchForceCalculator() {
     if (shearStrength && material !== "Custom") {
       const val = parseFloat(shearStrength);
       if (!isNaN(val)) {
-        // Convert current value to Pa, then to new unit
         const valuePa = convertShearStrengthToPa(val, shearStrengthUnit);
         const newVal = valuePa / (SHEAR_STRENGTH_FACTORS[newUnit] ?? 1);
         setShearStrength(newVal.toFixed(2));
       }
     }
     setShearStrengthUnit(newUnit);
+  };
+
+  // --- Custom shear strength unit conversion for its input field only ---
+  const handleCustomShearStrengthUnitChange = (newUnit: string) => {
+    if (customShearStrength) {
+      const val = parseFloat(customShearStrength);
+      if (!isNaN(val)) {
+        const valuePa = convertShearStrengthToPa(val, customShearStrengthUnit);
+        const newVal = valuePa / (SHEAR_STRENGTH_FACTORS[newUnit] ?? 1);
+        setCustomShearStrength(newVal.toFixed(2));
+      }
+    }
+    setCustomShearStrengthUnit(newUnit);
   };
 
   // --- Perimeter unit conversion for its input field only ---
@@ -216,25 +234,34 @@ export default function PunchForceCalculator() {
     // Only calculate if all fields are filled and valid
     const p = parseFloat(perimeter);
     const t = parseFloat(thickness);
-    const s = parseFloat(shearStrength);
+    let s: number | undefined = undefined;
+
+    if (material === "Custom") {
+      s = parseFloat(customShearStrength);
+    } else {
+      s = parseFloat(shearStrength);
+    }
+
+    const sUnit = material === "Custom" ? customShearStrengthUnit : shearStrengthUnit;
 
     if (!isNaN(p) && !isNaN(t) && !isNaN(s) && p > 0 && t > 0 && s > 0) {
-      // Convert all to SI units: perimeter (m), thickness (m), shear strength (Pa)
       const p_m = convertPerimeterToMeters(p, perimeterUnit);
       const t_m = convertThicknessToMeters(t, thicknessUnit);
-      const s_Pa = convertShearStrengthToPa(s, shearStrengthUnit);
+      const s_Pa = convertShearStrengthToPa(s, sUnit);
 
-      // F = P × S × t (Punch Force Formula)
       let forceN = p_m * s_Pa * t_m;
-
-      // Convert to selected output unit
       const forceDisplay = convertForceFromN(forceN, punchingForceUnit);
 
       setPunchingForce(forceDisplay.toFixed(2));
     } else {
       setPunchingForce("");
     }
-  }, [perimeter, perimeterUnit, thickness, thicknessUnit, shearStrength, shearStrengthUnit, punchingForceUnit]);
+  }, [
+    perimeter, perimeterUnit, thickness, thicknessUnit,
+    shearStrength, shearStrengthUnit,
+    customShearStrength, customShearStrengthUnit,
+    punchingForceUnit, material
+  ]);
 
   // --- Clear fields ---
   const clearFields = () => {
@@ -244,7 +271,9 @@ export default function PunchForceCalculator() {
     setThicknessUnit(THICKNESS_UNIT_OPTIONS[0].short);
     setMaterial(MATERIAL_OPTIONS[0].label);
     setShearStrength("");
-    setShearStrengthUnit(SHEAR_STRENGTH_UNIT_OPTIONS[3].short); // Reset to MPa
+    setShearStrengthUnit(SHEAR_STRENGTH_UNIT_OPTIONS[3].short);
+    setCustomShearStrength("");
+    setCustomShearStrengthUnit(SHEAR_STRENGTH_UNIT_OPTIONS[3].short);
     setPunchingForce("");
     setPunchingForceUnit(FORCE_UNIT_OPTIONS[0].short);
   };
@@ -334,35 +363,59 @@ export default function PunchForceCalculator() {
         </div>
 
         {/* Shear Strength */}
-        <div className="mb-6">
-          <label className="block text-gray-700 font-semibold mb-2">
-            Shear Strength (S) <span className="text-red-500">*</span>
-          </label>
-          <div className="flex items-center relative">
-            <input
-              className="flex-1 border border-gray-300 rounded-lg px-4 py-3 pr-20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 bg-gray-50"
-              type="number"
-              placeholder="Enter shear strength"
-              value={shearStrength}
-              onChange={e => setShearStrength(e.target.value)}
-              disabled={material !== "Custom"}
-            />
-            <select
-              className="absolute right-2 bg-transparent text-gray-600 focus:outline-none cursor-pointer"
-              value={shearStrengthUnit}
-              onChange={e => handleShearStrengthUnitChange(e.target.value)}
-            >
-              {SHEAR_STRENGTH_UNIT_OPTIONS.map(unit => (
-                <option key={unit.short} value={unit.short}>{unit.short}</option>
-              ))}
-            </select>
-          </div>
-          {material !== "Custom" && (
+        {material !== "Custom" ? (
+          <div className="mb-6">
+            <label className="block text-gray-700 font-semibold mb-2">
+              Shear Strength (S) <span className="text-red-500">*</span>
+            </label>
+            <div className="flex items-center relative">
+              <input
+                className="flex-1 border border-gray-300 rounded-lg px-4 py-3 pr-20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 bg-gray-50"
+                type="number"
+                placeholder="Enter shear strength"
+                value={shearStrength}
+                onChange={e => setShearStrength(e.target.value)}
+                disabled
+              />
+              <select
+                className="absolute right-2 bg-transparent text-gray-600 focus:outline-none cursor-pointer"
+                value={shearStrengthUnit}
+                onChange={e => handleShearStrengthUnitChange(e.target.value)}
+              >
+                {SHEAR_STRENGTH_UNIT_OPTIONS.map(unit => (
+                  <option key={unit.short} value={unit.short}>{unit.short}</option>
+                ))}
+              </select>
+            </div>
             <p className="text-xs text-gray-500 mt-1">
               Auto-filled based on selected material
             </p>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="mb-6">
+            <label className="block text-gray-700 font-semibold mb-2">
+              Custom Shear Strength (S) <span className="text-red-500">*</span>
+            </label>
+            <div className="flex items-center relative">
+              <input
+                className="flex-1 border border-gray-300 rounded-lg px-4 py-3 pr-20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 bg-gray-50"
+                type="number"
+                placeholder="Enter custom shear strength"
+                value={customShearStrength}
+                onChange={e => setCustomShearStrength(e.target.value)}
+              />
+              <select
+                className="absolute right-2 bg-transparent text-gray-600 focus:outline-none cursor-pointer"
+                value={customShearStrengthUnit}
+                onChange={e => handleCustomShearStrengthUnitChange(e.target.value)}
+              >
+                {SHEAR_STRENGTH_UNIT_OPTIONS.map(unit => (
+                  <option key={unit.short} value={unit.short}>{unit.short}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Punching Force */}
         <div className="mb-6">
