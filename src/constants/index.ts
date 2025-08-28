@@ -16,7 +16,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'mi', label: 'miles (mi)', type: 'length' },
   { value: 'ft-in', label: 'feet / inches (ft / in)', type: 'length' },
   { value: 'm-cm', label: 'meters / centimeters (m / cm)', type: 'length' },
-  
+
   // Area units
   { value: 'mm2', label: 'square millimeters (mm²)', type: 'area' },
   { value: 'cm2', label: 'square centimeters (cm²)', type: 'area' },
@@ -32,7 +32,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
 
   // Perimeter units - uses length units
   // Use length units for perimeter calculations
-  
+
   // Volume units
   { value: 'mm3', label: 'cubic millimeters (mm³)', type: 'volume' },
   { value: 'cm3', label: 'cubic centimeters (cm³)', type: 'volume' },
@@ -47,7 +47,7 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'cu yd', label: 'cubic yards (cu yd)', type: 'volume' },
   { value: 'gal', label: 'gallons (US) (gal)', type: 'volume' },
   { value: 'gal-uk', label: 'gallons (UK) (gal)', type: 'volume' },
-  
+
   // Weight units
   { value: 'µg', label: 'micrograms (µg)', type: 'weight' },
   { value: 'mg', label: 'milligrams (mg)', type: 'weight' },
@@ -72,20 +72,33 @@ export const UNIT_OPTIONS: UnitOption[] = [
 
   // BTU Units
   { value: 'BTU', label: 'BTU', type: 'BTU' },
+  { value: 'BTU/h', label: 'BTU/h', type: 'BTU' },
   { value: 'kW', label: 'kW', type: 'BTU' },
   { value: 'watts', label: 'Watts', type: 'BTU' },
-  { value: 'hp(l)', label: 'hp(l)', type: 'BTU' },
-  { value: 'hp(E)', label: 'hp(E)', type: 'BTU' },
+  { value: 'W', label: 'Watts (W)', type: 'BTU' },
+  { value: 'mW', label: 'milliwatts (mW)', type: 'BTU' },
+  { value: 'MW', label: 'megawatts (MW)', type: 'BTU' },
+  { value: 'GW', label: 'gigawatts (GW)', type: 'BTU' },
+  { value: '(hp(E))', label: 'hp(E)', type: 'BTU' },
+  { value: '(hp(1))', label: 'hp(1)', type: 'BTU' },
   { value: 'tons', label: 'tons', type: 'BTU' },
 
+  // Temperature units
+  { value: 'C', label: 'Celsius (°C)', type: 'temperature' },
+  { value: 'F', label: 'Fahrenheit (°F)', type: 'temperature' },
+  { value: 'K', label: 'Kelvin (K)', type: 'temperature' },
 
+  //Boiler Units
   { value: 'LPM', label: 'Liters per Minute (LPM)', type: 'boiler' },
   { value: 'GPM', label: 'Gallons per Minute (GPM)', type: 'boiler' },
   { value: 'kW', label: 'kW', type: 'boiler' },
   { value: 'hp', label: 'hp', type: 'boiler' },
 
+  // Weight units
+  { value: 'st', label: 'stones (st)', type: 'weight' },
+  { value: 'US ton', label: 'US short tons (US ton)', type: 'weight' },
+  { value: 'long ton', label: 'imperial tons (long ton)', type: 'weight' },
 
-  
   // Density units
   { value: 't/m3', label: 'tons per cubic meter (t/m³)', type: 'density' },
   { value: 'kg/m3', label: 'kilograms per cubic meter (kg/m³)', type: 'density' },
@@ -115,7 +128,11 @@ export const UNIT_OPTIONS: UnitOption[] = [
   { value: 'USD/lb', label: 'USD per pound', type: 'price' },
   { value: 'USD/kg', label: 'USD per kilogram', type: 'price' },
   { value: 'USD/ton', label: 'USD per ton (US)', type: 'price' },
-  { value: 'USD/t', label: 'USD per metric ton', type: 'price' }
+  { value: 'USD/t', label: 'USD per metric ton', type: 'price' },
+
+  // Heat Loss units
+  { value: 'Btu/h·ft²·°F', label: 'Btu per hour per square foot per Fahrenheit', type: 'heatLoss' },
+  { value: 'W/m²·K', label: 'Watt per square meter per Kelvin', type: 'heatLoss' },
 ];
 
 export const CURRENCY_OPTIONS = [
