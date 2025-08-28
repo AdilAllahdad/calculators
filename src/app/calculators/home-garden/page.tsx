@@ -3,6 +3,12 @@ import Link from 'next/link';
 export default function HomeGardenPage() {
   const calculators = [
     {
+      name:"AC Tonnage Calculator",
+      description:"Calculate air conditioner tonnage requirements",
+      icon:"❄️",
+      href:"/calculators/home-garden/ac-tonnage-calculator"
+    },
+    {
       name:"Air Changes per Hour Calculator",
       description:"Calculate air changes per hour for ventilation",
       icon:"💨",
