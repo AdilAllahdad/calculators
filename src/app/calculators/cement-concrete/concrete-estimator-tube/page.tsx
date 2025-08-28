@@ -4,9 +4,9 @@ import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 
 /* ----------------- Constants ------------------ */
-const DEFAULT_DENSITY_LBFT3 = 150;
-const DEFAULT_BAG_SIZE_LB = 60; // Changed to match your example
-const DEFAULT_WASTE = 10;
+const DEFAULT_DENSITY_LBFT3 = 0;
+const DEFAULT_BAG_SIZE_LB = 0; // Changed to match your example
+const DEFAULT_WASTE = 0;
 
 /* ----------------- Length + Volume Units ------------------ */
 const lengthToCm: Record<string, number> = {
@@ -191,11 +191,11 @@ const unitVolumeInM3: Record<string, number> = {
 /* ----------------- Component ------------------ */
 const ConcreteEstimatorTubePage = () => {
   // Dimension states - keeping display values and canonical values separate
-  const [outerDiameter, setOuterDiameter] = useState('24');
+  const [outerDiameter, setOuterDiameter] = useState('');
   const [outerDiameterUnit, setOuterDiameterUnit] = useState('in');
-  const [innerDiameter, setInnerDiameter] = useState('20');
+  const [innerDiameter, setInnerDiameter] = useState('');
   const [innerDiameterUnit, setInnerDiameterUnit] = useState('in');
-  const [height, setHeight] = useState('6');
+  const [height, setHeight] = useState('');
   const [heightUnit, setHeightUnit] = useState('ft');
   const [quantity, setQuantity] = useState('1');
 
@@ -217,7 +217,7 @@ const ConcreteEstimatorTubePage = () => {
   const [wastePercent, setWastePercent] = useState(DEFAULT_WASTE.toString());
 
   // Costs
-  const [pricePerBag, setPricePerBag] = useState('5');
+  const [pricePerBag, setPricePerBag] = useState('');
   const [pricePerUnitVolume, setPricePerUnitVolume] = useState('');
   const [pricePerUnitVolumeBasis, setPricePerUnitVolumeBasis] = useState('cu-yd');
   const [pricePerTube, setPricePerTube] = useState('');
@@ -227,6 +227,15 @@ const ConcreteEstimatorTubePage = () => {
   const [massDisplay, setMassDisplay] = useState('0');
   const [bagsNeeded, setBagsNeeded] = useState('0');
   const [totalCost, setTotalCost] = useState('0.00');
+
+  // Canonical volume in m3
+  const [volumeM3, setVolumeM3] = useState(0);
+
+  // Canonical bag size in kg
+  const [bagSizeKg, setBagSizeKg] = useState(0);
+
+  // --- Price Per Unit Volume Canonical Value (in PKR/m3) ---
+  const [pricePerUnitVolumeM3, setPricePerUnitVolumeM3] = useState(0);
 
   // Validate diameters
   useEffect(() => {
@@ -285,35 +294,52 @@ const ConcreteEstimatorTubePage = () => {
     setDensityUnit(newUnit);
   };
 
-  const handleBagSizeUnitChange = (newUnit: string) => {
-    const currentVal = parseFloat(bagSizeDisplay);
-    if (!isNaN(currentVal) && currentVal > 0) {
-      const converted = convertMass(currentVal, bagSizeUnit, newUnit);
-      setBagSizeDisplay(formatNumber(converted, 4));
+  // When density changes, auto-calculate bag size in kg (if density > 0)
+  useEffect(() => {
+    const density = parseFloat(densityDisplay);
+    if (!isNaN(density) && density > 0) {
+      // Example: set bag size to 1/40th of density (arbitrary, adjust as needed)
+      // If you have a specific formula, use it here.
+      // For now, let's keep it as a placeholder:
+      // setBagSizeKg(density / 40);
+      // But since you want to let user input bag size, only auto-calculate if empty:
+      if (!bagSizeDisplay || bagSizeDisplay === '0') {
+        // Default to 25kg or 60lb bag, converted to kg if needed
+        let defaultBagKg = 25;
+        if (bagSizeUnit === 'lb') defaultBagKg = convertMass(60, 'lb', 'kg');
+        setBagSizeKg(defaultBagKg);
+        setBagSizeDisplay(formatNumber(convertMass(defaultBagKg, 'kg', bagSizeUnit), 4));
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [densityDisplay]);
+
+  // Keep bagSizeKg in sync with bagSizeDisplay and bagSizeUnit
+  useEffect(() => {
+    const val = parseFloat(bagSizeDisplay);
+    if (!isNaN(val) && val > 0) {
+      setBagSizeKg(convertMass(val, bagSizeUnit, 'kg'));
+    } else {
+      setBagSizeKg(0);
+    }
+  }, [bagSizeDisplay, bagSizeUnit]);
+
+  // When bag size unit changes, only convert the display value, not the canonical value
+  const handleBagSizeUnitChange = (newUnit: string) => {
+    // Convert current canonical bag size to new unit for display
+    setBagSizeDisplay(formatNumber(convertMass(bagSizeKg, 'kg', newUnit), 4));
     setBagSizeUnit(newUnit);
   };
 
-  const handlePricePerUnitVolumeBasisChange = (newUnit: string) => {
-    const currentVal = parseFloat(pricePerUnitVolume);
-    if (!isNaN(currentVal) && currentVal > 0) {
-      // Convert the price rate
-      const currentFactor = unitVolumeInM3[pricePerUnitVolumeBasis] || 1;
-      const newFactor = unitVolumeInM3[newUnit] || 1;
-      const converted = (currentVal * currentFactor) / newFactor;
-      setPricePerUnitVolume(formatNumber(converted, 4));
-    }
-    setPricePerUnitVolumeBasis(newUnit);
-  };
-
-  // Volume calculation
+  // Volume calculation (always in m3)
   useEffect(() => {
     const outerD = parseFloat(outerDiameter);
-    const innerD = parseFloat(innerDiameter) || 0; // Default to 0 if empty
+    const innerD = parseFloat(innerDiameter) || 0;
     const h = parseFloat(height);
     const q = parseFloat(quantity);
 
     if (diameterError || isNaN(outerD) || outerD <= 0 || isNaN(h) || h <= 0 || isNaN(q) || q <= 0) {
+      setVolumeM3(0);
       setVolumeDisplay('0.00');
       return;
     }
@@ -326,40 +352,34 @@ const ConcreteEstimatorTubePage = () => {
     // Calculate volume in cubic meters (π * (R₁² - R₂²) * h * quantity)
     const outerRadius = outerDMeters / 2;
     const innerRadius = innerDMeters / 2;
-    const volumeM3 = Math.PI * (Math.pow(outerRadius, 2) - Math.pow(innerRadius, 2)) * hMeters * q;
+    const volumeM3Val = Math.PI * (Math.pow(outerRadius, 2) - Math.pow(innerRadius, 2)) * hMeters * q;
 
-    // Convert to display unit
+    setVolumeM3(volumeM3Val);
+  }, [outerDiameter, outerDiameterUnit, innerDiameter, innerDiameterUnit, height, heightUnit, quantity, diameterError]);
+
+  // Display volume in selected unit
+  useEffect(() => {
     let displayVolume = volumeM3;
     switch (volumeUnit) {
       case 'cu-ft': displayVolume /= 0.0283168467117; break;
       case 'cu-yd': displayVolume /= 0.764554857984; break;
       case 'us-gal': displayVolume /= 0.003785411784; break;
       case 'uk-gal': displayVolume /= 0.00454609; break;
+      // m3: do nothing
     }
-
     setVolumeDisplay(formatNumber(displayVolume, 4));
-  }, [outerDiameter, outerDiameterUnit, innerDiameter, innerDiameterUnit, height, heightUnit, quantity, volumeUnit, diameterError]);
+  }, [volumeM3, volumeUnit]);
 
-  // Mass and bags calculation
+  // Mass and bags calculation (use canonical volumeM3)
   useEffect(() => {
-    const vol = parseFloat(volumeDisplay);
     const density = parseFloat(densityDisplay);
     const waste = parseFloat(wastePercent) || 0;
     const bagSize = parseFloat(bagSizeDisplay);
 
-    if (isNaN(vol) || vol <= 0 || isNaN(density) || density <= 0) {
+    if (isNaN(volumeM3) || volumeM3 <= 0 || isNaN(density) || density <= 0) {
       setMassDisplay('0.00');
       setBagsNeeded('0');
       return;
-    }
-
-    // Convert volume to cubic meters for mass calculation
-    let volumeM3 = vol;
-    switch (volumeUnit) {
-      case 'cu-ft': volumeM3 *= 0.0283168467117; break;
-      case 'cu-yd': volumeM3 *= 0.764554857984; break;
-      case 'us-gal': volumeM3 *= 0.003785411784; break;
-      case 'uk-gal': volumeM3 *= 0.00454609; break;
     }
 
     // Convert density to kg/m³ for calculation
@@ -381,9 +401,24 @@ const ConcreteEstimatorTubePage = () => {
     } else {
       setBagsNeeded('0');
     }
-  }, [volumeDisplay, volumeUnit, densityDisplay, densityUnit, wastePercent, massUnit, bagSizeDisplay, bagSizeUnit]);
+  }, [volumeM3, densityDisplay, densityUnit, wastePercent, massUnit, bagSizeDisplay, bagSizeUnit]);
 
-  // Cost calculation
+  // Bags needed calculation (using canonical values and correct formula)
+  useEffect(() => {
+    const waste = parseFloat(wastePercent) || 0;
+    if (isNaN(volumeM3) || volumeM3 <= 0 || isNaN(bagSizeKg) || bagSizeKg <= 0) {
+      setBagsNeeded('0');
+      return;
+    }
+    // Density in kg/m³
+    const density = parseFloat(densityDisplay);
+    const densityKgM3 = convertDensity(density, densityUnit, 'kg-m3');
+    // Bags = ceil(V_total * ρ * (1 + w) / W_bag)
+    const bags = Math.ceil(volumeM3 * densityKgM3 * (1 + waste / 100) / bagSizeKg);
+    setBagsNeeded(bags.toString());
+  }, [volumeM3, densityDisplay, densityUnit, wastePercent, bagSizeKg]);
+
+  // Cost calculation (use canonical volumeM3)
   useEffect(() => {
     let total = 0;
 
@@ -394,27 +429,15 @@ const ConcreteEstimatorTubePage = () => {
 
     // Cost from volume
     const volumePrice = parseFloat(pricePerUnitVolume) || 0;
-    const vol = parseFloat(volumeDisplay) || 0;
-    if (volumePrice > 0 && vol > 0) {
-      // Convert volume to pricing basis unit
-      let volumeForPricing = vol;
-      if (volumeUnit !== pricePerUnitVolumeBasis) {
-        // Convert through m³
-        let volumeM3 = vol;
-        switch (volumeUnit) {
-          case 'cu-ft': volumeM3 *= 0.0283168467117; break;
-          case 'cu-yd': volumeM3 *= 0.764554857984; break;
-          case 'us-gal': volumeM3 *= 0.003785411784; break;
-          case 'uk-gal': volumeM3 *= 0.00454609; break;
-        }
-        
-        switch (pricePerUnitVolumeBasis) {
-          case 'cu-ft': volumeForPricing = volumeM3 / 0.0283168467117; break;
-          case 'cu-yd': volumeForPricing = volumeM3 / 0.764554857984; break;
-          case 'us-gal': volumeForPricing = volumeM3 / 0.003785411784; break;
-          case 'uk-gal': volumeForPricing = volumeM3 / 0.00454609; break;
-          case 'm3': volumeForPricing = volumeM3; break;
-        }
+    if (volumePrice > 0 && volumeM3 > 0) {
+      // Convert volumeM3 to pricing basis unit
+      let volumeForPricing = volumeM3;
+      switch (pricePerUnitVolumeBasis) {
+        case 'cu-ft': volumeForPricing /= 0.0283168467117; break;
+        case 'cu-yd': volumeForPricing /= 0.764554857984; break;
+        case 'us-gal': volumeForPricing /= 0.003785411784; break;
+        case 'uk-gal': volumeForPricing /= 0.00454609; break;
+        // m3: do nothing
       }
       total += volumePrice * volumeForPricing;
     }
@@ -425,12 +448,154 @@ const ConcreteEstimatorTubePage = () => {
     total += tubePrice * qty;
 
     setTotalCost(formatNumber(total, 2));
-  }, [pricePerBag, bagsNeeded, pricePerUnitVolume, volumeDisplay, volumeUnit, pricePerUnitVolumeBasis, pricePerTube, quantity]);
+  }, [pricePerBag, bagsNeeded, pricePerUnitVolume, volumeM3, pricePerUnitVolumeBasis, pricePerTube, quantity]);
 
   const lengthOptions = useMemo(
     () => lengthUnits.map(u => <option key={u.value} value={u.value}>{u.label}</option>),
     []
   );
+
+  // Add a clearAll function to reset all input fields to their initial values
+  const clearAll = () => {
+    setOuterDiameter('');
+    setOuterDiameterUnit('in');
+    setInnerDiameter('');
+    setInnerDiameterUnit('in');
+    setHeight('');
+    setHeightUnit('ft');
+    setQuantity('');
+    setVolumeUnit('cu-yd');
+    setDensityUnit('lb-ft3');
+    setDensityDisplay(DEFAULT_DENSITY_LBFT3.toString());
+    setMassUnit('lb');
+    setBagSizeUnit('lb');
+    setBagSizeDisplay(DEFAULT_BAG_SIZE_LB.toString());
+    setWastePercent(DEFAULT_WASTE.toString());
+    setPricePerBag('');
+    setPricePerUnitVolume('');
+    setPricePerUnitVolumeBasis('cu-yd');
+    setPricePerTube('');
+    // The following are calculated and will update automatically
+    // setVolumeDisplay('0');
+    // setMassDisplay('0');
+    // setBagsNeeded('0');
+    // setTotalCost('0.00');
+    // setVolumeM3(0);
+    setDiameterError('');
+  };
+
+  // When pricePerUnitVolume or its basis changes, update canonical PKR/m3 value
+  useEffect(() => {
+    const price = parseFloat(pricePerUnitVolume);
+    if (!isNaN(price) && price > 0) {
+      const factor = unitVolumeInM3[pricePerUnitVolumeBasis] || 1;
+      setPricePerUnitVolumeM3(price / factor);
+    } else {
+      setPricePerUnitVolumeM3(0);
+    }
+  }, [pricePerUnitVolume, pricePerUnitVolumeBasis]);
+
+  // When dropdown changes, only convert the display value, not the canonical value
+  const handlePricePerUnitVolumeBasisChange = (newUnit: string) => {
+    // Convert canonical PKR/m3 to new unit for display
+    const factor = unitVolumeInM3[newUnit] || 1;
+    setPricePerUnitVolume(
+      pricePerUnitVolumeM3 > 0 ? formatNumber(pricePerUnitVolumeM3 * factor, 4) : ''
+    );
+    setPricePerUnitVolumeBasis(newUnit);
+  };
+
+  // --- Bags Needed Calculation (standard formula, using canonical units) ---
+  useEffect(() => {
+    const waste = parseFloat(wastePercent) || 0;
+    if (isNaN(volumeM3) || volumeM3 <= 0 || isNaN(bagSizeKg) || bagSizeKg <= 0) {
+      setBagsNeeded('0');
+      return;
+    }
+    // Use display unit for volume (cu-ft or cu-yd) if user selected, else m3
+    let V_total = volumeM3;
+    let density = parseFloat(densityDisplay);
+    let densityUnitLocal = densityUnit;
+    if (volumeUnit === 'cu-ft') {
+      V_total = volumeM3 / unitVolumeInM3['cu-ft'];
+      density = convertDensity(density, densityUnit, 'lb-ft3');
+      densityUnitLocal = 'lb-ft3';
+    } else if (volumeUnit === 'cu-yd') {
+      V_total = volumeM3 / unitVolumeInM3['cu-yd'];
+      density = convertDensity(density, densityUnit, 'lb-yd3');
+      densityUnitLocal = 'lb-yd3';
+    }
+    // Bag size in lb if density is in lb/ft3 or lb/yd3, else kg
+    let bagSize = bagSizeKg;
+    if (densityUnitLocal.startsWith('lb')) {
+      bagSize = convertMass(bagSizeKg, 'kg', 'lb');
+    }
+    // Bags = ceil(V_total * density * (1 + w) / bagSize)
+    const bags = Math.ceil(V_total * density * (1 + waste / 100) / bagSize);
+    setBagsNeeded(isFinite(bags) && bags > 0 ? bags.toString() : '0');
+  }, [volumeM3, volumeUnit, densityDisplay, densityUnit, wastePercent, bagSizeKg]);
+
+  // --- Total Cost Calculation (bags only, as per your formula) ---
+  useEffect(() => {
+    const bagPrice = parseFloat(pricePerBag) || 0;
+    const bags = parseInt(bagsNeeded) || 0;
+    let total = bagPrice * bags;
+    setTotalCost(formatNumber(total, 2));
+  }, [pricePerBag, bagsNeeded]);
+
+  // --- Cost Per Unit Volume (optional, for direct estimate) ---
+  // If you want to show cost per cubic yard or cubic foot, you can add:
+  // const costPerCuYd = pricePerUnitVolumeM3 * unitVolumeInM3['cu-yd'];
+  // const costPerCuFt = pricePerUnitVolumeM3 * unitVolumeInM3['cu-ft'];
+
+  // Auto-calculate price per unit volume when price per bag or bags needed changes
+  useEffect(() => {
+    const bagPrice = parseFloat(pricePerBag);
+    const bags = parseInt(bagsNeeded);
+    if (
+      !isNaN(bagPrice) && bagPrice > 0 &&
+      !isNaN(bags) && bags > 0 &&
+      volumeM3 > 0
+    ) {
+      // Total cost for all bags
+      const totalBagCost = bagPrice * bags;
+      // Price per m3
+      const pricePerM3 = totalBagCost / volumeM3;
+      setPricePerUnitVolumeM3(pricePerM3);
+      // Convert to selected unit for display
+      const factor = unitVolumeInM3[pricePerUnitVolumeBasis] || 1;
+      setPricePerUnitVolume(formatNumber(pricePerM3 * factor, 4));
+    }
+    // If bag price is cleared, clear price per unit volume
+    if (!pricePerBag) {
+      setPricePerUnitVolume('');
+      setPricePerUnitVolumeM3(0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pricePerBag, bagsNeeded, volumeM3, pricePerUnitVolumeBasis]);
+
+  // Auto-calculate price per tube per piece when price per bag or bags needed changes
+  useEffect(() => {
+    const bagPrice = parseFloat(pricePerBag);
+    const bags = parseInt(bagsNeeded);
+    const qty = parseInt(quantity);
+    if (
+      !isNaN(bagPrice) && bagPrice > 0 &&
+      !isNaN(bags) && bags > 0 &&
+      !isNaN(qty) && qty > 0
+    ) {
+      // Total cost for all bags
+      const totalBagCost = bagPrice * bags;
+      // Price per tube per piece
+      const pricePerTubePiece = totalBagCost / qty;
+      setPricePerTube(formatNumber(pricePerTubePiece, 2));
+    }
+    // If bag price is cleared, clear price per tube
+    if (!pricePerBag) {
+      setPricePerTube('');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pricePerBag, bagsNeeded, quantity]);
 
   return (
     <div className="w-[500px] max-w-xl mx-auto p-4 md:p-6 space-y-4">
@@ -777,8 +942,16 @@ const ConcreteEstimatorTubePage = () => {
           </div>
         </FieldGroup>
       </div>
-
-     
+      {/* Move Clear button to the bottom */}
+      <div className="flex justify-end mt-4">
+        <button
+          type="button"
+          onClick={clearAll}
+          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md border border-gray-300 text-sm font-medium transition"
+        >
+          Clear
+        </button>
+      </div>
     </div>
   );
 };

@@ -12,13 +12,13 @@ export default function ConstructionMaterialsPage() {
       name: "Baluster Calculator",
       description: "Calculate spacing and quantity of balusters needed",
       icon: "🏗️",
-      href: "/calculators/construction-materials/baluster",
+      href: "/calculators/construction-materials/baluster-calculator",
     },
     {
       name: "Board and Batten Calculator",
       description: "Calculate board and batten siding materials",
       icon: "🪵",
-      href: "/calculators/construction-materials/board-and-batten",
+      href: "/calculators/construction-materials/boardBattenCalulator",
     },
     {
       name: "Brick Calculator",
@@ -30,7 +30,7 @@ export default function ConstructionMaterialsPage() {
       name: "Decking Calculator",
       description: "Calculate materials needed for deck construction",
       icon: "🏠",
-      href: "/calculators/construction-materials/decking",
+      href: "/calculators/construction-materials/decking-cal",
     },
     {
       name: "DIY Shed Cost Calculator",
@@ -78,7 +78,7 @@ export default function ConstructionMaterialsPage() {
       name: "Limestone Calculator",
       description: "Calculate limestone needed for your project",
       icon: "🪨",
-      href: "/calculators/construction-materials/limestone",
+      href: "/calculators/construction-materials/limeStone-cal",
     },
     {
       name: "Log Weight Calculator",
@@ -114,7 +114,7 @@ export default function ConstructionMaterialsPage() {
       name: "Rebar Calculator",
       description: "Calculate rebar requirements for concrete",
       icon: "🏗️",
-      href: "/calculators/construction-materials/rebar",
+      href: "/calculators/construction-materials/rebar-calculator",
     },
     {
       name: "Retaining Wall Calculator",
@@ -198,7 +198,7 @@ export default function ConstructionMaterialsPage() {
       name: "Tile Calculator",
       description: "Calculate tile needed for your project",
       icon: "🧩",
-      href: "/calculators/construction-materials/tile",
+      href: "/calculators/construction-materials/tile-calculator",
     },
     {
       name: "Tonnage Calculator",

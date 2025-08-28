@@ -1,13 +1,18 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
+/**
+ * Utility functions for calculations
+ */
 
 import { UNIT_OPTIONS } from '@/constants';
 import { UnitOption } from '@/types/calculator';
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+/**
+ * Utility function to conditionally join classNames together
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 // Filter units by type
 export const getUnitsByType = (type: string | string[]): UnitOption[] => {
@@ -31,9 +36,7 @@ const conversionFactors = {
     'in': 0.0254,
     'ft': 0.3048,
     'yd': 0.9144,
-    'mi': 1609.344,
-    'ft in': 0.0254,
-    'm cm': 0.01
+    'mi': 1609.344
   },
   // Area (base: square meters)
   area: {
@@ -46,47 +49,30 @@ const conversionFactors = {
     'ft2': 0.092903,
     'yd2': 0.836127,
     'ac': 4046.86,
-    'sf': 7142.857142857143,
     'mi2': 2589988.11
-  },
-  // Perimeter (base: meters)
-  perimeter: {
-    'cm': 0.01,
-    'm': 1,
-    'km': 1000,
-    'in': 0.0254,
-    'ft': 0.3048,
-    'yd': 0.9144,
-    'mi': 1609.344,
-    'ft in': 0.0254,
-    'm cm': 0.01
   },
   // Volume (base: cubic meters)
   volume: {
     'mm3': 0.000000001,
     'cm3': 0.000001,
-    'dm3': 0.001,
+    'ml': 0.000001,
     'l': 0.001,
     'm3': 1,
     'in3': 0.000016387,
-    'cu in': 0.000016387,
     'ft3': 0.028317,
-    'cu ft': 0.028317,
     'yd3': 0.764555,
-    'cu yd': 0.764555,
     'gal': 0.003785,
-    'gal-uk': 0.00454609
+    'gal-uk': 0.00454609,
+    'qt': 0.000946353,
+    'pt': 0.000473176,
+    'fl-oz': 0.0000295735
   },
   // Weight (base: kilograms)
   weight: {
-    'µg': 0.000000001,
     'mg': 0.000001,
     'g': 0.001,
-    'dag': 0.01,
     'kg': 1,
     't': 1000,
-    'gr': 0.0000648,
-    'dr': 0.00177185,
     'oz': 0.0283495,
     'lb': 0.453592,
     'st': 6.35029,
@@ -310,17 +296,25 @@ export const convertUnit = (value: number, fromUnit: string, toUnit: string): nu
   return value; // No conversion needed
 };
 
-// Format number with proper decimals (removes unnecessary trailing zeros)
+// Format number with proper decimals
 export const formatNumber = (num: number, decimals: number = 2): string => {
-  if (isNaN(num) || !isFinite(num)) return '0';
+  return num.toFixed(decimals);
+};
 
-  // If it's a whole number, return without decimals
-  if (num % 1 === 0) {
-    return num.toString();
-  }
+// Format number with commas (for thousands separators)
+// export const formatNumberWithCommas = (num: number, decimals: number = 2): string => {
+//   return num.toLocaleString('en-US', {
+//     minimumFractionDigits: 0,
+//     maximumFractionDigits: decimals
+//   });
+// };
 
-  // Otherwise, use toFixed but remove trailing zeros
-  return parseFloat(num.toFixed(decimals)).toString();
+// Format currency with proper currency formatting
+export const formatCurrency = (amount: number): string => {
+  return amount.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
 };
 
 // Validate positive number input
@@ -358,10 +352,5 @@ export const formatNumberWithCommas = (num: number, maxDecimals: number = 2): st
     minimumFractionDigits: 0,
     maximumFractionDigits: actualDecimals
   });
-};
-
-// Format currency values with 2 decimal places
-export const formatCurrency = (num: number): string => {
-  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 

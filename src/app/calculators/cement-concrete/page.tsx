@@ -130,7 +130,7 @@ export default function CementConcretePage() {
               </div>
             </div>
           </a>
-          <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
+          <a href="/calculators/cement-concrete/concrete-weight" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <Image
@@ -164,7 +164,7 @@ export default function CementConcretePage() {
               </div>
             </div>
           </a>
-          <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
+          <a href="cement-concrete/hole-volume" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <Image
@@ -181,7 +181,7 @@ export default function CementConcretePage() {
               </div>
             </div>
           </a>
-          <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
+          <a href="/calculators/cement-concrete/mortar-cal" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <Image

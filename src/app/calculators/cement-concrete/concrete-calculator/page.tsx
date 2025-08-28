@@ -9,12 +9,12 @@ import { convertUnit } from '@/lib/convert-units-wrapper';
 
 // Define available concrete forms
 const CONCRETE_FORMS = [
-  { id: 'slab', name: 'Slab', image: '/cube-removebg-preview.png' },
-  { id: 'wall', name: 'Wall', image: '/hollow_cuboid-removebg-preview.png' },
-  { id: 'footer', name: 'Footer', image: '/hollow_cuboid-removebg-preview.png' },
-  { id: 'column', name: 'Column', image: '/cylinder2-removebg-preview.png' },
-  { id: 'curb', name: 'Curb', image: '/hollow_cuboid-removebg-preview.png' },
-  { id: 'stairs', name: 'Stairs', image: '/hollow_cuboid-removebg-preview.png' },
+  { id: 'slab', name: 'Slab', image: '/slab.png' },
+  { id: 'wall', name: 'Wall', image: '/wall.png' },
+  { id: 'footer', name: 'Footer', image: '/footer.png' },
+  { id: 'column', name: 'Column', image: '/column.png' },
+  { id: 'curb', name: 'Curb', image: '/concrete-curb.png' },
+  { id: 'stairs', name: 'Stairs', image: '/stairs.png' },
 ];
 
 const DEFAULT_FORM = CONCRETE_FORMS[0].id;
