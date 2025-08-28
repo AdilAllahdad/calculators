@@ -51,10 +51,11 @@ export default function ACCalculator() {
   });
   
   // State to hold the room size input values
+  // floorAreaBase is always in sqft
   const [roomSize, setRoomSize] = useState({
     length: '',
     width: '',
-    floorArea: '',
+    floorAreaBase: '', // always in sqft
     ceilingHeight: ''
   });
   
@@ -68,30 +69,17 @@ export default function ACCalculator() {
   });
   
   // State to hold the final calculated BTU value
-  const [totalBTU, setTotalBTU] = useState<number>(0);
+  const [totalBTU, setTotalBTU] = useState('');
 
   // Helper function to find the conversion factor for a given length unit
   const getLengthConversion = (unit: string) => LENGTH_UNITS.find(u => u.value === unit)?.toFeet || 1;
-  
-  // Helper function to find the conversion factor for a given area unit
   const getAreaConversion = (unit: string) => AREA_UNITS.find(u => u.value === unit)?.toSqft || 1;
-  
-  // Helper function to get the BTU factor for a room type
   const getRoomFactor = (type: string) => ROOM_TYPES.find(r => r.value === type)?.btuFactor || 0;
-  
-  // Helper function to get the factor for sunlight exposure
   const getSunlightFactor = (type: string) => SUNLIGHT_OPTIONS.find(s => s.value === type)?.factor || 1;
-  
-  // Helper function to find the BTU conversion for a given result unit
   const getResultConversion = (unit: string) => RESULT_UNITS.find(u => u.value === unit)?.toBTU || 1;
 
   // Function to convert a value from an old unit to a new unit
-  const convertValue = (
-    value: string,
-    oldUnit: string,
-    newUnit: string,
-    conversionFunction: (unit: string) => number
-  ): string => {
+  const convertValue = (value: string, oldUnit: string, newUnit: string, conversionFunction: (unit: string) => number): string => {
     if (!value || isNaN(Number(value))) return '';
     const oldConversionFactor = conversionFunction(oldUnit);
     const newConversionFactor = conversionFunction(newUnit);
@@ -101,99 +89,82 @@ export default function ACCalculator() {
   
   // Main calculation effect hook - runs whenever any relevant state changes
   useEffect(() => {
-    // Convert all measurements to a standard unit (feet) for calculation
+    // Always use floorAreaBase (sqft) for calculation
     let areaInSqft = 0;
     let heightInFt = 0;
-    
-    // Calculate area in square feet based on user input
-    // The floorArea field is now the primary source of truth for area
-    if (roomSize.floorArea) {
-      const area = parseFloat(roomSize.floorArea);
-      const conversion = getAreaConversion(units.floorArea);
-      areaInSqft = area * conversion;
+    if (roomSize.floorAreaBase) {
+      areaInSqft = parseFloat(roomSize.floorAreaBase);
     } else if (roomSize.length && roomSize.width) {
-      // If floorArea is empty, fall back to calculating from length and width
       const length = parseFloat(roomSize.length);
       const width = parseFloat(roomSize.width);
       const lengthConversion = getLengthConversion(units.length);
       const widthConversion = getLengthConversion(units.width);
       areaInSqft = (length * lengthConversion) * (width * widthConversion);
     }
-    
-    // Calculate height in feet
     if (roomSize.ceilingHeight) {
       const height = parseFloat(roomSize.ceilingHeight);
       const conversion = getLengthConversion(units.height);
       heightInFt = height * conversion;
     } else {
-      // Default to 8 feet if not specified
       heightInFt = 8;
     }
-    
     let calculatedBTU = 0;
-    
-    // Only calculate if a room size value is available
     if (areaInSqft > 0) {
-      // Apply the correct calculation method based on user selection
       if (method === 'quick') {
-        const occupants = parseInt(roomConfig.occupants) || 1;
         const roomTypeFactor = getRoomFactor(roomConfig.roomType);
         const sunlightFactor = getSunlightFactor(roomConfig.sunlight);
-        
-        // Base BTU calculation based on documentation (200 sqft * 30 BTU/sqft = 6000)
-        // This is a common starting point for quick estimates
-        const baseBTU = areaInSqft * 30; 
-        
-        // Adjustments based on documentation rules
-        const heightAdjustment = Math.max(0, heightInFt - 8) * 1000;
-        const occupantAdjustment = Math.max(0, occupants - 2) * 600;
-        
-        calculatedBTU = (baseBTU + heightAdjustment + occupantAdjustment + roomTypeFactor) * sunlightFactor;
-      } else { // Manual J method
+        const occupants = parseInt(roomConfig.occupants) || 0;
+        const occupantsBTU = occupants > 0 ? occupants * 600 : 0;
+        const baseBTU = areaInSqft * 5.5;
+        calculatedBTU = (baseBTU + occupantsBTU + roomTypeFactor) * sunlightFactor;
+      } else {
         const occupants = parseInt(roomConfig.occupants) || 0;
         const windows = parseInt(roomConfig.windows) || 0;
         const exteriorDoors = parseInt(roomConfig.exteriorDoors) || 0;
-        
-        // Manual J calculation based on the provided formula and values
         calculatedBTU = (areaInSqft * heightInFt) +
-                       (occupants * 100) + 
-                       (windows * 1000) + 
+                       (occupants * 100) +
+                       (windows * 1000) +
                        (exteriorDoors * 1000);
       }
     }
-    
-    // Update the total BTU state
-    setTotalBTU(calculatedBTU);
-  }, [roomSize, roomConfig, units, method]);
+    setTotalBTU(calculatedBTU.toString());
+  }, [roomSize, roomConfig, method]);
   
   // Calculate the final result based on the selected result unit
-  const finalResult = (): string => {
-    if (!totalBTU || totalBTU <= 0) return '0.00';
+  const finalResult = () => {
+    const btu = parseFloat(totalBTU);
+    if (!btu || btu <= 0) return '0.00';
     const conversion = getResultConversion(units.result);
-    return (totalBTU / conversion).toFixed(2);
+    return (btu / conversion).toFixed(2);
   };
   
   // Handle changes to the room size input fields
   const handleRoomSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
+    // Prevent negative values
+    if (e.target.type === 'number' && value !== '' && parseFloat(value) < 0) return;
     setRoomSize(prev => {
-      let updatedRoomSize = { ...prev, [name]: value };
-      
-      // Auto-calculate floor area only if length and width are being updated
-      if (name === 'length' || name === 'width') {
+      let updatedRoomSize = { ...prev };
+      if (name === 'floorArea') {
+        // Convert input value to base (sqft) and store
+        const val = parseFloat(value);
+        if (!isNaN(val)) {
+          updatedRoomSize.floorAreaBase = (val * getAreaConversion(units.floorArea)).toString();
+        } else {
+          updatedRoomSize.floorAreaBase = '';
+        }
+      } else if (name === 'length' || name === 'width') {
+        (updatedRoomSize as any)[name] = value;
+        // Optionally, auto-calculate floorAreaBase if both present
         const length = name === 'length' ? parseFloat(value) : parseFloat(prev.length);
         const width = name === 'width' ? parseFloat(value) : parseFloat(prev.width);
-        
         if (!isNaN(length) && !isNaN(width) && length > 0 && width > 0) {
           const lengthInFt = length * getLengthConversion(units.length);
           const widthInFt = width * getLengthConversion(units.width);
-          const calculatedAreaInSqft = lengthInFt * widthInFt;
-          const newFloorArea = (calculatedAreaInSqft / getAreaConversion(units.floorArea)).toFixed(2);
-          updatedRoomSize.floorArea = newFloorArea;
-        } else {
-          updatedRoomSize.floorArea = '';
+          updatedRoomSize.floorAreaBase = (lengthInFt * widthInFt).toString();
         }
+      } else {
+        (updatedRoomSize as any)[name] = value;
       }
       return updatedRoomSize;
     });
@@ -201,8 +172,10 @@ export default function ACCalculator() {
 
   // Handle changes to the room configuration input fields
   const handleRoomConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setRoomConfig(prev => ({ ...prev, [name]: value }));
+  const { name, value } = e.target;
+  // Prevent negative values for number inputs
+  if (e.target.type === 'number' && value !== '' && parseFloat(value) < 0) return;
+  setRoomConfig(prev => ({ ...prev, [name]: value }));
   };
   
   // Handle changes to the unit selection dropdowns
@@ -210,20 +183,17 @@ export default function ACCalculator() {
     setUnits(prevUnits => {
       const oldUnits = prevUnits;
       const newUnits = { ...prevUnits, [unitType]: value };
-
+      // Only convert value for display, not for calculation
       setRoomSize(prevRoomSize => {
         let updatedRoomSize = { ...prevRoomSize };
-
         if (unitType === 'length') {
           updatedRoomSize.length = convertValue(prevRoomSize.length, oldUnits.length, value, getLengthConversion);
         } else if (unitType === 'width') {
           updatedRoomSize.width = convertValue(prevRoomSize.width, oldUnits.width, value, getLengthConversion);
-        } else if (unitType === 'floorArea') {
-          updatedRoomSize.floorArea = convertValue(prevRoomSize.floorArea, oldUnits.floorArea, value, getAreaConversion);
         } else if (unitType === 'height') {
           updatedRoomSize.ceilingHeight = convertValue(prevRoomSize.ceilingHeight, oldUnits.height, value, getLengthConversion);
         }
-
+        // Do NOT convert floorAreaBase, just update unit for display
         return updatedRoomSize;
       });
       return newUnits;
@@ -243,7 +213,7 @@ export default function ACCalculator() {
     setRoomSize({
       length: '',
       width: '',
-      floorArea: '',
+      floorAreaBase: '',
       ceilingHeight: ''
     });
     setRoomConfig({
@@ -253,7 +223,7 @@ export default function ACCalculator() {
       windows: '',
       exteriorDoors: ''
     });
-  setTotalBTU(0);
+    setTotalBTU('');
   };
   
   // Handle clearing all changes by resetting state
@@ -269,7 +239,7 @@ export default function ACCalculator() {
   
   const ShareIcon = () => (
     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.882 13.491 9 13.689 9 13.91V15a1 1 0 01-1.6.8L5 13.5a1 1 0 010-1.6L7.4 9.2a1 1 0 011.6.8v1.089c.148-.027.295-.06.444-.093M17 12a5 5 0 100 10 5 5 0 000-10zm0-2a7 7 0 100 14 7 7 0 000-14zM10 5a2 2 0 114 0 2 2 0 01-4 0z" />
+      <path strokeLinecap="round" strokeWidth={2} d="M8.684 13.342C8.882 13.491 9 13.689 9 13.91V15a1 1 0 01-1.6.8L5 13.5a1 1 0 010-1.6L7.4 9.2a1 1 0 011.6.8v1.089c.148-.027.295-.06.444-.093M17 12a5 5 0 100 10 5 5 0 000-10zm0-2a7 7 0 100 14 7 7 0 000-14zM10 5a2 2 0 114 0 2 2 0 01-4 0z" />
     </svg>
   );
 
@@ -390,10 +360,11 @@ export default function ACCalculator() {
                 <input
                   type="number"
                   name="floorArea"
-                  value={roomSize.floorArea}
+                  value={roomSize.floorAreaBase ? (parseFloat(roomSize.floorAreaBase) / getAreaConversion(units.floorArea)).toFixed(2) : ''}
                   onChange={handleRoomSizeChange}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0"
+                  min="0"
                   step="0.01"
                 />
                 <select
@@ -482,7 +453,7 @@ export default function ACCalculator() {
                           type="radio"
                           name="sunlight"
                           checked={roomConfig.sunlight === option.value}
-                          onChange={handleRoomConfigChange}
+                          onChange={() => setRoomConfig(prev => ({ ...prev, sunlight: option.value }))}
                           className="form-radio h-5 w-5 text-blue-600 rounded-full"
                         />
                         <span className="ml-2 text-sm">{option.label}</span>
