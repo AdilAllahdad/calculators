@@ -712,7 +712,7 @@ Material Cost: ${materialCost ? `$${materialCost}` : 'Not calculated'}`;
 
                 <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200 w-full max-w-lg mb-4">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-semibold mb-4 text-slate-800">Results</h2>
+                        <h2 className="text-xl font-semibold mb-4 text-slate-800">Material Cost</h2>
                         <a onClick={() => setShowMaterialCostDetails(!showMaterialCostDetails)}>
                             {showMaterialCostDetails ? (
                                 <ChevronUp className="text-blue-500 hover:scale-110 transition-transform duration-200" />
