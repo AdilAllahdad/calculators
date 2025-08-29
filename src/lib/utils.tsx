@@ -78,6 +78,72 @@ const conversionFactors = {
     'st': 6.35029,
     'ton': 907.185,
     'ton-uk': 1016.05
+  },
+  // BTU (base: BTU)
+  BTU: {
+    'BTU': 1,
+    'BTU/h': 1,           // 1 BTU/h = 1 BTU/hr
+    'kW': 3412.14,        // 1 kW = 3412.14 BTU/hr
+    'watts': 3.41214,     // 1 watt = 3.41214 BTU/hr
+    'W': 3.41214,         // 1 W = 3.41214 BTU/hr
+    'mW': 0.00341214,     // 1 mW = 0.00341214 BTU/hr
+    'MW': 3412140,        // 1 MW = 3,412,140 BTU/hr
+    'GW': 3412140000,     // 1 GW = 3,412,140,000 BTU/hr
+    'hp(l)': 2544.43,     // 1 hp (mechanical) = 2544.43 BTU/hr
+    'hp(E)': 2544.43,     // 1 hp (electrical) = 2544.43 BTU/hr
+    '(hp(E))': 2544.43,   // 1 hp (electrical) = 2544.43 BTU/hr
+    '(hp(1))': 2544.43,   // 1 hp (1) = 2544.43 BTU/hr
+    'tons': 12000,         // 1 ton of refrigeration = 12000 BTU/hr
+    'US ton': 907.185,
+    'long ton': 1016.05
+  },
+  // Density (base: kg/m³)
+  density: {
+    't/m3': 1000,
+    'kg/m3': 1,
+    'kg/L': 1000,
+    'g/L': 1,
+    'g/mL': 1000,
+    'g/cm3': 1000,
+    'oz/in3': 1729.994,
+    'lb/in3': 27679.904,
+    'lb/ft3': 16.01846,
+    'lb/yd3': 0.593276,
+    'lb/US gal': 119.826,
+    'lb/UK gal': 99.776
+  },
+  // Boiler (base: kW)
+  boiler: {
+    'LPM': 0.006,
+    'GPM': 0.0163,
+    'kW': 1,
+    'hp': 0.7457
+  },
+
+  // Temperature (base: Celsius)
+  temperature: {
+    'C': 1,          // Celsius (base)
+    'F': 0.555556,   // Fahrenheit to Celsius conversion factor
+    'K': -272.15     // Kelvin to Celsius offset
+  },
+  // Price (base: USD per square meter for area pricing, USD per cubic meter for volume pricing, USD per kg for weight pricing)
+  price: {
+    'USD/ft2': 10.7639,      // 1 USD/ft² = 10.7639 USD/m²
+    'USD/m2': 1,             // Base unit for area pricing
+    'USD/yd2': 1.19599,      // 1 USD/yd² = 1.19599 USD/m²
+    'USD/ft3': 35.3147,      // 1 USD/ft³ = 35.3147 USD/m³
+    'USD/m3': 1,             // Base unit for volume pricing
+    'USD/yd3': 1.30795,      // 1 USD/yd³ = 1.30795 USD/m³
+    'USD/lb': 2.20462,       // 1 USD/lb = 2.20462 USD/kg
+    'USD/kg': 1,             // Base unit for weight pricing
+    'USD/ton': 0.00110231,   // 1 USD/ton = 0.00110231 USD/kg
+    'USD/t': 0.001           // 1 USD/t = 0.001 USD/kg
+  },
+  // Heat Loss (base: W/m²·K)
+  heatLoss: {
+    'Btu/h·ft²·°F': 0.17611, // 1 Btu/h·ft²·°F = 0.17611 W/m²·K
+    'W/m²·K': 1,             // Base unit for heat loss
+    'W/ft²·°F': 5.6782633411, // 1 W/ft²·°F = 5.6782633411 W/m²·K
   }
 };
 
@@ -86,48 +152,105 @@ export const convertValue = (value: number, fromUnit: string, toUnit: string): n
   // Find the unit type for the fromUnit
   const fromUnitOption = UNIT_OPTIONS.find(unit => unit.value === fromUnit);
   const toUnitOption = UNIT_OPTIONS.find(unit => unit.value === toUnit);
-  
+
   if (!fromUnitOption || !toUnitOption) {
     return value; // Can't convert if units are not found
   }
-  
+
   // Check if both units are of the same type
   if (fromUnitOption.type !== toUnitOption.type) {
     return value; // Can't convert between different unit types
   }
-  
+
   const unitType = fromUnitOption.type;
-  
+
   // Special handling for compound units (e.g., ft-in)
   if (fromUnit === 'ft-in' || fromUnit === 'm-cm' || toUnit === 'ft-in' || toUnit === 'm-cm') {
     return value; // Not handling compound units in this basic conversion
   }
-  
+
   // Get conversion factors based on unit type
   if (unitType === 'length' && fromUnit in conversionFactors.length && toUnit in conversionFactors.length) {
     const fromFactor = conversionFactors.length[fromUnit as keyof typeof conversionFactors.length];
     const toFactor = conversionFactors.length[toUnit as keyof typeof conversionFactors.length];
     return (value * fromFactor) / toFactor;
   }
-  
+
   if (unitType === 'area' && fromUnit in conversionFactors.area && toUnit in conversionFactors.area) {
     const fromFactor = conversionFactors.area[fromUnit as keyof typeof conversionFactors.area];
     const toFactor = conversionFactors.area[toUnit as keyof typeof conversionFactors.area];
     return (value * fromFactor) / toFactor;
   }
-  
+
   if (unitType === 'volume' && fromUnit in conversionFactors.volume && toUnit in conversionFactors.volume) {
     const fromFactor = conversionFactors.volume[fromUnit as keyof typeof conversionFactors.volume];
     const toFactor = conversionFactors.volume[toUnit as keyof typeof conversionFactors.volume];
     return (value * fromFactor) / toFactor;
   }
-  
+
   if (unitType === 'weight' && fromUnit in conversionFactors.weight && toUnit in conversionFactors.weight) {
     const fromFactor = conversionFactors.weight[fromUnit as keyof typeof conversionFactors.weight];
     const toFactor = conversionFactors.weight[toUnit as keyof typeof conversionFactors.weight];
     return (value * fromFactor) / toFactor;
   }
-  
+
+  if (unitType === 'BTU' && fromUnit in conversionFactors.BTU && toUnit in conversionFactors.BTU) {
+    const fromFactor = conversionFactors.BTU[fromUnit as keyof typeof conversionFactors.BTU];
+    const toFactor = conversionFactors.BTU[toUnit as keyof typeof conversionFactors.BTU];
+    return (value * fromFactor) / toFactor;
+  }
+
+  if (unitType === 'density' && fromUnit in conversionFactors.density && toUnit in conversionFactors.density) {
+    const fromFactor = conversionFactors.density[fromUnit as keyof typeof conversionFactors.density];
+    const toFactor = conversionFactors.density[toUnit as keyof typeof conversionFactors.density];
+    return (value * fromFactor) / toFactor;
+  }
+
+  if (unitType === 'boiler' && fromUnit in conversionFactors.boiler && toUnit in conversionFactors.boiler) {
+    const fromFactor = conversionFactors.boiler[fromUnit as keyof typeof conversionFactors.boiler];
+    const toFactor = conversionFactors.boiler[toUnit as keyof typeof conversionFactors.boiler];
+    return (value * fromFactor) / toFactor;
+  }
+
+  if (unitType === 'heatLoss' && fromUnit in conversionFactors.heatLoss && toUnit in conversionFactors.heatLoss) {
+    const fromFactor = conversionFactors.heatLoss[fromUnit as keyof typeof conversionFactors.heatLoss];
+    const toFactor = conversionFactors.heatLoss[toUnit as keyof typeof conversionFactors.heatLoss];
+    return (value * fromFactor) / toFactor;
+  }
+
+  if ((unitType as string) === 'temperature' && fromUnit in conversionFactors.temperature && toUnit in conversionFactors.temperature) {
+    // Temperature conversion requires special handling due to offset values
+    let celsiusValue: number;
+
+    // Convert to Celsius first
+    if (fromUnit === 'C') {
+      celsiusValue = value;
+    } else if (fromUnit === 'F') {
+      celsiusValue = (value - 32) * 5 / 9;
+    } else if (fromUnit === 'K') {
+      celsiusValue = value - 273.15;
+    } else {
+      return value;
+    }
+
+    // Convert from Celsius to target unit
+    if (toUnit === 'C') {
+      return celsiusValue;
+    } else if (toUnit === 'F') {
+      return (celsiusValue * 9 / 5) + 32;
+    } else if (toUnit === 'K') {
+      return celsiusValue + 273.15;
+    }
+
+    return value;
+  }
+
+  if (unitType === 'price' && fromUnit in conversionFactors.price && toUnit in conversionFactors.price) {
+    const fromFactor = conversionFactors.price[fromUnit as keyof typeof conversionFactors.price];
+    const toFactor = conversionFactors.price[toUnit as keyof typeof conversionFactors.price];
+    return (value * fromFactor) / toFactor;
+  }
+
   return value; // No conversion available
 };
 
@@ -179,12 +302,12 @@ export const formatNumber = (num: number, decimals: number = 2): string => {
 };
 
 // Format number with commas (for thousands separators)
-export const formatNumberWithCommas = (num: number, decimals: number = 2): string => {
-  return num.toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: decimals
-  });
-};
+// export const formatNumberWithCommas = (num: number, decimals: number = 2): string => {
+//   return num.toLocaleString('en-US', {
+//     minimumFractionDigits: 0,
+//     maximumFractionDigits: decimals
+//   });
+// };
 
 // Format currency with proper currency formatting
 export const formatCurrency = (amount: number): string => {
@@ -199,3 +322,35 @@ export const validatePositiveNumber = (value: string): number => {
   const num = parseFloat(value);
   return isNaN(num) || num < 0 ? 0 : num;
 };
+
+
+export const formatNumberWithCommas = (num: number, maxDecimals: number = 2): string => {
+  // Check if the number is an integer or has decimal values
+  const isInteger = Number.isInteger(num);
+
+  // For integers, don't show any decimal places
+  if (isInteger) {
+    return num.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  }
+
+  // Round to 2 decimal places for most values
+  // If the value is very small (< 0.01), use more decimals as needed
+  const absNum = Math.abs(num);
+  let actualDecimals = maxDecimals;
+
+  if (absNum < 0.01 && absNum > 0) {
+    // Find appropriate number of decimals to show non-zero digits
+    let tempNum = absNum;
+    actualDecimals = maxDecimals;
+    while (tempNum < 0.1 && actualDecimals < 6) {
+      tempNum *= 10;
+      actualDecimals += 1;
+    }
+  }
+
+  return num.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: actualDecimals
+  });
+};
+
