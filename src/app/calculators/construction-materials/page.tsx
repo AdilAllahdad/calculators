@@ -62,6 +62,13 @@ export default function ConstructionMaterialsPage() {
       icon: "💧",
       href: "/calculators/construction-materials/french-drain",
     },
+
+     {
+      name: "Rip Rap Calculator",
+      description: "Calculate materials for a rip rap installation",
+      icon: "🪨",
+      href: "/calculators/construction-materials/rip-rap",
+    },
     {
       name: "Glass Weight Calculator",
       description: "Calculate the weight of glass based on dimensions",
@@ -204,7 +211,7 @@ export default function ConstructionMaterialsPage() {
       name: "Tonnage Calculator",
       description: "Calculate tonnage for construction materials",
       icon: "⚖️",
-      href: "/calculators/construction-materials/tonnage",
+      href: "/calculators/construction-materials/toonage-cal",
     },
     {
       name: "Vinyl Fence Calculator",
