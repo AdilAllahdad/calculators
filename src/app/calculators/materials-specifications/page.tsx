@@ -69,6 +69,13 @@ export default function MaterialsSpecificationsPage() {
             <p className="text-sm text-gray-600">Calculate the K factor based on material properties and dimensions.</p>
           </div>
         </a>
+
+        <a href="/calculators/materials-specifications/welding" className="p-4  rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <div className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <h3 className="font-medium">Welding Calculator</h3>
+            <p className="text-sm text-gray-600">Calculate the welding parameters based on material properties and dimensions.</p>
+          </div>
+        </a>
       </div>
     </div>
   );
