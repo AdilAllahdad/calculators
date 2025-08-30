@@ -1,5 +1,10 @@
+
 "use client"
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
+
+
+
 
 const App = () => {
   const [setupType, setSetupType] = useState('wall');
@@ -450,15 +455,19 @@ const App = () => {
           {/* Diagram section */}
           <div className="my-6 text-center">
             {setupType === 'wall' ? (
-              <img
-                src="https://placehold.co/300x200/e0e0e0/555?text=Ladder+Diagram+(Wall)"
+              <Image
+                src="/ladder_angle_01.jpeg"
                 alt="Ladder diagram for wall setup"
+                width={400}
+                height={300}
                 className="mx-auto rounded-lg shadow-md"
               />
             ) : (
-              <img
-                src="https://placehold.co/300x200/e0e0e0/555?text=Ladder+Diagram+(Roof)"
+              <Image
+                src="/ladder_angle_02.jpeg"
                 alt="Ladder diagram for roof setup"
+                width={400}
+                height={300}
                 className="mx-auto rounded-lg shadow-md"
               />
             )}
