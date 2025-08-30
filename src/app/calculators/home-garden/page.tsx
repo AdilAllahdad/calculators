@@ -111,10 +111,10 @@ export default function HomeGardenPage() {
       href: "/calculators/home-garden/hoop-house"
     },
     {
-      name: "Ladder Angle Calculator",
-      description: "Calculate ladder angles for safety",
-      icon: "梯",
-      href: "/calculators/home-garden/ladder-angle"
+      name:"Ladder Angle Calculator",
+      description:"Calculate ladder angles for safety",
+      icon:"梯",
+      href:"/calculators/home-garden/ladder-angle-calculator"
     },
     {
       name: "Paint Calculator",
