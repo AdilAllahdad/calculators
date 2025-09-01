@@ -473,6 +473,20 @@ const page = () => {
   const [totalRebarsLengthUnit, setTotalRebarsLengthUnit] = useState('m')
   const [totalFormsLengthUnit, setTotalFormsLengthUnit] = useState('m')
 
+  // Add display states for material prices
+  interface MaterialPrice {
+    displayValue: string;
+    baseValue: string;
+    displayUnit: string;
+  }
+
+  const [materialPrices, setMaterialPrices] = useState<Record<string, MaterialPrice>>({
+    concrete: { displayValue: '', baseValue: '', displayUnit: 'm3' },
+    gravel: { displayValue: '', baseValue: '', displayUnit: 'm3' },
+    rebar: { displayValue: '', baseValue: '', displayUnit: 'm' },
+    forms: { displayValue: '', baseValue: '', displayUnit: 'm' }
+  });
+
   const handleClear = () => {
     setLength('')
     setLengthUnit('m')
@@ -607,55 +621,50 @@ const page = () => {
   // Concrete cost
   React.useEffect(() => {
     const vol = parse(totalConcreteVolume)
-    const price = parse(concretePrice)
-    if (vol > 0 && price > 0) {
-      // Convert volume to m3 for cost calculation
-      const vol_m3 = toM3[totalConcreteVolumeUnit] ? toM3[totalConcreteVolumeUnit](vol) : vol
-      const price_per_m3 = toM3[concretePricePerUnit] ? price / toM3[concretePricePerUnit](1) : price
-      setConcreteCost(String(Number((vol_m3 * price_per_m3).toFixed(2))))
+    const basePrice = parse(materialPrices.concrete.baseValue)
+    if (vol > 0 && basePrice > 0) {
+      const vol_m3 = toM3[totalConcreteVolumeUnit](vol)
+      setConcreteCost(String(Number((vol_m3 * basePrice).toFixed(2))))
     } else {
       setConcreteCost('')
     }
-  }, [totalConcreteVolume, concretePrice, totalConcreteVolumeUnit, concretePricePerUnit])
+  }, [totalConcreteVolume, materialPrices.concrete.baseValue, totalConcreteVolumeUnit])
 
   // Gravel cost
   React.useEffect(() => {
     const vol = parse(totalGravelVolume)
-    const price = parse(gravelPrice)
-    if (vol > 0 && price > 0) {
-      const vol_m3 = toM3[totalGravelVolumeUnit] ? toM3[totalGravelVolumeUnit](vol) : vol
-      const price_per_m3 = toM3[gravelPricePerUnit] ? price / toM3[gravelPricePerUnit](1) : price
-      setGravelCost(String(Number((vol_m3 * price_per_m3).toFixed(2))))
+    const basePrice = parse(materialPrices.gravel.baseValue)
+    if (vol > 0 && basePrice > 0) {
+      const vol_m3 = toM3[totalGravelVolumeUnit](vol)
+      setGravelCost(String(Number((vol_m3 * basePrice).toFixed(2))))
     } else {
       setGravelCost('')
     }
-  }, [totalGravelVolume, gravelPrice, totalGravelVolumeUnit, gravelPricePerUnit])
+  }, [totalGravelVolume, materialPrices.gravel.baseValue, totalGravelVolumeUnit])
 
   // Rebar cost
   React.useEffect(() => {
     const len = parse(totalRebarsLength)
-    const price = parse(rebarPrice)
-    if (len > 0 && price > 0) {
-      const len_m = toMetersLength[totalRebarsLengthUnit] ? toMetersLength[totalRebarsLengthUnit](len) : len
-      const price_per_m = toMetersLength[rebarPricePerUnit] ? price / toMetersLength[rebarPricePerUnit](1) : price
-      setRebarCost(String(Number((len_m * price_per_m).toFixed(2))))
+    const basePrice = parse(materialPrices.rebar.baseValue)
+    if (len > 0 && basePrice > 0) {
+      const len_m = toMetersLength[totalRebarsLengthUnit](len)
+      setRebarCost(String(Number((len_m * basePrice).toFixed(2))))
     } else {
       setRebarCost('')
     }
-  }, [totalRebarsLength, rebarPrice, totalRebarsLengthUnit, rebarPricePerUnit])
+  }, [totalRebarsLength, materialPrices.rebar.baseValue, totalRebarsLengthUnit])
 
   // Forms cost
   React.useEffect(() => {
     const len = parse(totalFormsLength)
-    const price = parse(formsPrice)
-    if (len > 0 && price > 0) {
-      const len_m = toMetersLength[totalFormsLengthUnit] ? toMetersLength[totalFormsLengthUnit](len) : len
-      const price_per_m = toMetersLength[formsPricePerUnit] ? price / toMetersLength[formsPricePerUnit](1) : price
-      setFormsCost(String(Number((len_m * price_per_m).toFixed(2))))
+    const basePrice = parse(materialPrices.forms.baseValue)
+    if (len > 0 && basePrice > 0) {
+      const len_m = toMetersLength[totalFormsLengthUnit](len)
+      setFormsCost(String(Number((len_m * basePrice).toFixed(2))))
     } else {
       setFormsCost('')
     }
-  }, [totalFormsLength, formsPrice, totalFormsLengthUnit, formsPricePerUnit])
+  }, [totalFormsLength, materialPrices.forms.baseValue, totalFormsLengthUnit])
 
   // Total cost
   React.useEffect(() => {
@@ -696,6 +705,43 @@ const page = () => {
     length, width, depth, gravelDepth, edgeRebarSpacing, rebarRebarSpacing, singleRebarLength,
     concretePrice, gravelPrice, rebarPrice, formsPrice
   ])
+
+  // Display-only conversion handlers
+  const handleMaterialDisplayChange = (
+    material: 'concrete' | 'gravel' | 'rebar' | 'forms',
+    value: string,
+    currentUnit: string
+  ): void => {
+    const converter = material === 'concrete' || material === 'gravel' ? toM3 : toMetersLength;
+    const baseValue = parse(value) / (converter[currentUnit](1) || 1);
+    
+    setMaterialPrices(prev => ({
+      ...prev,
+      [material]: {
+        ...prev[material],
+        displayValue: value,
+        baseValue: String(baseValue)
+      }
+    }));
+  };
+
+  const handleMaterialUnitChange = (
+    material: 'concrete' | 'gravel' | 'rebar' | 'forms',
+    newUnit: string
+  ): void => {
+    const { baseValue } = materialPrices[material];
+    const converter = material === 'concrete' || material === 'gravel' ? fromM3 : fromMetersLength;
+    const displayValue = String(Number((parse(baseValue) * (converter[newUnit](1) || 1)).toFixed(6)));
+
+    setMaterialPrices(prev => ({
+      ...prev,
+      [material]: {
+        ...prev[material],
+        displayValue,
+        displayUnit: newUnit
+      }
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-indigo-50 py-10 flex flex-col items-center">
@@ -796,27 +842,16 @@ const page = () => {
               </select>
               <input
                 type="text"
-                value={concretePrice}
-                onChange={e => setConcretePrice(e.target.value)}
+                value={materialPrices.concrete.displayValue}
+                onChange={e => handleMaterialDisplayChange('concrete', e.target.value, materialPrices.concrete.displayUnit)}
                 placeholder=""
-                className={`flex-1 px-3 py-2 border rounded-md bg-gray-50 text-base font-medium outline-none focus:border-blue-400 min-w-0 text-left font-mono ${concretePriceError ? 'border-red-400' : 'border-gray-200'}`}
-                style={concretePriceError ? { borderColor: '#f87171', color: '#b91c1c', background: '#fef2f2', fontWeight: 600, fontSize: 20, letterSpacing: 2 } : { fontWeight: 600, fontSize: 20, letterSpacing: 2 }}
+                className="flex-1 px-3 py-2 border rounded-md bg-gray-50 text-base font-medium outline-none focus:border-blue-400 min-w-0 text-left font-mono"
               />
               <span className="text-gray-400 font-semibold">/</span>
               <select
                 className="border border-gray-200 rounded-md bg-white px-2 py-2 text-blue-700 font-semibold outline-none"
-                value={concretePricePerUnit}
-                onChange={e =>
-                  handlePricePerUnitChange(
-                    e.target.value,
-                    concretePrice,
-                    concretePricePerUnit,
-                    setConcretePrice,
-                    setConcretePricePerUnit,
-                    toM3,
-                    fromM3
-                  )
-                }
+                value={materialPrices.concrete.displayUnit}
+                onChange={e => handleMaterialUnitChange('concrete', e.target.value)}
                 style={{ width: 110 }}
               >
                 {concreteGravelPricePerUnitOptions.map(u => (
@@ -824,9 +859,6 @@ const page = () => {
                 ))}
               </select>
             </div>
-            {concretePriceError && (
-              <div className="mt-1 text-sm text-red-600">{concretePriceError}</div>
-            )}
           </div>
           <div className="mb-3">
             <div className="flex items-center mb-1">
@@ -845,27 +877,16 @@ const page = () => {
               </select>
               <input
                 type="text"
-                value={gravelPrice}
-                onChange={e => setGravelPrice(e.target.value)}
+                value={materialPrices.gravel.displayValue}
+                onChange={e => handleMaterialDisplayChange('gravel', e.target.value, materialPrices.gravel.displayUnit)}
                 placeholder=""
-                className={`flex-1 px-3 py-2 border rounded-md bg-gray-50 text-base font-medium outline-none focus:border-blue-400 min-w-0 text-left font-mono ${gravelPriceError ? 'border-red-400' : 'border-gray-200'}`}
-                style={gravelPriceError ? { borderColor: '#f87171', color: '#b91c1c', background: '#fef2f2', fontWeight: 600, fontSize: 20, letterSpacing: 2 } : { fontWeight: 600, fontSize: 20, letterSpacing: 2 }}
+                className="flex-1 px-3 py-2 border rounded-md bg-gray-50 text-base font-medium outline-none focus:border-blue-400 min-w-0 text-left font-mono"
               />
               <span className="text-gray-400 font-semibold">/</span>
               <select
                 className="border border-gray-200 rounded-md bg-white px-2 py-2 text-blue-700 font-semibold outline-none"
-                value={gravelPricePerUnit}
-                onChange={e =>
-                  handlePricePerUnitChange(
-                    e.target.value,
-                    gravelPrice,
-                    gravelPricePerUnit,
-                    setGravelPrice,
-                    setGravelPricePerUnit,
-                    toM3,
-                    fromM3
-                  )
-                }
+                value={materialPrices.gravel.displayUnit}
+                onChange={e => handleMaterialUnitChange('gravel', e.target.value)}
                 style={{ width: 110 }}
               >
                 {concreteGravelPricePerUnitOptions.map(u => (
@@ -873,9 +894,6 @@ const page = () => {
                 ))}
               </select>
             </div>
-            {gravelPriceError && (
-              <div className="mt-1 text-sm text-red-600">{gravelPriceError}</div>
-            )}
           </div>
           <div className="mb-3">
             <div className="flex items-center mb-1">
@@ -894,27 +912,16 @@ const page = () => {
               </select>
               <input
                 type="text"
-                value={rebarPrice}
-                onChange={e => setRebarPrice(e.target.value)}
+                value={materialPrices.rebar.displayValue}
+                onChange={e => handleMaterialDisplayChange('rebar', e.target.value, materialPrices.rebar.displayUnit)}
                 placeholder=""
-                className={`flex-1 px-3 py-2 border rounded-md bg-gray-50 text-base font-medium outline-none focus:border-blue-400 min-w-0 text-left font-mono ${rebarPriceError ? 'border-red-400' : 'border-gray-200'}`}
-                style={rebarPriceError ? { borderColor: '#f87171', color: '#b91c1c', background: '#fef2f2', fontWeight: 600, fontSize: 20, letterSpacing: 2 } : { fontWeight: 600, fontSize: 20, letterSpacing: 2 }}
+                className="flex-1 px-3 py-2 border rounded-md bg-gray-50 text-base font-medium outline-none focus:border-blue-400 min-w-0 text-left font-mono"
               />
               <span className="text-gray-400 font-semibold">/</span>
               <select
                 className="border border-gray-200 rounded-md bg-white px-2 py-2 text-blue-700 font-semibold outline-none"
-                value={rebarPricePerUnit}
-                onChange={e =>
-                  handlePricePerUnitChange(
-                    e.target.value,
-                    rebarPrice,
-                    rebarPricePerUnit,
-                    setRebarPrice,
-                    setRebarPricePerUnit,
-                    toMetersLength,
-                    fromMetersLength
-                  )
-                }
+                value={materialPrices.rebar.displayUnit}
+                onChange={e => handleMaterialUnitChange('rebar', e.target.value)}
                 style={{ width: 110 }}
               >
                 {rebarFormPricePerUnitOptions.map(u => (
@@ -922,9 +929,6 @@ const page = () => {
                 ))}
               </select>
             </div>
-            {rebarPriceError && (
-              <div className="mt-1 text-sm text-red-600">{rebarPriceError}</div>
-            )}
           </div>
           <div className="mb-3">
             <div className="flex items-center mb-1">
@@ -943,27 +947,16 @@ const page = () => {
               </select>
               <input
                 type="text"
-                value={formsPrice}
-                onChange={e => setFormsPrice(e.target.value)}
+                value={materialPrices.forms.displayValue}
+                onChange={e => handleMaterialDisplayChange('forms', e.target.value, materialPrices.forms.displayUnit)}
                 placeholder=""
-                className={`flex-1 px-3 py-2 border rounded-md bg-gray-50 text-base font-medium outline-none focus:border-blue-400 min-w-0 text-left font-mono ${formsPriceError ? 'border-red-400' : 'border-gray-200'}`}
-                style={formsPriceError ? { borderColor: '#f87171', color: '#b91c1c', background: '#fef2f2', fontWeight: 600, fontSize: 20, letterSpacing: 2 } : { fontWeight: 600, fontSize: 20, letterSpacing: 2 }}
+                className="flex-1 px-3 py-2 border rounded-md bg-gray-50 text-base font-medium outline-none focus:border-blue-400 min-w-0 text-left font-mono"
               />
               <span className="text-gray-400 font-semibold">/</span>
               <select
                 className="border border-gray-200 rounded-md bg-white px-2 py-2 text-blue-700 font-semibold outline-none"
-                value={formsPricePerUnit}
-                onChange={e =>
-                  handlePricePerUnitChange(
-                    e.target.value,
-                    formsPrice,
-                    formsPricePerUnit,
-                    setFormsPrice,
-                    setFormsPricePerUnit,
-                    toMetersLength,
-                    fromMetersLength
-                  )
-                }
+                value={materialPrices.forms.displayUnit}
+                onChange={e => handleMaterialUnitChange('forms', e.target.value)}
                 style={{ width: 110 }}
               >
                 {rebarFormPricePerUnitOptions.map(u => (
@@ -971,9 +964,6 @@ const page = () => {
                 ))}
               </select>
             </div>
-            {formsPriceError && (
-              <div className="mt-1 text-sm text-red-600">{formsPriceError}</div>
-            )}
           </div>
         </Section>
         {/* Material estimations */}
@@ -1035,6 +1025,7 @@ const page = () => {
     </div>
   )
 }
+
 
 
 export default page
