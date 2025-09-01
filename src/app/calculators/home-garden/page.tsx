@@ -180,7 +180,7 @@ export default function HomeGardenPage() {
       name: "Wainscoting Calculator",
       description: "Calculate wainscoting quantities and costs",
       icon: " wainscoting",
-      href: "/calculators/home-garden/wainscoting"
+      href: "/calculators/home-garden/wainscoting-calculator"
     },
     {
       name: "Wallpaper Calculator",

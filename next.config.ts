@@ -40,6 +40,7 @@ const nextConfig: NextConfig = {
         hostname: 'localhost:3000',
       },
     ],
+    unoptimized: true,
   },
 };
 
