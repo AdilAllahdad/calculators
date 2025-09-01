@@ -69,7 +69,7 @@ const initialState = {
   totalAreaUnderSlopedWallsUnit: 'ft²',
 
   grossRoomArea: '',
-  grossRoomAreaUnit: 'yd²',
+  grossRoomAreaUnit: 'm²',
 
   boardSize: '',
   costPerBoard: '',
@@ -181,7 +181,7 @@ const Page = () => {
     }
     const windowAreaDisplay = windowArea > 0 ? convertArea(windowArea, 'm²', fields.totalWindowAreaUnit).toFixed(2) : '0.00';
 
-    // --- 4. Gross room area (WALLS + CEILING if selected) ---
+    // --- 4. Gross room area (WALLS + CEILING + SLOPED if selected) ---
     const lengthM = convertLength(fields.roomLength, fields.roomLengthUnit, 'm');
     const widthM = convertLength(fields.roomWidth, fields.roomWidthUnit, 'm');
     const heightM = convertLength(fields.roomHeight, fields.roomHeightUnit, 'm');
@@ -195,12 +195,16 @@ const Page = () => {
       if (fields.includeCeiling === 'yes') {
         grossArea += lengthM * widthM;
       }
+      
+      // Add sloped area to gross area calculation
+      grossArea += areaSloped;
     }
     
     const grossAreaDisplay = grossArea > 0 ? convertArea(grossArea, 'm²', fields.grossRoomAreaUnit).toFixed(2) : '0.00';
 
-    // --- 5. Net room area = gross + sloped - doors - windows ---
-    let netArea = grossArea + areaSloped - doorArea - windowArea;
+    // --- 5. Net room area = gross - doors - windows ---
+    // Fix: Don't add sloped area again since it's already included in gross area
+    let netArea = grossArea - doorArea - windowArea;
     const waste = toNumber(fields.createWaste);
     if (waste > 0) {
       netArea = netArea * (1 + waste / 100);
@@ -522,12 +526,24 @@ const Page = () => {
                   const lengthM = convertLength(fields.roomLength, fields.roomLengthUnit, 'm');
                   const widthM = convertLength(fields.roomWidth, fields.roomWidthUnit, 'm');
                   const heightM = convertLength(fields.roomHeight, fields.roomHeightUnit, 'm');
+                  
+                  // Calculate sloped area
+                  let areaSloped = 0;
+                  const numSloped = toNumber(fields.numSlopedSpaces);
+                  if (numSloped > 0) {
+                    const baseM = convertLength(fields.baseSloped, fields.baseSlopedUnit, 'm');
+                    const heightM = convertLength(fields.heightSloped, fields.heightSlopedUnit, 'm');
+                    areaSloped = numSloped * (baseM * heightM / 2);
+                  }
+                  
                   let grossAreaM2 = 0;
                   if (lengthM > 0 && widthM > 0 && heightM > 0) {
                     grossAreaM2 = 2 * (lengthM * heightM) + 2 * (widthM * heightM);
                     if (fields.includeCeiling === 'yes') {
                       grossAreaM2 += lengthM * widthM;
                     }
+                    // Add sloped area to display calculation
+                    grossAreaM2 += areaSloped;
                   }
                   return grossAreaM2 > 0 ? grossAreaM2.toFixed(2) : '0.00'
                 })()
