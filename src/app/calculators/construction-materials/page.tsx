@@ -42,7 +42,7 @@ export default function ConstructionMaterialsPage() {
       name: "Drywall Calculator",
       description: "Calculate drywall sheets and materials needed",
       icon: "🧰",
-      href: "/calculators/construction-materials/drywall",
+      href: "/calculators/construction-materials/Drywall-cal",
     },
     {
       name: "Fire Glass Calculator",
