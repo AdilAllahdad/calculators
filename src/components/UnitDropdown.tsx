@@ -1,12 +1,18 @@
 import React, { useMemo } from 'react';
-import { UnitOption } from '@/types/calculator';
+// Using local UnitOption interface instead of import
 import { getUnitsByType, getUnitsByValues } from '@/lib/utils';
+
+interface UnitOption {
+  value: string;
+  label: string;
+}
 
 interface UnitDropdownProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   unitType?: string | string[];
   unitValues?: string[];
+  options?: UnitOption[];
   className?: string;
   id?: string;
   name?: string;
@@ -21,16 +27,17 @@ const UnitDropdown: React.FC<UnitDropdownProps> = ({
   onChange,
   unitType,
   unitValues,
+  options,
   className = '',
   id,
   name,
 }) => {
   // Get units based on provided criteria
-  const units: UnitOption[] = unitValues
-    ? getUnitsByValues(unitValues)
+  const units: UnitOption[] = options || (unitValues
+    ? getUnitsByValues(unitValues).map(u => ({ value: u.value, label: u.value }))
     : unitType
-      ? getUnitsByType(unitType)
-      : [];
+      ? getUnitsByType(unitType).map(u => ({ value: u.value, label: u.value }))
+      : []);
 
   // Generate a unique identifier for this dropdown instance
   const dropdownId = useMemo(() => id || Math.random().toString(36).substr(2, 9), [id]);
@@ -45,7 +52,7 @@ const UnitDropdown: React.FC<UnitDropdownProps> = ({
     >
       {units.map((unit, index) => (
         <option key={`${dropdownId}-${index}-${unit.value}`} value={unit.value}>
-          {unit.value}
+          {unit.label}
         </option>
       ))}
     </select>
