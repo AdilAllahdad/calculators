@@ -4,20 +4,27 @@ import { useState, useEffect } from 'react';
 import { ChevronDown,ChevronUp } from '@/components/icons';
 import UnitDropdown from '@/components/UnitDropdown';
 
-// Type definitions for unit system
-type LengthUnitType = 'm' | 'ft' | 'cm' | 'in';
-type AreaUnitType = 'm2' | 'ft2' | 'cm2' | 'in2';
+// Type definitions for unit systemal
+type LengthUnitType = 'm' | 'ft' | 'cm' | 'in' | 'm/cm' | 'ft/in';
+type AreaUnitType = 'm2' | 'ft2' | 'yd2';
 type MaterialAreaUnitType = 'm2' | 'ft2' | 'yd2';
 type CostPerUnitUnitType = 'm2' | 'ft2' | 'yd2';
 type ConversionMap<T extends string> = Record<T, number>;
 
+// Area conversion factors (to square meters)
+const areaConversionFactors: ConversionMap<AreaUnitType> = {
+    'm2': 1,          // square meters (base unit)
+    'ft2': 0.092903,  // square feet to square meters
+    'yd2': 0.836127   // square yards to square meters
+};
+
 // Helper functions for type safety
 const isLengthUnit = (unit: string): unit is LengthUnitType => {
-  return ['m', 'ft', 'cm', 'in'].includes(unit);
+    return ['m', 'ft', 'cm', 'in', 'm/cm', 'ft/in'].includes(unit);
 };
 
 const isAreaUnit = (unit: string): unit is AreaUnitType => {
-  return ['m2', 'ft2', 'cm2', 'in2'].includes(unit);
+    return ['mm2', 'cm2', 'm2', 'ha', 'km2', 'in2', 'ft2', 'yd2', 'ac', 'mi2'].includes(unit);
 };
 
 const isMaterialAreaUnit = (unit: string): unit is MaterialAreaUnitType => {
@@ -30,9 +37,23 @@ const isCostPerUnitUnit = (unit: string): unit is CostPerUnitUnitType => {
 
 
 // Define the unit values needed for each dropdown
-const lengthUnitValues: LengthUnitType[] = ['m', 'ft', 'cm', 'in'];
-const widthUnitValues: LengthUnitType[] = ['m', 'ft', 'cm', 'in'];
-const areaUnitValues: AreaUnitType[] = ['m2', 'ft2', 'cm2', 'in2'];
+interface UnitOption {
+    value: LengthUnitType;
+    label: string;
+}
+
+const lengthUnitOptions: UnitOption[] = [
+    { value: 'cm', label: 'centimeters (cm)' },
+    { value: 'm', label: 'meters (m)' },
+    { value: 'in', label: 'inches (in)' },
+    { value: 'ft', label: 'feet (ft)' },
+    { value: 'ft/in', label: 'feet / inches (ft / in)' },
+    { value: 'm/cm', label: 'meters / centimeters (m / cm)' }
+];
+
+const lengthUnitValues = lengthUnitOptions.map(option => option.value);
+const widthUnitValues = lengthUnitValues;
+const areaUnitValues: AreaUnitType[] = ['m2', 'ft2', 'yd2'];
 const materialAreaUnitValues: MaterialAreaUnitType[] = ['m2', 'ft2', 'yd2'];
 const costPerUnitUnitValues: CostPerUnitUnitType[] = ['m2', 'ft2', 'yd2'];
 
@@ -41,7 +62,9 @@ const lengthConversions: ConversionMap<LengthUnitType> = {
   'm': 1,           // meters (base)
   'ft': 0.3048,     // feet to meters
   'cm': 0.01,       // centimeters to meters
-  'in': 0.0254      // inches to meters
+  'in': 0.0254,     // inches to meters
+  'm/cm': 1,        // meters/centimeters (treated same as meters for base conversion)
+  'ft/in': 0.3048   // feet/inches (treated same as feet for base conversion)
 };
 
 const areaConversions: ConversionMap<AreaUnitType> = {
@@ -74,6 +97,19 @@ const formatNumber = (value: number, decimals: number = 2): string => {
   if (value === 0) return '0';
   if (value % 1 === 0) return value.toString();
   return value.toFixed(decimals);
+};
+
+const formatCombinedLength = (value: number, unit: LengthUnitType): string => {
+  if (unit === 'm/cm') {
+    const meters = Math.floor(value);
+    const centimeters = Math.round((value - meters) * 100);
+    return `${meters}m ${centimeters}cm`;
+  } else if (unit === 'ft/in') {
+    const feet = Math.floor(value);
+    const inches = Math.round((value - feet) * 12);
+    return `${feet}ft ${inches}in`;
+  }
+  return value.toFixed(4);
 };
 
 export default function FlooringCalculator() {
@@ -134,7 +170,9 @@ export default function FlooringCalculator() {
         }
 
         if (isAreaUnit(areaUnit) && isAreaUnit(newUnit)) {
-            const result = handleUnitConversion(areaUnit, newUnit, Number(area), areaConversions);
+            // Convert to base unit (m²) first, then to target unit
+            const areaInSqMeters = Number(area) * areaConversionFactors[areaUnit];
+            const result = areaInSqMeters / areaConversionFactors[newUnit];
             setArea(result.toFixed(4));
         }
         setAreaUnit(newUnit);
@@ -166,8 +204,16 @@ export default function FlooringCalculator() {
         }   
 
         if (isCostPerUnitUnit(costPerUnitUnit) && isCostPerUnitUnit(newUnit)) {
-            const result = handleUnitConversion(costPerUnitUnit, newUnit, Number(costPerUnit), materialAreaConversions);
+            // Store current total cost
+            const currentTotalCost = totalCost;
+            
+            // For cost per unit, we need to apply the inverse conversion
+            // because cost per m² = cost per ft² * (ft²/m²)
+            const result = Number(costPerUnit) * (materialAreaConversions[newUnit] / materialAreaConversions[costPerUnitUnit]);
             setCostPerUnit(result.toFixed(4));
+            
+            // Restore the original total cost
+            setTotalCost(currentTotalCost);
         }
         setCostPerUnitUnit(newUnit);
     };
@@ -187,14 +233,14 @@ export default function FlooringCalculator() {
         const areaInSquareMeters = lengthInMeters * widthInMeters;
 
         // Convert to selected unit using type-safe conversion
-        const areaDisplay = areaInSquareMeters / areaConversions[areaUnit];
+        const areaDisplay = areaInSquareMeters / areaConversionFactors[areaUnit];
         setArea(areaDisplay.toFixed(4));
     };
 
     const calculateMaterialArea = () => {
         const areaNum = parseFloat(area) || 0;
         const wasteFactorNum = parseFloat(wasteFactor) || 0;
-        if (areaNum <= 0 || wasteFactorNum <= 0) {
+        if (areaNum <= 0) {
             setMaterialArea('0');
             return;
         }
@@ -210,17 +256,21 @@ export default function FlooringCalculator() {
     };
 
     const calculateTotalCost = () => {
-        const materialAreaNum = parseFloat(materialArea) || 0;
-        const costPerUnitNum = parseFloat(costPerUnit) || 0;
-        if (materialAreaNum <= 0 || costPerUnitNum <= 0) {
+        // Don't recalculate if we're just changing units
+        if (!materialArea || !costPerUnit || materialArea === '0' || costPerUnit === '0') {
             setTotalCost('0');
             return;
         }
 
+        const materialAreaNum = parseFloat(materialArea);
+        const costPerUnitNum = parseFloat(costPerUnit);
+
         // Convert material area to meters using type-safe conversion
         const materialAreaInSquareMeters = materialAreaNum * materialAreaConversions[materialAreaUnit];
+        // Convert cost per unit to base unit (per m²)
+        const costPerUnitInBaseUnit = costPerUnitNum / materialAreaConversions[costPerUnitUnit];
 
-        const totalCostNum = materialAreaInSquareMeters * costPerUnitNum;
+        const totalCostNum = materialAreaInSquareMeters * costPerUnitInBaseUnit;
         setTotalCost(totalCostNum.toFixed(4));
     };
 
@@ -256,7 +306,14 @@ export default function FlooringCalculator() {
     };
 
     const shareResult = () => {
-        const result = `Length: ${length} ${lengthUnit}\nWidth: ${width} ${widthUnit}\nArea: ${area} ${areaUnit}\nWaste Factor: ${wasteFactor}\nMaterial Area: ${materialArea} ${materialAreaUnit}\nCost per Unit: ${costPerUnit} ${costPerUnitUnit}\nTotal Cost: ${totalCost}`;
+        const formattedLength = lengthUnit === 'm/cm' || lengthUnit === 'ft/in' 
+            ? formatCombinedLength(parseFloat(length) || 0, lengthUnit)
+            : `${length} ${lengthUnit}`;
+        const formattedWidth = widthUnit === 'm/cm' || widthUnit === 'ft/in'
+            ? formatCombinedLength(parseFloat(width) || 0, widthUnit)
+            : `${width} ${widthUnit}`;
+            
+        const result = `Length: ${formattedLength}\nWidth: ${formattedWidth}\nArea: ${area} ${areaUnit}\nWaste Factor: ${wasteFactor}\nMaterial Area: ${materialArea} ${materialAreaUnit}\nCost per Unit: ${costPerUnit} ${costPerUnitUnit}\nTotal Cost: ${totalCost}`;
         if (navigator.share) {
           navigator.share({
             title: 'Flooring Calculator Result',
@@ -309,21 +366,85 @@ export default function FlooringCalculator() {
                                 Room Length
                             </label>
                             <div className="flex gap-2">
-                                <input
-                                    type="number"
-                                    value={length}
-                                    onChange={(e) => handleNumberInput(e.target.value, setLength)}
-                                    onFocus={(e) => handleFocus(length, e)}
-                                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                                    min="0"
-                                    placeholder="Enter length"
-                                />
+                                {lengthUnit === 'm/cm' ? (
+                                    <div className="flex-1 flex gap-2">
+                                        <input
+                                            type="number"
+                                            value={Math.floor(parseFloat(length) || 0)}
+                                            onChange={(e) => {
+                                                const meters = parseFloat(e.target.value) || 0;
+                                                const centimeters = (parseFloat(length) || 0) % 1 * 100;
+                                                setLength((meters + centimeters / 100).toString());
+                                            }}
+                                            className="w-[calc(50%-0.25rem)] px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                            min="0"
+                                            placeholder="Meters"
+                                        />
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={((parseFloat(length) || 0) % 1 * 100).toFixed(4)}
+                                            onChange={(e) => {
+                                                const meters = Math.floor(parseFloat(length) || 0);
+                                                const centimeters = parseFloat(e.target.value) || 0;
+                                                setLength((meters + centimeters / 100).toString());
+                                            }}
+                                            className="w-[calc(50%-0.25rem)] px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                            min="0"
+                                            max="99.9999"
+                                            placeholder="CM"
+                                        />
+                                    </div>
+                                ) : lengthUnit === 'ft/in' ? (
+                                    <div className="flex-1 flex gap-2">
+                                        <input
+                                            type="number"
+                                            value={Math.floor(parseFloat(length) || 0)}
+                                            onChange={(e) => {
+                                                const feet = parseFloat(e.target.value) || 0;
+                                                const inches = (parseFloat(length) || 0) % 1 * 12;
+                                                setLength((feet + inches / 12).toString());
+                                            }}
+                                            className="w-[calc(50%-0.25rem)] px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                            min="0"
+                                            placeholder="Feet"
+                                        />
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={((parseFloat(length) || 0) % 1 * 12).toFixed(4)}
+                                            onChange={(e) => {
+                                                const feet = Math.floor(parseFloat(length) || 0);
+                                                const inches = parseFloat(e.target.value) || 0;
+                                                setLength((feet + inches / 12).toString());
+                                            }}
+                                            className="w-[calc(50%-0.25rem)] px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                            min="0"
+                                            placeholder="Inches"
+                                        />
+                                    </div>
+                                ) : (
+                                    <input
+                                        type="number"
+                                        value={length}
+                                        onChange={(e) => handleNumberInput(e.target.value, setLength)}
+                                        onFocus={(e) => handleFocus(length, e)}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                        min="0"
+                                        placeholder="Enter length"
+                                    />
+                                )}
                                 <UnitDropdown
                                     value={lengthUnit}
                                     onChange={(e) => handleLengthUnitChange(e.target.value)}
                                     unitValues={lengthUnitValues}
-                                    className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    options={lengthUnitOptions}
+                                    className="w-64 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                 />
                             </div>
                         </div>
@@ -332,21 +453,85 @@ export default function FlooringCalculator() {
                                 Room Width
                             </label>
                             <div className="flex gap-2">
-                                <input
-                                    type="number"
-                                    value={width}
-                                    onChange={(e) => handleNumberInput(e.target.value, setWidth)}
-                                    onFocus={(e) => handleFocus(width, e)}
-                                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                                    min="0"
-                                    placeholder="Enter width"
-                                />
+                                {widthUnit === 'm/cm' ? (
+                                    <div className="flex-1 flex gap-2">
+                                        <input
+                                            type="number"
+                                            value={Math.floor(parseFloat(width) || 0)}
+                                            onChange={(e) => {
+                                                const meters = parseFloat(e.target.value) || 0;
+                                                const centimeters = (parseFloat(width) || 0) % 1 * 100;
+                                                setWidth((meters + centimeters / 100).toString());
+                                            }}
+                                            className="w-[calc(50%-0.25rem)] px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                            min="0"
+                                            placeholder="Meters"
+                                        />
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={((parseFloat(width) || 0) % 1 * 100).toFixed(4)}
+                                            onChange={(e) => {
+                                                const meters = Math.floor(parseFloat(width) || 0);
+                                                const centimeters = parseFloat(e.target.value) || 0;
+                                                setWidth((meters + centimeters / 100).toString());
+                                            }}
+                                            className="w-[calc(50%-0.25rem)] px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                            min="0"
+                                            max="99.9999"
+                                            placeholder="CM"
+                                        />
+                                    </div>
+                                ) : widthUnit === 'ft/in' ? (
+                                    <div className="flex-1 flex gap-2">
+                                        <input
+                                            type="number"
+                                            value={Math.floor(parseFloat(width) || 0)}
+                                            onChange={(e) => {
+                                                const feet = parseFloat(e.target.value) || 0;
+                                                const inches = (parseFloat(width) || 0) % 1 * 12;
+                                                setWidth((feet + inches / 12).toString());
+                                            }}
+                                            className="w-[calc(50%-0.25rem)] px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                            min="0"
+                                            placeholder="Feet"
+                                        />
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={((parseFloat(width) || 0) % 1 * 12).toFixed(4)}
+                                            onChange={(e) => {
+                                                const feet = Math.floor(parseFloat(width) || 0);
+                                                const inches = parseFloat(e.target.value) || 0;
+                                                setWidth((feet + inches / 12).toString());
+                                            }}
+                                            className="w-[calc(50%-0.25rem)] px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                            min="0"
+                                            placeholder="Inches"
+                                        />
+                                    </div>
+                                ) : (
+                                    <input
+                                        type="number"
+                                        value={width}
+                                        onChange={(e) => handleNumberInput(e.target.value, setWidth)}
+                                        onFocus={(e) => handleFocus(width, e)}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                                        min="0"
+                                        placeholder="Enter width"
+                                    />
+                                )}
                                 <UnitDropdown
                                     value={widthUnit}
                                     onChange={(e) => handleWidthUnitChange(e.target.value)}
                                     unitValues={widthUnitValues}
-                                    className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    options={lengthUnitOptions}
+                                    className="w-64 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                 />
                             </div>
                         </div>
@@ -367,7 +552,7 @@ export default function FlooringCalculator() {
                                 <UnitDropdown
                                     value={areaUnit}
                                     onChange={(e) => handleAreaUnitChange(e.target.value)}
-                                    unitValues={areaUnitValues}
+                                    unitType="area"
                                     className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
                                 />
                             </div>
@@ -501,6 +686,10 @@ export default function FlooringCalculator() {
         </div>  
     );
 }
+
+
+
+
 
 
 
