@@ -1,0 +1,440 @@
+'use client'
+
+import React, { useState, useEffect } from 'react';
+import { Info } from 'lucide-react';
+
+export default function GroutCalculator() {
+  // State for area dimensions
+  const [length, setLength] = useState<string>('');
+  const [width, setWidth] = useState<string>('');
+  const [lengthUnit, setLengthUnit] = useState<string>('m');
+  const [widthUnit, setWidthUnit] = useState<string>('m');
+
+  // State for tile dimensions
+  const [tileLength, setTileLength] = useState<string>('');
+  const [tileWidth, setTileWidth] = useState<string>('');
+  const [tileLengthUnit, setTileLengthUnit] = useState<string>('cm');
+  const [tileWidthUnit, setTileWidthUnit] = useState<string>('cm');
+
+  // State for gap details
+  const [gapWidth, setGapWidth] = useState<string>('');
+  const [gapDepth, setGapDepth] = useState<string>('');
+  const [gapUnit, setGapUnit] = useState<string>('mm');
+
+  // State for grout material details
+  const [showGroutDetails, setShowGroutDetails] = useState<boolean>(false);
+  const [weightPerBag, setWeightPerBag] = useState<number>(1);
+  const [groutDensity, setGroutDensity] = useState<number>(1600);
+  const [dryMaterialPercentage, setDryMaterialPercentage] = useState<number>(50);
+
+  // State for calculated results
+  const [totalArea, setTotalArea] = useState<number>(0);
+  const [groutVolume, setGroutVolume] = useState<number>(0);
+  const [groutWeight, setGroutWeight] = useState<number>(0);
+  const [dryMaterialWeight, setDryMaterialWeight] = useState<number>(0);
+  const [bagsNeeded, setBagsNeeded] = useState<number>(0);
+
+  // Helper functions for unit conversion
+  const convertToMeters = (value: number, unit: string): number => {
+    switch (unit) {
+      case 'mm': return value / 1000;
+      case 'cm': return value / 100;
+      case 'm': return value;
+      case 'in': return value * 0.0254;
+      case 'ft': return value * 0.3048;
+      default: return value;
+    }
+  };
+
+  const convertToMM = (value: number, unit: string): number => {
+    switch (unit) {
+      case 'mm': return value;
+      case 'cm': return value * 10;
+      case 'm': return value * 1000;
+      case 'in': return value * 25.4;
+      case 'ft': return value * 304.8;
+      default: return value;
+    }
+  };
+
+  // Calculate area when length or width changes
+  useEffect(() => {
+    if (length && width) {
+      const lengthInM = convertToMeters(parseFloat(length), lengthUnit);
+      const widthInM = convertToMeters(parseFloat(width), widthUnit);
+      const area = lengthInM * widthInM;
+      setTotalArea(area);
+      
+      // Trigger recalculation of other values when area changes
+      calculateResults(area);
+    } else {
+      setTotalArea(0);
+      setGroutVolume(0);
+      setGroutWeight(0);
+      setDryMaterialWeight(0);
+      setBagsNeeded(0);
+    }
+  }, [length, width, lengthUnit, widthUnit]);
+
+  // Recalculate when other inputs change
+  useEffect(() => {
+    calculateResults(totalArea);
+  }, [tileLength, tileWidth, tileLengthUnit, tileWidthUnit, gapWidth, gapDepth, 
+      gapUnit, groutDensity, dryMaterialPercentage, weightPerBag, totalArea]);
+
+  const calculateResults = (area: number) => {
+    if (!tileLength || !tileWidth || !gapWidth || !gapDepth || area === 0) {
+      return;
+    }
+
+    try {
+      // Convert tile dimensions to meters and gap dimensions to millimeters
+      const tileLengthInM = convertToMeters(parseFloat(tileLength), tileLengthUnit);
+      const tileWidthInM = convertToMeters(parseFloat(tileWidth), tileWidthUnit);
+      const gapWidthInMM = convertToMM(parseFloat(gapWidth), gapUnit);
+      const gapDepthInMM = convertToMM(parseFloat(gapDepth), gapUnit);
+
+      // Calculate ratio of tile area to total area including gaps
+      const R = (tileLengthInM * tileWidthInM) / 
+                ((tileLengthInM + gapWidthInMM/1000) * (tileWidthInM + gapWidthInMM/1000));
+      
+      // Calculate grout area
+      const groutArea = area - (area * R);
+
+      // Calculate grout volume in cubic meters
+      const volumeInCubicMeters = groutArea * (gapDepthInMM / 1000);
+      setGroutVolume(volumeInCubicMeters);
+
+      // Calculate total grout weight
+      const totalGroutWeight = volumeInCubicMeters * groutDensity;
+      setGroutWeight(totalGroutWeight);
+
+      // Calculate dry material weight
+      const dryWeight = totalGroutWeight * (dryMaterialPercentage / 100);
+      setDryMaterialWeight(dryWeight);
+
+      // Calculate number of bags needed
+      if (weightPerBag > 0) {
+        setBagsNeeded(Math.ceil(dryWeight / weightPerBag));
+      } else {
+        setBagsNeeded(0);
+      }
+    } catch (error) {
+      console.error('Error in calculations:', error);
+      setGroutVolume(0);
+      setGroutWeight(0);
+      setDryMaterialWeight(0);
+      setBagsNeeded(0);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Grout Calculator</h1>
+      
+      {/* Area to be tiled */}
+      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-xl font-semibold">Area to be tiled</h2>
+          <Info className="text-gray-400" size={20} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Length of the area (L)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={length}
+                onChange={(e) => setLength(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                min="0"
+                step="0.01"
+              />
+              <select
+                value={lengthUnit}
+                onChange={(e) => setLengthUnit(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+              >
+                <option value="m">m</option>
+                <option value="cm">cm</option>
+                <option value="ft">ft</option>
+                <option value="in">in</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Width of the area (W)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={width}
+                onChange={(e) => setWidth(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                min="0"
+                step="0.01"
+              />
+              <select
+                value={widthUnit}
+                onChange={(e) => setWidthUnit(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+              >
+                <option value="m">m</option>
+                <option value="cm">cm</option>
+                <option value="ft">ft</option>
+                <option value="in">in</option>
+              </select>
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Total area to be tiled
+            </label>
+            <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+              {totalArea.toFixed(2)} m²
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tile details */}
+      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-xl font-semibold">Tile details</h2>
+          <Info className="text-gray-400" size={20} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Length of tile (l)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={tileLength}
+                onChange={(e) => setTileLength(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                min="0"
+                step="0.01"
+              />
+              <select
+                value={tileLengthUnit}
+                onChange={(e) => setTileLengthUnit(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+              >
+                <option value="cm">cm</option>
+                <option value="mm">mm</option>
+                <option value="in">in</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Width of tile (w)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={tileWidth}
+                onChange={(e) => setTileWidth(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                min="0"
+                step="0.01"
+              />
+              <select
+                value={tileWidthUnit}
+                onChange={(e) => setTileWidthUnit(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+              >
+                <option value="cm">cm</option>
+                <option value="mm">mm</option>
+                <option value="in">in</option>
+              </select>
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Area covered by a single tile
+            </label>
+            <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+              {(convertToMeters(parseFloat(tileLength || '0'), tileLengthUnit) * 
+                convertToMeters(parseFloat(tileWidth || '0'), tileWidthUnit)).toFixed(4)} m²
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Gap details */}
+      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-xl font-semibold">Gap details</h2>
+          <Info className="text-gray-400" size={20} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Gap width (g)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={gapWidth}
+                onChange={(e) => setGapWidth(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                min="0"
+                step="0.1"
+              />
+              <select
+                value={gapUnit}
+                onChange={(e) => setGapUnit(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+              >
+                <option value="mm">mm</option>
+                <option value="cm">cm</option>
+                <option value="in">in</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Gap depth
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={gapDepth}
+                onChange={(e) => setGapDepth(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                min="0"
+                step="0.1"
+              />
+              <select
+                value={gapUnit}
+                onChange={(e) => setGapUnit(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+              >
+                <option value="mm">mm</option>
+                <option value="cm">cm</option>
+                <option value="in">in</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Grout requirements */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold mb-4">Grout requirements</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Grout volume
+            </label>
+            <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+              {(groutVolume * 1000000).toFixed(2)} cm³
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Weight per bag
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={weightPerBag}
+                onChange={(e) => setWeightPerBag(parseFloat(e.target.value))}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                min="0.1"
+                step="0.1"
+              />
+              <span className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                kg
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Number of bags needed
+            </label>
+            <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+              {bagsNeeded} bags
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 mb-2">
+            <input
+              type="checkbox"
+              checked={showGroutDetails}
+              onChange={(e) => setShowGroutDetails(e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            <label className="text-sm text-gray-700">Show grout material details</label>
+          </div>
+
+          {showGroutDetails && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Grout density
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={groutDensity}
+                    onChange={(e) => setGroutDensity(parseFloat(e.target.value))}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    min="0.1"
+                    step="0.1"
+                  />
+                  <span className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                    kg/m³
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Grout weight
+                </label>
+                <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                  {groutWeight.toFixed(4)} kg
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Dry material percentage
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={dryMaterialPercentage}
+                    onChange={(e) => setDryMaterialPercentage(parseFloat(e.target.value))}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    min="0"
+                    max="100"
+                    step="1"
+                  />
+                  <span className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                    %
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Dry material weight
+                </label>
+                <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                  {dryMaterialWeight.toFixed(4)} kg
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

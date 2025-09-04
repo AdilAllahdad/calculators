@@ -1,0 +1,236 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { LengthInput } from '@/components/LengthInput';
+import Image from 'next/image';
+
+// Types for unit conversions and validation
+type LengthUnitType = 'mm' | 'cm' | 'm' | 'in' | 'ft';
+
+interface HoleCoordinate {
+  angle: number;
+  x: number;
+  y: number;
+}
+
+// Conversion factors to millimeters (base unit)
+const conversionFactors: Record<LengthUnitType, number> = {
+  'mm': 1,
+  'cm': 10,
+  'm': 1000,
+  'in': 25.4,
+  'ft': 304.8,
+};
+
+export default function BoltCircleCalculator() {
+  // State for inputs
+  const [numberOfHoles, setNumberOfHoles] = useState<string>('');
+  const [firstHoleAngle, setFirstHoleAngle] = useState<string>('');
+  const [offsetX, setOffsetX] = useState<number>(0);
+  const [offsetY, setOffsetY] = useState<number>(0);
+  const [radius, setRadius] = useState<number>(0);
+  
+  // State for units
+  const [offsetXUnit, setOffsetXUnit] = useState<LengthUnitType>('mm');
+  const [offsetYUnit, setOffsetYUnit] = useState<LengthUnitType>('mm');
+  const [radiusUnit, setRadiusUnit] = useState<LengthUnitType>('mm');
+
+  // State for form validation and coordinates
+  const [isFormValid, setIsFormValid] = useState<boolean>(false);
+  const [holeCoordinates, setHoleCoordinates] = useState<HoleCoordinate[]>([]);
+
+  // Calculate coordinates when form is valid
+  useEffect(() => {
+    const holes = parseInt(numberOfHoles);
+    const angle = parseFloat(firstHoleAngle);
+
+    const isValid = 
+      !isNaN(holes) && holes >= 2 &&
+      !isNaN(angle) &&
+      radius > 0;
+
+    setIsFormValid(isValid);
+
+    if (isValid) {
+      const coordinates: HoleCoordinate[] = [];
+      const angleIncrement = 360 / holes;
+      const radiusInMM = radius * conversionFactors[radiusUnit];
+      const offsetXInMM = offsetX * conversionFactors[offsetXUnit];
+      const offsetYInMM = offsetY * conversionFactors[offsetYUnit];
+
+      for (let i = 0; i < holes; i++) {
+        const currentAngle = angle + (i * angleIncrement);
+        const radians = (currentAngle * Math.PI) / 180;
+        
+        const x = (radiusInMM * Math.cos(radians)) + offsetXInMM;
+        const y = (radiusInMM * Math.sin(radians)) + offsetYInMM;
+
+        coordinates.push({
+          angle: currentAngle,
+          x: Number(x.toFixed(3)),
+          y: Number(y.toFixed(3)),
+        });
+      }
+
+      setHoleCoordinates(coordinates);
+    } else {
+      setHoleCoordinates([]);
+    }
+  }, [numberOfHoles, firstHoleAngle, offsetX, offsetXUnit, offsetY, offsetYUnit, radius, radiusUnit]);
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Bolt Circle Calculator</h1>
+      <div className="grid md:grid-cols-2 gap-8">
+        <div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold mb-4">Hole parameters</h2>
+            
+            {/* Number of holes */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Number of holes (n)
+              </label>
+              <input
+                type="number"
+                min="2"
+                value={numberOfHoles}
+                onChange={(e) => setNumberOfHoles(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                required
+                placeholder="Enter number of holes (min: 2)"
+              />
+            </div>
+
+            {/* First hole angle */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Angle of first hole (A)
+              </label>
+              <div className="flex">
+                <input
+                  type="number"
+                  value={firstHoleAngle}
+                  onChange={(e) => setFirstHoleAngle(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  required
+                  placeholder="Enter angle in degrees"
+                />
+                <span className="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 rounded-r-md">
+                  deg
+                </span>
+              </div>
+            </div>
+
+            {/* Offset X */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Offset from center (x<sub>c</sub>)
+              </label>
+              <LengthInput
+                value={offsetX}
+                onValueChange={setOffsetX}
+                unit={offsetXUnit}
+                onUnitChange={setOffsetXUnit}
+                className="w-full"
+                required
+                placeholder="Enter X offset"
+              />
+            </div>
+
+            {/* Offset Y */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Offset from center (y<sub>c</sub>)
+              </label>
+              <LengthInput
+                value={offsetY}
+                onValueChange={setOffsetY}
+                unit={offsetYUnit}
+                onUnitChange={setOffsetYUnit}
+                className="w-full"
+                required
+                placeholder="Enter Y offset"
+              />
+            </div>
+
+            {/* Radius */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Radius of bolt circle (R)
+              </label>
+              <LengthInput
+                value={radius}
+                onValueChange={setRadius}
+                unit={radiusUnit}
+                onUnitChange={setRadiusUnit}
+                className="w-full"
+                required
+                min={0}
+                placeholder="Enter radius"
+              />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md mt-6">
+            <h2 className="text-xl font-semibold mb-4">Hole coordinates</h2>
+            {isFormValid ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr>
+                      <th className="text-left py-2">Hole</th>
+                      <th className="text-left py-2">Angle (°)</th>
+                      <th className="text-left py-2">X coordinate (mm)</th>
+                      <th className="text-left py-2">Y coordinate (mm)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {holeCoordinates.map((hole, index) => (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : ''}>
+                        <td className="py-2">{index + 1}</td>
+                        <td className="py-2">{hole.angle.toFixed(1)}</td>
+                        <td className="py-2">{hole.x.toFixed(3)}</td>
+                        <td className="py-2">{hole.y.toFixed(3)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-gray-500 text-center py-4">
+                Please fill in all required fields with valid values to see the coordinates
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div className="bg-white p-6 rounded-lg shadow-md sticky top-6">
+            <h2 className="text-xl font-semibold mb-4">Visual Reference</h2>
+            <div className="relative aspect-square">
+              <Image
+                src="/circle.png"
+                alt="Bolt Circle Diagram"
+                fill
+                className="object-contain"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+            </div>
+            <div className="mt-4 text-sm text-gray-600">
+              <p>The calculator helps determine hole locations for bolted joints by:</p>
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>Calculating coordinates for a circular bolt pattern</li>
+                <li>Supporting various measurement units</li>
+                <li>Providing precise X,Y coordinates for each hole</li>
+              </ul>
+              <p className="mt-2">
+                The output coordinates can be used with CNC machines, drilling robots, or imported into CAD software.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
