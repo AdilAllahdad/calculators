@@ -11,7 +11,7 @@ const calculators = [
       name: "Angle of Depression Calculator", 
       description: "Determine angles of depression in construction and surveying",
       icon: "📉",
-      href: "/calculators/other/other/angel-depression"
+      href: "/calculators/other/angel-depression"
     },
     {
       name: "Bolt Circle Calculator",
