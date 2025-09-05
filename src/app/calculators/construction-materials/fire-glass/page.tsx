@@ -242,6 +242,9 @@ const App = () => {
     trapezoidalWidth: '',
     depth: '',
     density: '',
+    area: '',     // Store area in cm²
+    volume: '',   // Store volume in m³
+    weight: '',   // Store weight in kg
   });
 
   type SetterFunction = React.Dispatch<React.SetStateAction<string>>;
@@ -254,15 +257,27 @@ const App = () => {
     unitType: UnitType
   ) => {
     const value = e.target.value;
+    const fieldName = e.target.dataset.name as string;
+    const currentUnit = e.target.dataset.unit as string;
     
     // Check if value is empty or non-negative
     if (value === '' || (!isNaN(parseFloat(value)) && parseFloat(value) >= 0)) {
+      // Update the display value
       setter(value);
       
-      // Only convert and update base values if value is valid
+      // Update the base value in standard units (cm for length)
       if (value !== '') {
-        const convertedToBase = convertUnit(parseFloat(value), e.target.dataset.unit as string, 'cm', unitType);
-        setBaseValues(prev => ({ ...prev, [e.target.dataset.name as string]: convertedToBase.toString() }));
+        let baseUnit = 'cm';
+        if (unitType === 'density') baseUnit = 'kg/m3';
+        else if (unitType === 'area') baseUnit = 'cm2';
+        else if (unitType === 'volume') baseUnit = 'cm3';
+        else if (unitType === 'weight') baseUnit = 'kg';
+        
+        const convertedToBase = convertUnit(parseFloat(value), currentUnit, baseUnit, unitType);
+        setBaseValues(prev => ({ ...prev, [fieldName]: convertedToBase.toString() }));
+      } else {
+        // If the field is cleared, clear the base value too
+        setBaseValues(prev => ({ ...prev, [fieldName]: '' }));
       }
     }
     // Ignore negative values - don't update state
@@ -276,39 +291,44 @@ const App = () => {
   ) => {
     const newUnit = e.target.value;
     setter(newUnit);
+    
     // Convert the base value to the new display unit
     if (baseValues[valueName] !== '' && !isNaN(parseFloat(baseValues[valueName]))) {
+      // The base values are stored in cm for length units
       const convertedValue = convertUnit(parseFloat(baseValues[valueName]), 'cm', newUnit, unitType);
+      const formattedValue = convertedValue.toFixed(2).replace(/\.0+$/, '');
+      
+      // Update the displayed value based on the field type
       switch (valueName) {
         case 'length':
-          setLength(convertedValue.toFixed(2).replace(/\.0+$/, ''));
+          setLength(formattedValue);
           break;
         case 'width':
-          setWidth(convertedValue.toFixed(2).replace(/\.0+$/, ''));
+          setWidth(formattedValue);
           break;
         case 'side':
-          setSide(convertedValue.toFixed(2).replace(/\.0+$/, ''));
+          setSide(formattedValue);
           break;
         case 'diameter':
-          setDiameter(convertedValue.toFixed(2).replace(/\.0+$/, ''));
+          setDiameter(formattedValue);
           break;
         case 'base':
-          setBase(convertedValue.toFixed(2).replace(/\.0+$/, ''));
+          setBase(formattedValue);
           break;
         case 'height':
-          setHeight(convertedValue.toFixed(2).replace(/\.0+$/, ''));
+          setHeight(formattedValue);
           break;
         case 'frontLength':
-          setFrontLength(convertedValue.toFixed(2).replace(/\.0+$/, ''));
+          setFrontLength(formattedValue);
           break;
         case 'backLength':
-          setBackLength(convertedValue.toFixed(2).replace(/\.0+$/, ''));
+          setBackLength(formattedValue);
           break;
         case 'trapezoidalWidth':
-          setTrapezoidalWidth(convertedValue.toFixed(2).replace(/\.0+$/, ''));
+          setTrapezoidalWidth(formattedValue);
           break;
         case 'depth':
-          setDepth(convertedValue.toFixed(2).replace(/\.0+$/, ''));
+          setDepth(formattedValue);
           break;
         default:
           break;
@@ -341,18 +361,21 @@ const App = () => {
 
   // Effect to calculate area based on shape dimensions
   useEffect(() => {
+    // Use the baseValues which are always in standard units (cm) for consistent calculation
     let newAreaCm2 = 0;
-    const lInCm = convertUnit(parseFloat(length), lengthUnit, 'cm', 'length');
-    const wInCm = convertUnit(parseFloat(width), widthUnit, 'cm', 'length');
-    const sInCm = convertUnit(parseFloat(side), sideUnit, 'cm', 'length');
-    const dInCm = convertUnit(parseFloat(diameter), diameterUnit, 'cm', 'length');
-    const bInCm = convertUnit(parseFloat(base), baseUnit, 'cm', 'length');
-    const hInCm = convertUnit(parseFloat(height), heightUnit, 'cm', 'length');
-    const fInCm = convertUnit(parseFloat(frontLength), frontLengthUnit, 'cm', 'length');
-    const blInCm = convertUnit(parseFloat(backLength), backLengthUnit, 'cm', 'length');
-    const twInCm = convertUnit(parseFloat(trapezoidalWidth), trapezoidalWidthUnit, 'cm', 'length');
+    
+    // Parse base values (all stored in cm)
+    const lInCm = parseFloat(baseValues.length);
+    const wInCm = parseFloat(baseValues.width);
+    const sInCm = parseFloat(baseValues.side);
+    const dInCm = parseFloat(baseValues.diameter);
+    const bInCm = parseFloat(baseValues.base);
+    const hInCm = parseFloat(baseValues.height);
+    const fInCm = parseFloat(baseValues.frontLength);
+    const blInCm = parseFloat(baseValues.backLength);
+    const twInCm = parseFloat(baseValues.trapezoidalWidth);
 
-
+    // Calculate area based on the shape and available dimensions
     if (firePitShape === 'rectangular' && !isNaN(lInCm) && !isNaN(wInCm)) {
       newAreaCm2 = lInCm * wInCm;
     } else if (firePitShape === 'square' && !isNaN(sInCm)) {
@@ -365,28 +388,48 @@ const App = () => {
       newAreaCm2 = 0.5 * (fInCm + blInCm) * twInCm;
     }
 
+    // Store the base area value in cm² for consistent calculations
+    setBaseValues(prev => ({ ...prev, area: newAreaCm2.toString() }));
+
+    // If we have a valid area, convert it to the selected display unit
     if (newAreaCm2 > 0) {
       const convertedArea = convertUnit(newAreaCm2, 'cm2', areaUnit, 'area');
       setArea(convertedArea.toFixed(4).replace(/\.0+$/, ''));
     } else {
       setArea('');
     }
-  }, [firePitShape, length, width, side, diameter, base, height, frontLength, backLength, trapezoidalWidth, lengthUnit, widthUnit, sideUnit, diameterUnit, baseUnit, heightUnit, frontLengthUnit, backLengthUnit, trapezoidalWidthUnit, areaUnit]);
+  }, [
+    firePitShape, areaUnit,
+    baseValues.length, baseValues.width, baseValues.side,
+    baseValues.diameter, baseValues.base, baseValues.height,
+    baseValues.frontLength, baseValues.backLength, baseValues.trapezoidalWidth
+  ]);
 
   // Effect to calculate volume based on area and depth
   useEffect(() => {
-    const areaVal = parseFloat(area);
-    const depthVal = parseFloat(depth);
-    if (!isNaN(areaVal) && !isNaN(depthVal) && areaVal > 0 && depthVal > 0) {
-      const areaInM2 = convertUnit(areaVal, areaUnit, 'm2', 'area');
-      const depthInM = convertUnit(depthVal, depthUnit, 'm', 'length');
+    // Use the base area value directly from baseValues (already in cm²)
+    const areaInCm2 = parseFloat(baseValues.area || '0');
+    const depthInCm = parseFloat(baseValues.depth || '0');
+    
+    if (areaInCm2 > 0 && depthInCm > 0) {
+      // Convert from cm to m for consistent calculations
+      const areaInM2 = areaInCm2 * 0.0001; // cm² to m²
+      const depthInM = depthInCm * 0.01;   // cm to m
+      
+      // Calculate volume in cubic meters
       const volumeInM3 = areaInM2 * depthInM;
+      
+      // Store base volume in m³ for consistent calculations
+      setBaseValues(prev => ({ ...prev, volume: volumeInM3.toString() }));
+      
+      // Convert to desired volume display unit
       const convertedVolume = convertUnit(volumeInM3, 'm3', volumeUnit, 'volume');
       setVolume(convertedVolume.toFixed(4).replace(/\.0+$/, ''));
     } else {
       setVolume('');
+      setBaseValues(prev => ({ ...prev, volume: '' }));
     }
-  }, [area, depth, areaUnit, depthUnit, volumeUnit]);
+  }, [baseValues.area, baseValues.depth, volumeUnit]);
 
   // Effect to calculate total weight based on volume and density
   useEffect(() => {
@@ -396,8 +439,10 @@ const App = () => {
       return;
     }
     
-    const volumeVal = parseFloat(volume);
-    if (!isNaN(volumeVal) && volumeVal > 0) {
+    // Use the base volume value directly (already in m³)
+    const volumeInM3 = parseFloat(baseValues.volume || '0');
+    
+    if (volumeInM3 > 0) {
       // Get the base density value in kg/m3
       let densityInKgM3;
       
@@ -414,14 +459,20 @@ const App = () => {
         densityInKgM3 = convertUnit(densityVal, densityUnit, 'kg/m3', 'density');
       }
       
-      const volumeInM3 = convertUnit(volumeVal, volumeUnit, 'm3', 'volume');
-      const weightInKg = (volumeInM3 * densityInKgM3);
+      // Calculate weight in kg
+      const weightInKg = volumeInM3 * densityInKgM3;
+      
+      // Store base weight in kg for consistency
+      setBaseValues(prev => ({ ...prev, weight: weightInKg.toString() }));
+      
+      // Convert to desired weight display unit
       const convertedWeight = convertUnit(weightInKg, 'kg', weightUnit, 'weight');
       setTotalWeight(convertedWeight.toFixed(4).replace(/\.0+$/, ''));
     } else {
       setTotalWeight('');
+      setBaseValues(prev => ({ ...prev, weight: '' }));
     }
-  }, [volume, glassDensity, volumeUnit, weightUnit, glassType, baseValues.density]);
+  }, [baseValues.volume, baseValues.density, glassDensity, densityUnit, weightUnit, glassType]);
 
   // Reload the calculator to reset all values
   const handleReload = () => {
@@ -708,7 +759,21 @@ const App = () => {
               readOnly
               className="w-24 px-3 py-2 border rounded-md text-base bg-gray-100 font-semibold text-gray-800"
             />
-            <select value={areaUnit} onChange={e => setAreaUnit(e.target.value)} className="w-36 px-2 py-2 border rounded-md text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+            <select 
+              value={areaUnit} 
+              onChange={e => {
+                const newUnit = e.target.value;
+                setAreaUnit(newUnit);
+                
+                // Update the displayed area based on the base area value
+                if (baseValues.area && !isNaN(parseFloat(baseValues.area))) {
+                  const baseAreaInCm2 = parseFloat(baseValues.area);
+                  const convertedArea = convertUnit(baseAreaInCm2, 'cm2', newUnit, 'area');
+                  setArea(convertedArea.toFixed(4).replace(/\.0+$/, ''));
+                }
+              }} 
+              className="w-36 px-2 py-2 border rounded-md text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+            >
               {areaUnits.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
             </select>
           </label>
@@ -720,10 +785,20 @@ const App = () => {
               value={depth}
               data-name="depth"
               data-unit={depthUnit}
-              onChange={e => handleInputChange(e, setDepth, setDepthUnit, 'length')}
+              onChange={e => {
+                handleInputChange(e, setDepth, setDepthUnit, 'length');
+                // The handleInputChange function will update baseValues.depth
+              }}
               className="w-24 px-3 py-2 border rounded-md text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
-            <select value={depthUnit} onChange={e => handleUnitChange(e, setDepthUnit, 'length', 'depth')} className="w-36 px-2 py-2 border rounded-md text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+            <select 
+              value={depthUnit} 
+              onChange={e => {
+                handleUnitChange(e, setDepthUnit, 'length', 'depth');
+                // handleUnitChange already updates the displayed depth value based on the base value
+              }} 
+              className="w-36 px-2 py-2 border rounded-md text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+            >
               {lengthUnits.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
             </select>
           </label>
@@ -735,7 +810,21 @@ const App = () => {
               readOnly
               className="w-24 px-3 py-2 border rounded-md text-base bg-gray-100 font-semibold text-gray-800"
             />
-            <select value={volumeUnit} onChange={e => setVolumeUnit(e.target.value)} className="w-36 px-2 py-2 border rounded-md text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+            <select 
+              value={volumeUnit} 
+              onChange={e => {
+                const newUnit = e.target.value;
+                setVolumeUnit(newUnit);
+                
+                // Update the displayed volume based on the base volume value
+                if (baseValues.volume && !isNaN(parseFloat(baseValues.volume))) {
+                  const baseVolumeInM3 = parseFloat(baseValues.volume);
+                  const convertedVolume = convertUnit(baseVolumeInM3, 'm3', newUnit, 'volume');
+                  setVolume(convertedVolume.toFixed(4).replace(/\.0+$/, ''));
+                }
+              }}
+              className="w-36 px-2 py-2 border rounded-md text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+            >
               {volumeUnits.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
             </select>
           </label>
@@ -753,7 +842,21 @@ const App = () => {
             readOnly
             className="w-28 px-3 py-2 border rounded-md text-base bg-gray-100 font-semibold text-gray-800"
           />
-          <select value={weightUnit} onChange={e => setWeightUnit(e.target.value)} className="w-36 px-2 py-2 border rounded-md text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+          <select 
+            value={weightUnit} 
+            onChange={e => {
+              const newUnit = e.target.value;
+              setWeightUnit(newUnit);
+              
+              // Update the displayed weight based on the base weight value
+              if (baseValues.weight && !isNaN(parseFloat(baseValues.weight))) {
+                const baseWeightInKg = parseFloat(baseValues.weight);
+                const convertedWeight = convertUnit(baseWeightInKg, 'kg', newUnit, 'weight');
+                setTotalWeight(convertedWeight.toFixed(4).replace(/\.0+$/, ''));
+              }
+            }} 
+            className="w-36 px-2 py-2 border rounded-md text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+          >
             {weightUnits.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
           </select>
         </div>
