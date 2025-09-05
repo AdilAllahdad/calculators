@@ -174,7 +174,7 @@ export default function HomeGardenPage() {
       name: "Stair Calculator",
       description: "Calculate stair dimensions and materials",
       icon: " stair",
-      href: "/calculators/home-garden/stair"
+      href: "/calculators/home-garden/stair-calculator"
     },
     {
       name: "Wainscoting Calculator",

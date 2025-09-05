@@ -2,6 +2,7 @@
 import React, { useState } from 'react'
 import { FiInfo, FiChevronDown } from 'react-icons/fi'
 
+
 const roadLengthUnitOptions = [
   { label: "centimeters (cm)", value: "cm" },
   { label: "meters (m)", value: "m" },
@@ -102,6 +103,7 @@ function convertLength(value: number, from: string, to: string): number {
     mi: 1609.344,
   };
   if (!(from in toMeters) || !(to in toMeters)) return value;
+  if (isNaN(value) || value < 0) return 0;
   const meters = value * toMeters[from];
   return meters / toMeters[to];
 }
@@ -120,6 +122,7 @@ function convertArea(value: number, from: string, to: string): number {
     sf: 7140, // 1 soccer field ≈ 7140 m²
   };
   if (!(from in toM2) || !(to in toM2)) return value;
+  if (isNaN(value) || value < 0) return 0;
   const m2 = value * toM2[from];
   return m2 / toM2[to];
 }
@@ -141,6 +144,7 @@ function convertVolume(value: number, from: string, to: string): number {
     uk_gal: 0.00454609,
   };
   if (!(from in toM3) || !(to in toM3)) return value;
+  if (isNaN(value) || value < 0) return 0;
   const m3 = value * toM3[from];
   return m3 / toM3[to];
 }
@@ -159,6 +163,7 @@ function convertMass(value: number, from: string, to: string): number {
     me: 9.10938356e-31,
   };
   if (!(from in toKg) || !(to in toKg)) return value;
+  if (isNaN(value) || value < 0) return 0;
   const kg = value * toKg[from];
   return kg / toKg[to];
 }
@@ -172,6 +177,7 @@ function convertDensity(value: number, from: string, to: string): number {
     lb_cu_yd: 0.593276421,
   };
   if (!(from in toKgM3) || !(to in toKgM3)) return value;
+  if (isNaN(value) || value < 0) return 0;
   const kgm3 = value * toKgM3[from];
   return kgm3 / toKgM3[to];
 }
@@ -180,6 +186,8 @@ function convertDensity(value: number, from: string, to: string): number {
 
 // Calculate area (length × width)
 function calcArea(length: number, width: number, lengthUnit: string, widthUnit: string, areaUnit: string): number {
+  if (isNaN(length) || isNaN(width) || length <= 0 || width <= 0) return 0;
+  
   // Convert length and width to meters
   const lengthM = convertLength(length, lengthUnit, 'm');
   const widthM = convertLength(width, widthUnit, 'm');
@@ -190,6 +198,8 @@ function calcArea(length: number, width: number, lengthUnit: string, widthUnit: 
 
 // Calculate volume (area × depth)
 function calcVolume(area: number, depth: number, areaUnit: string, depthUnit: string, volumeUnit: string): number {
+  if (isNaN(area) || isNaN(depth) || area <= 0 || depth <= 0) return 0;
+  
   // Convert area to m² and depth to meters
   const areaM2 = convertArea(area, areaUnit, 'm2');
   const depthM = convertLength(depth, depthUnit, 'm');
@@ -200,26 +210,36 @@ function calcVolume(area: number, depth: number, areaUnit: string, depthUnit: st
 
 // Calculate mass (volume × density)
 function calcMass(volume: number, density: number, volumeUnit: string, densityUnit: string, massUnit: string): number {
+  if (isNaN(volume) || isNaN(density) || volume <= 0 || density <= 0) return 0;
+  
   // Convert volume to m³ and density to kg/m³
   const volumeM3 = convertVolume(volume, volumeUnit, 'm3');
   const densityKgM3 = convertDensity(density, densityUnit, 'kg_m3');
-  const massKg = volumeM3 * densityKgM3;
+  const massKg = (volumeM3 * densityKgM3);
   // Convert mass to selected unit
   return convertMass(massKg, 'kg', massUnit);
 }
 
 // Calculate mass with compression
 function calcMassWithCompression(mass: number, compressionPercent: number): number {
+  if (isNaN(mass) || mass <= 0) return 0;
+  if (isNaN(compressionPercent)) compressionPercent = 0;
+  
   return mass * (1 + (compressionPercent || 0) / 100);
 }
 
 // Calculate cost (by mass or by volume)
 function calcCostByMass(mass: number, pricePerTon: number, massUnit: string, priceUnit: string): number {
+  if (isNaN(mass) || isNaN(pricePerTon) || mass <= 0 || pricePerTon <= 0) return 0;
+  
   // Convert mass to selected price unit
   const massForPrice = convertMass(mass, massUnit, priceUnit);
   return massForPrice * pricePerTon;
 }
+
 function calcCostByVolume(volume: number, pricePerVolume: number, volumeUnit: string, priceUnit: string): number {
+  if (isNaN(volume) || isNaN(pricePerVolume) || volume <= 0 || pricePerVolume <= 0) return 0;
+  
   // Convert volume to selected price unit
   const volumeForPrice = convertVolume(volume, volumeUnit, priceUnit);
   return volumeForPrice * pricePerVolume;
@@ -232,12 +252,27 @@ function calcPricePerVolumeFromTon(
   gravelDensityUnit: string,
   pricePerVolumeUnit: string
 ): number {
+  if (isNaN(pricePerTon) || isNaN(gravelDensity) || pricePerTon <= 0 || gravelDensity <= 0) return 0;
+  
   // Always treat pricePerTon as per metric ton (t)
   const pricePerKg = pricePerTon / 1000; // 1 t = 1000 kg
   const densityKgM3 = convertDensity(gravelDensity, gravelDensityUnit, 'kg_m3');
   const pricePerM3 = pricePerKg * densityKgM3;
   const m3ToTarget = convertVolume(1, 'm3', pricePerVolumeUnit);
   return pricePerM3 / m3ToTarget;
+}
+
+interface InputRowProps {
+  label: string;
+  unit: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  unitOptions: Array<{ label: string; value: string } | string>;
+  onUnitChange: (unit: string) => void;
+  placeholder?: string;
+  info?: string;
+  disabled?: boolean;
+  type?: string;
 }
 
 const InputRow = ({
@@ -251,7 +286,7 @@ const InputRow = ({
   info,
   disabled,
   type = "text"
-}: any) => (
+}: InputRowProps) => (
   <div className="mb-4">
     <div className="flex items-center justify-between mb-1">
       <label className="text-sm font-medium text-gray-700">{label}</label>
@@ -265,10 +300,17 @@ const InputRow = ({
       <input
         type={type}
         className={`flex-1 border border-gray-200 rounded-l-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 ${disabled ? 'bg-gray-50 text-gray-400' : ''}`}
-        placeholder={placeholder}
+        placeholder={placeholder || "Enter value"}
         disabled={disabled}
         value={value}
-        onChange={e => onValueChange && onValueChange(e.target.value)}
+        onChange={e => {
+          const val = e.target.value;
+          if (type === 'number' && val !== '') {
+            const num = parseFloat(val);
+            if (isNaN(num) || num < 0) return; // Don't update for negative values
+          }
+          onValueChange && onValueChange(val);
+        }}
         style={{ minWidth: 0 }}
       />
       {unitOptions && (
@@ -342,35 +384,35 @@ const Page = () => {
   // Area calculation
   const computedArea = lengthNum && widthNum
     ? calcArea(lengthNum, widthNum, roadLengthUnit, roadWidthUnit, roadAreaUnit)
-    : '';
+    : 0;
   // Volume calculation
   const computedVolume = computedArea && depthNum
     ? calcVolume(Number(computedArea), depthNum, roadAreaUnit, roadDepthUnit, roadBaseVolumeUnit)
-    : '';
+    : 0;
   // Mass calculation
   const computedMass = computedVolume && densityNum
     ? calcMass(Number(computedVolume), densityNum, roadBaseVolumeUnit, gravelDensityUnit, gravelAmountUnit)
-    : '';
+    : 0;
   // Mass with compression
   const computedMassWithCompression = computedMass
     ? calcMassWithCompression(Number(computedMass), compressionNum)
-    : '';
+    : 0;
   // Mass with compression in selected unit
   const computedMassWithCompressionConverted = computedMassWithCompression
     ? convertMass(Number(computedMassWithCompression), gravelAmountUnit, amountWithCompressionUnit)
-    : '';
+    : 0;
   // Cost calculation (by mass)
   const computedCostByMass = computedMassWithCompressionConverted && pricePerTonNum
     ? calcCostByMass(Number(computedMassWithCompressionConverted), pricePerTonNum, amountWithCompressionUnit, 't') // Always use 't' (metric tons) as price unit
-    : '';
+    : 0;
   // Cost calculation (by volume)
   const computedCostByVolume = computedVolume && pricePerVolumeNum
     ? calcCostByVolume(Number(computedVolume), pricePerVolumeNum, roadBaseVolumeUnit, pricePerVolumeUnit)
-    : '';
+    : 0;
   // Total cost (prefer cost by mass if pricePerTon is set, else by volume)
   const computedTotalCost = pricePerTonNum
     ? computedCostByMass
-    : (pricePerVolumeNum ? computedCostByVolume : '');
+    : (pricePerVolumeNum ? computedCostByVolume : 0);
 
   // Calculate price per volume from price per ton (always treat pricePerTon as per metric ton)
   const computedPricePerVolumeFromTon =
@@ -381,15 +423,15 @@ const Page = () => {
           gravelDensityUnit,
           pricePerVolumeUnit
         )
-      : '';
+      : 0;
 
   // Handle price per ton unit change - only convert display value
   const handlePricePerTonUnitChange = (newUnit: string) => {
-    if (pricePerTonBase) {
+    if (pricePerTonBase && !isNaN(parseFloat(pricePerTonBase))) {
       // Convert the base value (in metric tons) to the new display unit
       const baseValue = parseFloat(pricePerTonBase);
       const displayValue = convertMass(baseValue, 't', newUnit);
-      setPricePerTonDisplay(displayValue ? String(Number(displayValue.toFixed(6))) : '');
+      setPricePerTonDisplay(displayValue > 0 ? String(Number(displayValue.toFixed(6))) : '');
     } else {
       setPricePerTonDisplay('');
     }
@@ -400,11 +442,13 @@ const Page = () => {
   const handlePricePerTonChange = (value: string) => {
     setPricePerTonDisplay(value);
     
-    if (value) {
+    if (value && !isNaN(parseFloat(value))) {
       // Convert the input value (in selected unit) to metric tons (base unit)
       const inputValue = parseFloat(value);
+      if (inputValue < 0) return; // Don't update for negative values
+      
       const baseValue = convertMass(inputValue, pricePerTonUnit, 't');
-      setPricePerTonBase(baseValue ? String(Number(baseValue.toFixed(6))) : '');
+      setPricePerTonBase(baseValue > 0 ? String(Number(baseValue.toFixed(6))) : '');
     } else {
       setPricePerTonBase('');
     }
@@ -540,7 +584,7 @@ const Page = () => {
           />
           <InputRow
             label="Road area"
-            value={computedArea !== '' ? String(Number(computedArea.toFixed(6))) : ''}
+            value={computedArea > 0 ? String(Number(computedArea.toFixed(6))) : ''}
             onValueChange={setRoadArea}
             unit={roadAreaUnit}
             unitOptions={roadAreaUnitOptions}
@@ -548,7 +592,7 @@ const Page = () => {
           />
           <InputRow
             label="Road base volume"
-            value={computedVolume !== '' ? String(Number(computedVolume.toFixed(6))) : ''}
+            value={computedVolume > 0 ? String(Number(computedVolume.toFixed(6))) : ''}
             onValueChange={setRoadBaseVolume}
             unit={roadBaseVolumeUnit}
             unitOptions={roadBaseVolumeUnitOptions}
@@ -572,7 +616,7 @@ const Page = () => {
           />
           <InputRow
             label="Estimated amount of gravel"
-            value={computedMass !== '' ? String(Number(computedMass.toFixed(6))) : ''}
+            value={computedMass > 0 ? String(Number(computedMass.toFixed(6))) : ''}
             onValueChange={setGravelAmount}
             unit={gravelAmountUnit}
             unitOptions={gravelAmountUnitOptions}
@@ -590,7 +634,7 @@ const Page = () => {
           />
           <InputRow
             label="Amount + % compression"
-            value={computedMassWithCompressionConverted !== '' ? String(Number(computedMassWithCompressionConverted.toFixed(6))) : ''}
+            value={computedMassWithCompressionConverted > 0 ? String(Number(computedMassWithCompressionConverted.toFixed(6))) : ''}
             onValueChange={setAmountWithCompression}
             unit={amountWithCompressionUnit}
             unitOptions={gravelAmountUnitOptions}
@@ -609,7 +653,7 @@ const Page = () => {
             label="Price per volume"
             value={
               pricePerTonBase
-                ? computedPricePerVolumeFromTon !== ''
+                ? computedPricePerVolumeFromTon > 0
                   ? String(Number(computedPricePerVolumeFromTon.toFixed(6)))
                   : ''
                 : pricePerVolume
@@ -621,7 +665,7 @@ const Page = () => {
           />
           <InputRow
             label="Total cost"
-            value={computedTotalCost !== '' ? String(Number(computedTotalCost.toFixed(2))) : ''}
+            value={computedTotalCost > 0 ? String(Number(computedTotalCost.toFixed(2))) : ''}
             onValueChange={setTotalCost}
             unit={totalCostUnit}
             unitOptions={['PKR']}
