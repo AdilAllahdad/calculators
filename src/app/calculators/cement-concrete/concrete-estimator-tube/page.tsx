@@ -8,6 +8,15 @@ const DEFAULT_DENSITY_LBFT3 = 0;
 const DEFAULT_BAG_SIZE_LB = 0; // Changed to match your example
 const DEFAULT_WASTE = 0;
 
+const VALIDATION_MESSAGES = {
+  outerDiameterRequired: 'Outer diameter must be greater than zero.',
+  innerDiameterInvalid: 'Inner diameter must be less than outer diameter.',
+  heightRequired: 'Height must be greater than zero.',
+  quantityRequired: 'Quantity must be at least 1.',
+  densityRequired: 'Concrete density must be greater than zero.',
+  bagSizeRequired: 'Bag size must be greater than zero.'
+};
+
 /* ----------------- Length + Volume Units ------------------ */
 const lengthToCm: Record<string, number> = {
   cm: 1,
@@ -31,8 +40,6 @@ const lengthUnits = [
   { value: 'm', label: 'meters (m)' },
   { value: 'in', label: 'inches (in)' },
   { value: 'ft', label: 'feet (ft)' },
-  { value: 'ft-in', label: 'feet / inches (ft / in)' },
-  { value: 'm-cm', label: 'meters / centimeters (m / cm)' }
 ];
 
 const heightOnlyUnits = lengthUnits.filter(u => u.value !== 'm-cm');
@@ -457,31 +464,63 @@ const ConcreteEstimatorTubePage = () => {
 
   // Add a clearAll function to reset all input fields to their initial values
   const clearAll = () => {
+    // Reset dimensions
     setOuterDiameter('');
-    setOuterDiameterUnit('in');
     setInnerDiameter('');
-    setInnerDiameterUnit('in');
     setHeight('');
+    setQuantity('1');
+    
+    // Reset units to defaults
+    setOuterDiameterUnit('in');
+    setInnerDiameterUnit('in');
     setHeightUnit('ft');
-    setQuantity('');
     setVolumeUnit('cu-yd');
     setDensityUnit('lb-ft3');
-    setDensityDisplay(DEFAULT_DENSITY_LBFT3.toString());
     setMassUnit('lb');
     setBagSizeUnit('lb');
-    setBagSizeDisplay(DEFAULT_BAG_SIZE_LB.toString());
-    setWastePercent(DEFAULT_WASTE.toString());
+    
+    // Reset numerical values
+    setDensityDisplay('0');
+    setBagSizeDisplay('0');
+    setWastePercent('0');
+    
+    // Reset prices
     setPricePerBag('');
     setPricePerUnitVolume('');
     setPricePerUnitVolumeBasis('cu-yd');
     setPricePerTube('');
-    // The following are calculated and will update automatically
-    // setVolumeDisplay('0');
-    // setMassDisplay('0');
-    // setBagsNeeded('0');
-    // setTotalCost('0.00');
-    // setVolumeM3(0);
+    
+    // Reset calculated values
+    setVolumeDisplay('0');
+    setMassDisplay('0');
+    setBagsNeeded('0');
+    setTotalCost('0.00');
+    setVolumeM3(0);
+    setBagSizeKg(0);
+    setPricePerUnitVolumeM3(0);
+    
+    // Clear errors
     setDiameterError('');
+
+    // Clear validation errors
+    setErrors({
+      outerDiameter: '',
+      innerDiameter: '',
+      height: '',
+      quantity: '',
+      density: '',
+      bagSize: ''
+    });
+
+    // Reset touched state
+    setTouched({
+      outerDiameter: false,
+      innerDiameter: false,
+      height: false,
+      quantity: false,
+      density: false,
+      bagSize: false,
+    });
   };
 
   // When pricePerUnitVolume or its basis changes, update canonical PKR/m3 value
@@ -597,8 +636,155 @@ const ConcreteEstimatorTubePage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pricePerBag, bagsNeeded, quantity]);
 
+  // Add validation function
+  const validateInputs1 = () => {
+    const newErrors = {
+      outerDiameter: '',
+      innerDiameter: '',
+      height: '',
+      quantity: '',
+      density: '',
+      bagSize: ''
+    };
+
+    // Convert values to numbers for comparison
+    const outerD = parseFloat(outerDiameter);
+    const innerD = parseFloat(innerDiameter);
+    const h = parseFloat(height);
+    const qty = parseFloat(quantity);
+    const density = parseFloat(densityDisplay);
+    const bagSize = parseFloat(bagSizeDisplay);
+
+    // Validate each field
+    if (touched.outerDiameter && (!outerD || outerD <= 0)) {
+      newErrors.outerDiameter = VALIDATION_MESSAGES.outerDiameterRequired;
+    }
+
+    if (touched.innerDiameter && innerD && (innerD >= outerD || innerD < 0)) {
+      newErrors.innerDiameter = VALIDATION_MESSAGES.innerDiameterInvalid;
+    }
+
+    if (touched.height && (!h || h <= 0)) {
+      newErrors.height = VALIDATION_MESSAGES.heightRequired;
+    }
+
+    if (touched.quantity && (!qty || qty < 1)) {
+      newErrors.quantity = VALIDATION_MESSAGES.quantityRequired;
+    }
+
+    if (touched.density && (!density || density <= 0)) {
+      newErrors.density = VALIDATION_MESSAGES.densityRequired;
+    }
+
+    if (touched.bagSize && (!bagSize || bagSize <= 0)) {
+      newErrors.bagSize = VALIDATION_MESSAGES.bagSizeRequired;
+    }
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => error !== '');
+  };
+
+  // Add missing state for errors
+  const [errors, setErrors] = useState<{
+    outerDiameter: string;
+    innerDiameter: string;
+    height: string;
+    quantity: string;
+    density: string;
+    bagSize: string;
+  }>({
+    outerDiameter: '',
+    innerDiameter: '',
+    height: '',
+    quantity: '',
+    density: '',
+    bagSize: ''
+  });
+
+  // Add missing stub for calculateMaterials (so validation effect doesn't break)
+  const calculateMaterials = () => {
+    // No-op: calculations are already handled by other useEffects
+    // This is just to satisfy the validation effect dependency
+  };
+
+  // Add validation to calculation effects
+  useEffect(() => {
+    if (validateInputs()) {
+      calculateMaterials();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outerDiameter, innerDiameter, height, quantity, densityDisplay, bagSizeDisplay]);
+
+  // Add touched state for each input field
+  const [touched, setTouched] = useState<{
+    outerDiameter: boolean;
+    innerDiameter: boolean;
+    height: boolean;
+    quantity: boolean;
+    density: boolean;
+    bagSize: boolean;
+  }>({
+    outerDiameter: false,
+    innerDiameter: false,
+    height: false,
+    quantity: false,
+    density: false,
+    bagSize: false,
+  });
+
+  // Update validateInputs to only show errors if touched
+  const validateInputs = () => {
+    const newErrors = {
+      outerDiameter: '',
+      innerDiameter: '',
+      height: '',
+      quantity: '',
+      density: '',
+      bagSize: ''
+    };
+
+    const outerD = parseFloat(outerDiameter);
+    const innerD = parseFloat(innerDiameter);
+    const h = parseFloat(height);
+    const qty = parseFloat(quantity);
+    const density = parseFloat(densityDisplay);
+    const bagSize = parseFloat(bagSizeDisplay);
+
+    if (touched.outerDiameter && (!outerD || outerD <= 0)) {
+      newErrors.outerDiameter = VALIDATION_MESSAGES.outerDiameterRequired;
+    }
+    if (touched.innerDiameter && innerD && (innerD >= outerD || innerD < 0)) {
+      newErrors.innerDiameter = VALIDATION_MESSAGES.innerDiameterInvalid;
+    }
+    if (touched.height && (!h || h <= 0)) {
+      newErrors.height = VALIDATION_MESSAGES.heightRequired;
+    }
+    if (touched.quantity && (!qty || qty < 1)) {
+      newErrors.quantity = VALIDATION_MESSAGES.quantityRequired;
+    }
+    if (touched.density && (!density || density <= 0)) {
+      newErrors.density = VALIDATION_MESSAGES.densityRequired;
+    }
+    if (touched.bagSize && (!bagSize || bagSize <= 0)) {
+      newErrors.bagSize = VALIDATION_MESSAGES.bagSizeRequired;
+    }
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => error !== '');
+  };
+
   return (
     <div className="w-[500px] max-w-xl mx-auto p-4 md:p-6 space-y-4">
+      {/* Add main heading */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          Concrete Estimator - Tube
+        </h1>
+        <p className="text-gray-600">
+          Calculate concrete requirements for circular columns and tubes
+        </p>
+      </div>
+
       {/* Card 1: Tube Details */}
       <div className="border border-gray-300 rounded-lg bg-white shadow-sm px-4 pb-5 pt-4">
         <h1 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">
@@ -622,23 +808,26 @@ const ConcreteEstimatorTubePage = () => {
         </div>
 
         <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-          <FieldGroup label="Outer diameter" icon={RulerIcon} menu error={diameterError}>
+          <FieldGroup label="Outer diameter" icon={RulerIcon} menu error={errors.outerDiameter || diameterError}>
             <div className="flex">
               <input
                 type="number"
                 inputMode="decimal"
                 placeholder="0"
                 value={outerDiameter}
-                onChange={(e) => setOuterDiameter(e.target.value)}
-                className={`${inputBase} ${diameterError ? 'border-red-500' : ''}`}
+                onChange={e => {
+                  setOuterDiameter(e.target.value);
+                  if (!touched.outerDiameter) setTouched(t => ({ ...t, outerDiameter: true }));
+                }}
+                className={`${inputBase} ${errors.outerDiameter || diameterError ? 'border-red-500' : ''}`}
                 aria-label="Outer diameter value"
                 min="0"
                 step="any"
               />
               <select
                 value={outerDiameterUnit}
-                onChange={(e) => handleOuterDiameterUnitChange(e.target.value)}
-                className={`${unitSelectBase} ${diameterError ? 'border-red-500' : ''}`}
+                onChange={e => handleOuterDiameterUnitChange(e.target.value)}
+                className={`${unitSelectBase} ${errors.outerDiameter || diameterError ? 'border-red-500' : ''}`}
                 aria-label="Outer diameter unit"
               >
                 {lengthOptions}
@@ -646,23 +835,26 @@ const ConcreteEstimatorTubePage = () => {
             </div>
           </FieldGroup>
 
-          <FieldGroup label="Inner diameter (optional)" icon={RulerIcon} menu error={diameterError}>
+          <FieldGroup label="Inner diameter (optional)" icon={RulerIcon} menu error={errors.innerDiameter || diameterError}>
             <div className="flex">
               <input
                 type="number"
                 inputMode="decimal"
                 placeholder="0"
                 value={innerDiameter}
-                onChange={(e) => setInnerDiameter(e.target.value)}
-                className={`${inputBase} ${diameterError ? 'border-red-500' : ''}`}
+                onChange={e => {
+                  setInnerDiameter(e.target.value);
+                  if (!touched.innerDiameter) setTouched(t => ({ ...t, innerDiameter: true }));
+                }}
+                className={`${inputBase} ${errors.innerDiameter || diameterError ? 'border-red-500' : ''}`}
                 aria-label="Inner diameter value"
                 min="0"
                 step="any"
               />
               <select
                 value={innerDiameterUnit}
-                onChange={(e) => handleInnerDiameterUnitChange(e.target.value)}
-                className={`${unitSelectBase} ${diameterError ? 'border-red-500' : ''}`}
+                onChange={e => handleInnerDiameterUnitChange(e.target.value)}
+                className={`${unitSelectBase} ${errors.innerDiameter || diameterError ? 'border-red-500' : ''}`}
                 aria-label="Inner diameter unit"
               >
                 {lengthOptions}
@@ -670,14 +862,17 @@ const ConcreteEstimatorTubePage = () => {
             </div>
           </FieldGroup>
 
-          <FieldGroup label="Height" icon={RulerIcon} menu>
+          <FieldGroup label="Height" icon={RulerIcon} menu error={errors.height}>
             <div className="flex">
               <input
                 type="number"
                 inputMode="decimal"
                 placeholder="0"
                 value={height}
-                onChange={(e) => setHeight(e.target.value)}
+                onChange={e => {
+                  setHeight(e.target.value);
+                  if (!touched.height) setTouched(t => ({ ...t, height: true }));
+                }}
                 className={inputBase}
                 aria-label="Height value"
                 min="0"
@@ -685,7 +880,7 @@ const ConcreteEstimatorTubePage = () => {
               />
               <select
                 value={heightUnit}
-                onChange={(e) => handleHeightUnitChange(e.target.value)}
+                onChange={e => handleHeightUnitChange(e.target.value)}
                 className={unitSelectBase}
                 aria-label="Height unit"
               >
@@ -698,13 +893,16 @@ const ConcreteEstimatorTubePage = () => {
             </div>
           </FieldGroup>
 
-          <FieldGroup label="Quantity" menu>
+          <FieldGroup label="Quantity" menu error={errors.quantity}>
             <div className="flex">
               <input
                 type="number"
                 min={1}
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+                onChange={e => {
+                  setQuantity(e.target.value);
+                  if (!touched.quantity) setTouched(t => ({ ...t, quantity: true }));
+                }}
                 className={inputBase}
                 aria-label="Quantity"
               />
@@ -723,7 +921,7 @@ const ConcreteEstimatorTubePage = () => {
               />
               <select
                 value={volumeUnit}
-                onChange={(e) => setVolumeUnit(e.target.value)}
+                onChange={e => setVolumeUnit(e.target.value)}
                 className={unitSelectBase + ' bg-gray-50'}
                 aria-label="Volume unit"
               >
@@ -745,14 +943,17 @@ const ConcreteEstimatorTubePage = () => {
         </h2>
 
         <div>
-          <FieldGroup label="Concrete density" menu>
+          <FieldGroup label="Concrete density" menu error={errors.density}>
             <div className="flex">
               <input
                 type="number"
                 inputMode="decimal"
                 placeholder="0"
                 value={densityDisplay}
-                onChange={(e) => setDensityDisplay(e.target.value)}
+                onChange={e => {
+                  setDensityDisplay(e.target.value);
+                  if (!touched.density) setTouched(t => ({ ...t, density: true }));
+                }}
                 className={inputBase}
                 aria-label="Concrete density"
                 min="0"
@@ -760,7 +961,7 @@ const ConcreteEstimatorTubePage = () => {
               />
               <select
                 value={densityUnit}
-                onChange={(e) => handleDensityUnitChange(e.target.value)}
+                onChange={e => handleDensityUnitChange(e.target.value)}
                 className={unitSelectBase}
                 aria-label="Density unit"
               >
@@ -785,7 +986,7 @@ const ConcreteEstimatorTubePage = () => {
               />
               <select
                 value={massUnit}
-                onChange={(e) => setMassUnit(e.target.value)}
+                onChange={e => setMassUnit(e.target.value)}
                 className={unitSelectBase + ' bg-gray-50'}
                 aria-label="Mass unit"
               >
@@ -798,13 +999,16 @@ const ConcreteEstimatorTubePage = () => {
             </div>
           </FieldGroup>
 
-          <FieldGroup label="Bag size" menu icon={RulerIcon}>
+          <FieldGroup label="Bag size" menu icon={RulerIcon} error={errors.bagSize}>
             <div className="flex">
               <input
                 type="number"
                 inputMode="decimal"
                 value={bagSizeDisplay}
-                onChange={(e) => setBagSizeDisplay(e.target.value)}
+                onChange={e => {
+                  setBagSizeDisplay(e.target.value);
+                  if (!touched.bagSize) setTouched(t => ({ ...t, bagSize: true }));
+                }}
                 className={inputBase}
                 aria-label="Bag size"
                 min="0"
@@ -812,7 +1016,7 @@ const ConcreteEstimatorTubePage = () => {
               />
               <select
                 value={bagSizeUnit}
-                onChange={(e) => handleBagSizeUnitChange(e.target.value)}
+                onChange={e => handleBagSizeUnitChange(e.target.value)}
                 className={unitSelectBase}
                 aria-label="Bag size unit"
               >
@@ -942,14 +1146,14 @@ const ConcreteEstimatorTubePage = () => {
           </div>
         </FieldGroup>
       </div>
-      {/* Move Clear button to the bottom */}
-      <div className="flex justify-end mt-4">
+      {/* Move Clear button to the bottom with better styling */}
+      <div className="flex justify-center mt-6">
         <button
           type="button"
           onClick={clearAll}
-          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md border border-gray-300 text-sm font-medium transition"
+          className="px-8 py-3 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg border border-blue-300 font-semibold transition-all duration-200 hover:shadow-md active:transform active:scale-95"
         >
-          Clear
+          Clear All Fields
         </button>
       </div>
     </div>
