@@ -1,948 +1,410 @@
-"use client"
-
-import type React from "react"
-
-import { useState, useEffect, useMemo } from "react"
-
-/* ----------------- Constants ------------------ */
-const DEFAULT_DENSITY_LBFT3 = 150
-const DEFAULT_BAG_SIZE_LB = 60 // Changed to match your example
-const DEFAULT_WASTE = 10
-
-/* ----------------- Length + Volume Units ------------------ */
-const lengthToCm: Record<string, number> = {
-  cm: 1,
-  m: 100,
-  in: 2.54,
-  ft: 30.48,
-  "ft-in": 30.48,
-  "m-cm": 100,
-}
-
-const volumeUnits = [
-  { value: "m3", label: "cubic meters (m³)" },
-  { value: "cu-ft", label: "cubic feet (cu ft)" },
-  { value: "cu-yd", label: "cubic yards (cu yd)" },
-  { value: "us-gal", label: "gallons (US) (US gal)" },
-  { value: "uk-gal", label: "gallons (UK) (UK gal)" },
-]
+'use client'
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 const lengthUnits = [
-  { value: "cm", label: "centimeters (cm)" },
-  { value: "m", label: "meters (m)" },
-  { value: "in", label: "inches (in)" },
-  { value: "ft", label: "feet (ft)" },
-  { value: "ft-in", label: "feet / inches (ft / in)" },
-  { value: "m-cm", label: "meters / centimeters (m / cm)" },
-]
+  { value: 'mm', label: 'millimeters (mm)' },
+  { value: 'cm', label: 'centimeters (cm)' },
+  { value: 'm', label: 'meters (m)' },
+  { value: 'in', label: 'inches (in)' },
+  { value: 'ft', label: 'feet (ft)' }
+];
 
-const heightOnlyUnits = lengthUnits.filter((u) => u.value !== "m-cm")
+// Add types for unitToMeter and errors
+const unitToMeter: Record<string, number> = {
+  mm: 0.001,
+  cm: 0.01,
+  m: 1,
+  in: 0.0254,
+  ft: 0.3048,
+};
 
-/* ----------------- Density / Mass Units ------------------ */
-const densityUnits = [
-  { value: "kg-m3", label: "kilograms per cubic meter (kg/m³)" },
-  { value: "lb-ft3", label: "pounds per cubic foot (lb/cu ft)" },
-  { value: "lb-yd3", label: "pounds per cubic yard (lb/cu yd)" },
-  { value: "g-cm3", label: "grams per cubic centimeter (g/cm³)" },
-]
-
-const massUnits = [
-  { value: "kg", label: "kilograms (kg)" },
-  { value: "t", label: "metric tons (t)" },
-  { value: "lb", label: "pounds (lb)" },
-  { value: "st", label: "stones (st)" },
-  { value: "US-st", label: "US short tons (US ton)" },
-  { value: "long-ton", label: "imperial tons (long ton)" },
-]
-
-const bagSizeUnits = [
-  { value: "kg", label: "kilogram (kg)" },
-  { value: "lb", label: "pound (lb)" },
-]
-
-/* ----------------- Cost Units ------------------ */
-const perVolumeCostUnits = [
-  { value: "m3", label: "per cubic meter (m³)" },
-  { value: "cu-ft", label: "per cubic foot (cu ft)" },
-  { value: "cu-yd", label: "per cubic yard (cu yd)" },
-  { value: "us-gal", label: "per US gallon" },
-  { value: "uk-gal", label: "per UK gallon" },
-]
-
-/* ----------------- Shared Field Group ------------------ */
-interface FieldProps {
-  label: string
-  children: React.ReactNode
-  icon?: React.ReactNode
-  menu?: boolean
-  info?: boolean
-  error?: string
+// Conversion function for display only
+function convertDisplayValue(value: string, fromUnit: string, toUnit: string): string {
+  const num = parseFloat(value);
+  if (isNaN(num) || num === 0) return '';
+  // Convert to meters, then to target unit
+  const meters = num * unitToMeter[fromUnit];
+  const converted = meters / unitToMeter[toUnit];
+  return converted ? parseFloat(converted.toFixed(4)).toString() : '';
 }
 
-const FieldGroup = ({ label, children, icon, menu, info, error }: FieldProps) => (
-  <div className="pt-5 first:pt-0">
-    <div className="flex items-center gap-2 mb-2">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
-      {info && (
-        <span className="text-gray-400" title={label + " info"}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M12 8.2v.2M12 11v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </span>
-      )}
-      {icon && <span className="text-gray-400">{icon}</span>}
-      {menu && (
-        <button
-          type="button"
-          aria-label="More options"
-          className="ml-auto text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="5" cy="12" r="2" />
-            <circle cx="12" cy="12" r="2" />
-            <circle cx="19" cy="12" r="2" />
-          </svg>
-        </button>
-      )}
-    </div>
-    {children}
-    {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
-  </div>
-)
-
-const RulerIcon = (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-gray-400">
-    <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
-    <path
-      d="M7 5v4M11 5v2M15 5v4M19 5v2M7 13v2M11 13v4M15 13v2M19 13v4"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-    />
-  </svg>
-)
-
-/* ----------------- Style Tokens ------------------ */
-const inputBase =
-  "h-11 w-full text-sm rounded-l-md border-2 border-gray-300 bg-white px-4 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
-const unitSelectBase =
-  "h-11 w-[140px] text-sm px-4 rounded-r-md bg-white border-2 border-l-0 border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer"
-const readonlyInputBase =
-  "h-11 w-full text-sm rounded-l-md border-2 border-gray-300 bg-gray-50 px-4 text-gray-700 cursor-not-allowed"
-const trailingStatic =
-  "h-11 flex items-center rounded-r-md border-2 border-l-0 border-gray-300 bg-gray-50 text-sm px-4 text-gray-600 select-none w-[140px] justify-center"
-const trailingSelect =
-  "h-11 w-[140px] border-2 border-l-0 border-gray-300 bg-white px-4 text-sm rounded-r-md appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-
-/* ----------------- Conversion Helpers ------------------ */
-const convertLength = (value: number, fromUnit: string, toUnit: string): number => {
-  if (isNaN(value) || value < 0) return 0
-  const meterValue = (value * lengthToCm[fromUnit]) / 100
-  return meterValue / (lengthToCm[toUnit] / 100)
+// Add Errors type
+interface Errors {
+  wallLength?: string;
+  spacing?: string;
+  pricePerStud?: string;
+  waste?: string;
 }
 
-const convertToMeters = (value: string, unit: string) => {
-  const val = Number.parseFloat(value)
-  if (isNaN(val)) return 0
-  switch (unit) {
-    case "cm":
-      return val / 100
-    case "m":
-      return val
-    case "in":
-      return val * 0.0254
-    case "ft":
-      return val * 0.3048
-    case "ft-in":
-      return val * 0.3048
-    case "m-cm":
-      return val
-    default:
-      return val
-  }
-}
+const FramingCalculator = () => {
+  // States for actual input values (these don't change with unit conversion)
+  const [wallLengthInput, setWallLengthInput] = useState('');
+  const [wallLengthUnit, setWallLengthUnit] = useState('m');
+  const [spacingInput, setSpacingInput] = useState('40');
+  const [spacingUnit, setSpacingUnit] = useState('cm');
+  const [pricePerStud, setPricePerStud] = useState('');
+  const [waste, setWaste] = useState('15');
+  
+  // States for display values (these change with unit conversion)
+  const [wallLengthDisplay, setWallLengthDisplay] = useState('');
+  const [spacingDisplay, setSpacingDisplay] = useState('40');
+  
+  // Original unit states to track what unit the input was originally entered in
+  const [originalWallLengthUnit, setOriginalWallLengthUnit] = useState('m');
+  const [originalSpacingUnit, setOriginalSpacingUnit] = useState('cm');
+  
+  const [studsNeeded, setStudsNeeded] = useState('0');
+  const [totalCost, setTotalCost] = useState('0');
+  const [touched, setTouched] = useState({
+    wallLength: false,
+    spacing: false,
+    pricePerStud: false,
+    waste: false,
+  });
+  const [errors, setErrors] = useState<Errors>({});
 
-const convertFromMeters = (meters: number, targetUnit: string) => {
-  if (isNaN(meters) || meters === 0) return 0
-  switch (targetUnit) {
-    case "cm":
-      return meters * 100
-    case "m":
-      return meters
-    case "in":
-      return meters / 0.0254
-    case "ft":
-      return meters / 0.3048
-    case "ft-in":
-      return meters / 0.3048
-    case "m-cm":
-      return meters
-    default:
-      return meters
-  }
-}
-
-const convertDensity = (value: number, fromUnit: string, toUnit: string): number => {
-  if (isNaN(value) || value < 0) return 0
-  let kgPerM3 = value
-
-  // Convert to kg/m³ first
-  switch (fromUnit) {
-    case "lb-ft3":
-      kgPerM3 *= 16.01846337
-      break
-    case "lb-yd3":
-      kgPerM3 *= 0.593276
-      break
-    case "g-cm3":
-      kgPerM3 *= 1000
-      break
-    case "kg-m3":
-    default:
-      break
-  }
-
-  // Convert from kg/m³ to target unit
-  switch (toUnit) {
-    case "lb-ft3":
-      return kgPerM3 / 16.01846337
-    case "lb-yd3":
-      return kgPerM3 / 0.593276
-    case "g-cm3":
-      return kgPerM3 / 1000
-    case "kg-m3":
-    default:
-      return kgPerM3
-  }
-}
-
-const convertMass = (value: number, fromUnit: string, toUnit: string): number => {
-  if (isNaN(value) || value < 0) return 0
-  let kg = value
-
-  // Convert to kg first
-  switch (fromUnit) {
-    case "lb":
-      kg /= 2.2046226218
-      break
-    case "t":
-      kg *= 1000
-      break
-    case "st":
-      kg /= 0.157473
-      break
-    case "US-st":
-      kg *= 907.18474
-      break
-    case "long-ton":
-      kg *= 1016.047
-      break
-    case "kg":
-    default:
-      break
-  }
-
-  // Convert from kg to target unit
-  switch (toUnit) {
-    case "lb":
-      return kg * 2.2046226218
-    case "t":
-      return kg / 1000
-    case "st":
-      return kg * 0.157473
-    case "US-st":
-      return kg / 907.18474
-    case "long-ton":
-      return kg / 1016.047
-    case "kg":
-    default:
-      return kg
-  }
-}
-
-const formatNumber = (v: number, d = 2) => (isFinite(v) && v >= 0 ? Number.parseFloat(v.toFixed(d)).toString() : "0")
-
-const unitVolumeInM3: Record<string, number> = {
-  m3: 1,
-  "cu-ft": 0.0283168467117,
-  "cu-yd": 0.764554857984,
-  "us-gal": 0.003785411784,
-  "uk-gal": 0.00454609,
-}
-
-/* ----------------- Component ------------------ */
-const ConcreteEstimatorTubePage = () => {
-  // Dimension states - keeping display values and canonical values separate
-  const [outerDiameter, setOuterDiameter] = useState("24")
-  const [outerDiameterUnit, setOuterDiameterUnit] = useState("in")
-  const [innerDiameter, setInnerDiameter] = useState("20")
-  const [innerDiameterUnit, setInnerDiameterUnit] = useState("in")
-  const [height, setHeight] = useState("6")
-  const [heightUnit, setHeightUnit] = useState("ft")
-  const [quantity, setQuantity] = useState("1")
-
-  // Volume display
-  const [volumeUnit, setVolumeUnit] = useState("cu-yd")
-  const [diameterError, setDiameterError] = useState("")
-
-  // Density - display and canonical
-  const [densityUnit, setDensityUnit] = useState("lb-ft3")
-  const [densityDisplay, setDensityDisplay] = useState(DEFAULT_DENSITY_LBFT3.toString())
-
-  // Mass output
-  const [massUnit, setMassUnit] = useState("lb")
-
-  // Bag size - display and canonical
-  const [bagSizeUnit, setBagSizeUnit] = useState("lb")
-  const [bagSizeDisplay, setBagSizeDisplay] = useState(DEFAULT_BAG_SIZE_LB.toString())
-
-  const [wastePercent, setWastePercent] = useState(DEFAULT_WASTE.toString())
-
-  // Costs
-  const [pricePerBag, setPricePerBag] = useState("5")
-  const [pricePerUnitVolume, setPricePerUnitVolume] = useState("")
-  const [pricePerUnitVolumeBasis, setPricePerUnitVolumeBasis] = useState("cu-yd")
-  const [pricePerTube, setPricePerTube] = useState("")
-
-  // Calculated values
-  const [volumeDisplay, setVolumeDisplay] = useState("0")
-  const [massDisplay, setMassDisplay] = useState("0")
-  const [bagsNeeded, setBagsNeeded] = useState("0")
-  const [totalCost, setTotalCost] = useState("0.00")
-
-  // Validate diameters
+  // Update display values when units change
   useEffect(() => {
-    const outer = Number.parseFloat(outerDiameter)
-    const inner = Number.parseFloat(innerDiameter)
-
-    if (!isNaN(outer) && !isNaN(inner) && outer > 0 && inner >= 0) {
-      // Convert both to same unit for comparison
-      const outerInMeters = convertToMeters(outer.toString(), outerDiameterUnit)
-      const innerInMeters = convertToMeters(inner.toString(), innerDiameterUnit)
-
-      if (outerInMeters <= innerInMeters) {
-        setDiameterError("Outer diameter must be greater than inner diameter")
-      } else {
-        setDiameterError("")
-      }
+    if (wallLengthInput && originalWallLengthUnit !== wallLengthUnit) {
+      const converted = convertDisplayValue(wallLengthInput, originalWallLengthUnit, wallLengthUnit);
+      setWallLengthDisplay(converted);
     } else {
-      setDiameterError("")
+      setWallLengthDisplay(wallLengthInput);
     }
-  }, [outerDiameter, outerDiameterUnit, innerDiameter, innerDiameterUnit])
+  }, [wallLengthInput, wallLengthUnit, originalWallLengthUnit]);
 
-  // Independent unit change handlers
-  const handleOuterDiameterUnitChange = (newUnit: string) => {
-    if (outerDiameter && !isNaN(Number.parseFloat(outerDiameter))) {
-      // Convert current value to meters first
-      const currentValueInMeters = convertToMeters(outerDiameter, outerDiameterUnit)
-      // Convert from meters to new unit
-      const newValue = convertFromMeters(currentValueInMeters, newUnit)
-      // Round to appropriate decimal places based on unit
-      const roundedValue =
-        newUnit === "cm"
-          ? Math.round(newValue * 100) / 100
-          : newUnit === "m"
-            ? Math.round(newValue * 1000) / 1000
-            : newUnit === "in"
-              ? Math.round(newValue * 100) / 100
-              : newUnit === "ft"
-                ? Math.round(newValue * 100) / 100
-                : Math.round(newValue * 100) / 100
-      setOuterDiameter(roundedValue.toString())
-    }
-    setOuterDiameterUnit(newUnit)
-  }
-
-  const handleInnerDiameterUnitChange = (newUnit: string) => {
-    if (innerDiameter && !isNaN(Number.parseFloat(innerDiameter))) {
-      // Convert current value to meters first
-      const currentValueInMeters = convertToMeters(innerDiameter, innerDiameterUnit)
-      // Convert from meters to new unit
-      const newValue = convertFromMeters(currentValueInMeters, newUnit)
-      // Round to appropriate decimal places based on unit
-      const roundedValue =
-        newUnit === "cm"
-          ? Math.round(newValue * 100) / 100
-          : newUnit === "m"
-            ? Math.round(newValue * 1000) / 1000
-            : newUnit === "in"
-              ? Math.round(newValue * 100) / 100
-              : newUnit === "ft"
-                ? Math.round(newValue * 100) / 100
-                : Math.round(newValue * 100) / 100
-      setInnerDiameter(roundedValue.toString())
-    }
-    setInnerDiameterUnit(newUnit)
-  }
-
-  const handleHeightUnitChange = (newUnit: string) => {
-    if (height && !isNaN(Number.parseFloat(height))) {
-      // Convert current value to meters first
-      const currentValueInMeters = convertToMeters(height.toString(), heightUnit)
-      // Convert from meters to new unit
-      const newValue = convertFromMeters(currentValueInMeters, newUnit)
-      // Round to appropriate decimal places based on unit
-      const roundedValue =
-        newUnit === "cm"
-          ? Math.round(newValue * 100) / 100
-          : newUnit === "m"
-            ? Math.round(newValue * 1000) / 1000
-            : newUnit === "in"
-              ? Math.round(newValue * 100) / 100
-              : newUnit === "ft"
-                ? Math.round(newValue * 100) / 100
-                : Math.round(newValue * 100) / 100
-      setHeight(roundedValue.toString())
-    }
-    setHeightUnit(newUnit)
-  }
-
-  const handleDensityUnitChange = (newUnit: string) => {
-    const currentVal = Number.parseFloat(densityDisplay)
-    if (!isNaN(currentVal) && currentVal > 0) {
-      const converted = convertDensity(currentVal, densityUnit, newUnit)
-      setDensityDisplay(formatNumber(converted, 4))
-    }
-    setDensityUnit(newUnit)
-  }
-
-  const handleBagSizeUnitChange = (newUnit: string) => {
-    const currentVal = Number.parseFloat(bagSizeDisplay)
-    if (!isNaN(currentVal) && currentVal > 0) {
-      const converted = convertMass(currentVal, bagSizeUnit, newUnit)
-      setBagSizeDisplay(formatNumber(converted, 4))
-    }
-    setBagSizeUnit(newUnit)
-  }
-
-  const handlePricePerUnitVolumeBasisChange = (newUnit: string) => {
-    const currentVal = Number.parseFloat(pricePerUnitVolume)
-    if (!isNaN(currentVal) && currentVal > 0) {
-      // Convert the price rate
-      const currentFactor = unitVolumeInM3[pricePerUnitVolumeBasis] || 1
-      const newFactor = unitVolumeInM3[newUnit] || 1
-      const converted = (currentVal * currentFactor) / newFactor
-      setPricePerUnitVolume(formatNumber(converted, 4))
-    }
-    setPricePerUnitVolumeBasis(newUnit)
-  }
-
-  // Volume calculation
   useEffect(() => {
-    const outerD = Number.parseFloat(outerDiameter)
-    const innerD = Number.parseFloat(innerDiameter) || 0 // Default to 0 if empty
-    const h = Number.parseFloat(height)
-    const q = Number.parseFloat(quantity)
-
-    if (diameterError || isNaN(outerD) || outerD <= 0 || isNaN(h) || h <= 0 || isNaN(q) || q <= 0) {
-      setVolumeDisplay("0.00")
-      return
-    }
-
-    // Convert all dimensions to meters for calculation
-    const outerDMeters = convertToMeters(outerD.toString(), outerDiameterUnit)
-    const innerDMeters = convertToMeters(innerD.toString(), innerDiameterUnit)
-    const hMeters = convertToMeters(h.toString(), heightUnit)
-
-    // Calculate volume in cubic meters (π * (R₁² - R₂²) * h * quantity)
-    const outerRadius = outerDMeters / 2
-    const innerRadius = innerDMeters / 2
-    const volumeM3 = Math.PI * (Math.pow(outerRadius, 2) - Math.pow(innerRadius, 2)) * hMeters * q
-
-    // Convert to display unit
-    let displayVolume = volumeM3
-    switch (volumeUnit) {
-      case "cu-ft":
-        displayVolume /= 0.0283168467117
-        break
-      case "cu-yd":
-        displayVolume /= 0.764554857984
-        break
-      case "us-gal":
-        displayVolume /= 0.003785411784
-        break
-      case "uk-gal":
-        displayVolume /= 0.00454609
-        break
-    }
-
-    setVolumeDisplay(formatNumber(displayVolume, 4))
-  }, [
-    outerDiameter,
-    outerDiameterUnit,
-    innerDiameter,
-    innerDiameterUnit,
-    height,
-    heightUnit,
-    quantity,
-    volumeUnit,
-    diameterError,
-  ])
-
-  // Mass and bags calculation
-  useEffect(() => {
-    const vol = Number.parseFloat(volumeDisplay)
-    const density = Number.parseFloat(densityDisplay)
-    const waste = Number.parseFloat(wastePercent) || 0
-    const bagSize = Number.parseFloat(bagSizeDisplay)
-
-    if (isNaN(vol) || vol <= 0 || isNaN(density) || density <= 0) {
-      setMassDisplay("0.00")
-      setBagsNeeded("0")
-      return
-    }
-
-    // Convert volume to cubic meters for mass calculation
-    let volumeM3 = vol
-    switch (volumeUnit) {
-      case "cu-ft":
-        volumeM3 *= 0.0283168467117
-        break
-      case "cu-yd":
-        volumeM3 *= 0.764554857984
-        break
-      case "us-gal":
-        volumeM3 *= 0.003785411784
-        break
-      case "uk-gal":
-        volumeM3 *= 0.00454609
-        break
-    }
-
-    // Convert density to kg/m³ for calculation
-    const densityKgM3 = convertDensity(density, densityUnit, "kg-m3")
-
-    // Calculate mass in kg
-    const massKg = volumeM3 * densityKgM3
-    const massWithWasteKg = massKg * (1 + waste / 100)
-
-    // Convert to display unit
-    const massForDisplay = convertMass(massWithWasteKg, "kg", massUnit)
-    setMassDisplay(formatNumber(massForDisplay, 2))
-
-    // Calculate bags needed
-    if (!isNaN(bagSize) && bagSize > 0) {
-      const bagSizeKg = convertMass(bagSize, bagSizeUnit, "kg")
-      const bags = Math.ceil(massWithWasteKg / bagSizeKg)
-      setBagsNeeded(bags.toString())
+    if (spacingInput && originalSpacingUnit !== spacingUnit) {
+      const converted = convertDisplayValue(spacingInput, originalSpacingUnit, spacingUnit);
+      setSpacingDisplay(converted);
     } else {
-      setBagsNeeded("0")
+      setSpacingDisplay(spacingInput);
     }
-  }, [volumeDisplay, volumeUnit, densityDisplay, densityUnit, wastePercent, massUnit, bagSizeDisplay, bagSizeUnit])
+  }, [spacingInput, spacingUnit, originalSpacingUnit]);
 
-  // Cost calculation
+  // Validation
+  const validate = () => {
+    const newErrors: Errors = {};
+    const length = parseFloat(wallLengthInput);
+    const studSpacing = parseFloat(spacingInput);
+    const price = parseFloat(pricePerStud);
+    const wastePercent = parseFloat(waste);
+
+    if (touched.wallLength && (!length || length <= 0)) {
+      newErrors.wallLength = 'Length of the wall must be greater than 0';
+    }
+    if (touched.spacing && (!studSpacing || studSpacing <= 0)) {
+      newErrors.spacing = 'Stud spacing must be greater than 0';
+    }
+    if (touched.pricePerStud && (!price || price < 0)) {
+      newErrors.pricePerStud = 'Price per stud must be greater than or equal to 0';
+    }
+    if (touched.waste && (!wastePercent || wastePercent < 0)) {
+      newErrors.waste = 'Waste percentage must be greater than or equal to 0';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Calculate studs using original input values and original units
+  const calculateStuds = () => {
+    if (!validate()) return;
+
+    const lengthNum = parseFloat(wallLengthInput);
+    const spacingNum = parseFloat(spacingInput);
+    const price = parseFloat(pricePerStud) || 0;
+    const wastePercent = parseFloat(waste) || 0;
+
+    // Convert original input values to meters for calculation
+    const lengthInM = isNaN(lengthNum) ? 0 : lengthNum * unitToMeter[originalWallLengthUnit];
+    const spacingInM = isNaN(spacingNum) ? 0 : spacingNum * unitToMeter[originalSpacingUnit];
+
+    // Calculate number of studs using the formula: (length / spacing) + 1
+    const baseStuds = spacingInM > 0 ? Math.ceil(lengthInM / spacingInM) : 0;
+    const extraStuds = Math.ceil(baseStuds * (wastePercent / 100));
+    const totalStuds = baseStuds + extraStuds;
+
+    setStudsNeeded(totalStuds.toString());
+
+    // --- FIX: Total cost calculation ---
+    // Total cost = (baseStuds + extraStuds) * pricePerStud
+    // If pricePerStud is not provided, total cost is 0
+    // If pricePerStud is provided, include wastage in the calculation
+    // The cost section should use the same formula as above
+    if (price > 0 && totalStuds > 0) {
+      setTotalCost((totalStuds * price).toFixed(2));
+    } else {
+      setTotalCost('0');
+    }
+  };
+
+  // Handle wall length input change
+  const handleWallLengthChange = (value: string) => {
+    setWallLengthInput(value);
+    setWallLengthDisplay(value);
+    setOriginalWallLengthUnit(wallLengthUnit);
+  };
+
+  // Handle spacing input change
+  const handleSpacingChange = (value: string) => {
+    setSpacingInput(value);
+    setSpacingDisplay(value);
+    setOriginalSpacingUnit(spacingUnit);
+  };
+
+  // Handle wall length unit change
+  const handleWallLengthUnitChange = (newUnit: string) => {
+    setWallLengthUnit(newUnit);
+  };
+
+  // Handle spacing unit change
+  const handleSpacingUnitChange = (newUnit: string) => {
+    setSpacingUnit(newUnit);
+  };
+
+  // Clear all fields
+  const clearAll = () => {
+    setWallLengthInput('');
+    setWallLengthDisplay('');
+    setWallLengthUnit('m');
+    setOriginalWallLengthUnit('m');
+    setSpacingInput('');
+    setSpacingDisplay('');
+    setSpacingUnit('cm');
+    setOriginalSpacingUnit('cm');
+    setPricePerStud('');
+    setWaste('15');
+    setStudsNeeded('0');
+    setTotalCost('0');
+    setTouched({
+      wallLength: false,
+      spacing: false,
+      pricePerStud: false,
+      waste: false,
+    });
+    setErrors({});
+  };
+
+  // Recalculate when inputs change (using original input values)
   useEffect(() => {
-    let total = 0
-
-    // Cost from bags
-    const bagPrice = Number.parseFloat(pricePerBag) || 0
-    const bags = Number.parseInt(bagsNeeded) || 0
-    total += bagPrice * bags
-
-    // Cost from volume
-    const volumePrice = Number.parseFloat(pricePerUnitVolume) || 0
-    const vol = Number.parseFloat(volumeDisplay) || 0
-    if (volumePrice > 0 && vol > 0) {
-      // Convert volume to pricing basis unit
-      let volumeForPricing = vol
-      if (volumeUnit !== pricePerUnitVolumeBasis) {
-        // Convert through m³
-        let volumeM3 = vol
-        switch (volumeUnit) {
-          case "cu-ft":
-            volumeM3 *= 0.0283168467117
-            break
-          case "cu-yd":
-            volumeM3 *= 0.764554857984
-            break
-          case "us-gal":
-            volumeM3 *= 0.003785411784
-            break
-          case "uk-gal":
-            volumeM3 *= 0.00454609
-            break
-        }
-
-        switch (pricePerUnitVolumeBasis) {
-          case "cu-ft":
-            volumeForPricing = volumeM3 / 0.0283168467117
-            break
-          case "cu-yd":
-            volumeForPricing = volumeM3 / 0.764554857984
-            break
-          case "us-gal":
-            volumeForPricing = volumeM3 / 0.003785411784
-            break
-          case "uk-gal":
-            volumeForPricing = volumeM3 / 0.00454609
-            break
-          case "m3":
-            volumeForPricing = volumeM3
-            break
-        }
-      }
-      total += volumePrice * volumeForPricing
+    if (wallLengthInput && spacingInput) {
+      calculateStuds();
     }
-
-    // Cost from tubes
-    const tubePrice = Number.parseFloat(pricePerTube) || 0
-    const qty = Number.parseInt(quantity) || 0
-    total += tubePrice * qty
-
-    setTotalCost(formatNumber(total, 2))
-  }, [
-    pricePerBag,
-    bagsNeeded,
-    pricePerUnitVolume,
-    volumeDisplay,
-    volumeUnit,
-    pricePerUnitVolumeBasis,
-    pricePerTube,
-    quantity,
-  ])
-
-  const lengthOptions = useMemo(
-    () =>
-      lengthUnits.map((u) => (
-        <option key={u.value} value={u.value}>
-          {u.label}
-        </option>
-      )),
-    [],
-  )
+  }, [wallLengthInput, spacingInput, pricePerStud, waste, originalWallLengthUnit, originalSpacingUnit]);
 
   return (
-    <div className="w-[500px] max-w-xl mx-auto p-4 md:p-6 space-y-4">
-      {/* Card 1: Tube Details */}
-      <div className="border border-gray-300 rounded-lg bg-white shadow-sm px-4 pb-5 pt-4">
-        <h1 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">Concrete tube details</h1>
+    <div className="max-w-xl mx-auto p-4 md:p-6">
+      {/* Heading */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-4">
+          Framing Calculator
+        </h1>
+        {/* Updated image container with matching border style */}
+        <div className="border-2 border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+          <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+            <Image
+              src="/framing.svg"
+              alt="Framing Illustration"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+        </div>
+      </div>
 
-        <div className="flex flex-col items-center mb-6">
-          <div className="relative w-52 h-52 bg-gray-100 rounded-lg flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-32 h-32 border-4 border-gray-400 rounded-full flex items-center justify-center">
-                <div className="w-20 h-20 border-4 border-gray-300 rounded-full"></div>
+      {/* Main Calculator Container with Border */}
+      <div className="border-2 border-gray-200 rounded-xl p-6 bg-white shadow-sm">
+        <div className="space-y-6">
+          {/* Wall Length Section */}
+          <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Wall length
+              </label>
+              <div className="flex">
+                <input
+                  type="number"
+                  value={wallLengthDisplay}
+                  onChange={e => {
+                    const value = e.target.value;
+                    setWallLengthDisplay(value);
+                    // Only update input and original unit when user types
+                    if (originalWallLengthUnit === wallLengthUnit) {
+                      setWallLengthInput(value);
+                    } else {
+                      // Convert back to original unit for storage
+                      const convertedBack = convertDisplayValue(value, wallLengthUnit, originalWallLengthUnit);
+                      setWallLengthInput(convertedBack);
+                    }
+                  }}
+                  onBlur={() => setTouched(prev => ({ ...prev, wallLength: true }))}
+                  className={`flex-1 rounded-l-md border ${
+                    errors.wallLength ? 'border-red-500' : 'border-gray-300'
+                  } px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                  placeholder="Enter wall length"
+                />
+                <select
+                  value={wallLengthUnit}
+                  onChange={e => handleWallLengthUnitChange(e.target.value)}
+                  className="rounded-r-md border border-l-0 border-gray-300 px-3 py-2 bg-gray-50 focus:outline-none w-[140px]"
+                >
+                  {lengthUnits.map(unit => (
+                    <option key={unit.value} value={unit.value}>
+                      {unit.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <p className="mt-2 text-xs text-gray-600">Concrete Tube Cross-Section</p>
+              {errors.wallLength && (
+                <p className="mt-1 text-sm text-red-500">{errors.wallLength}</p>
+              )}
+            </div>
+
+            {/* OC Spacing */}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                OC spacing <span className="text-gray-400">(on center)</span>
+              </label>
+              <div className="flex">
+                <input
+                  type="number"
+                  value={spacingDisplay}
+                  onChange={e => {
+                    const value = e.target.value;
+                    setSpacingDisplay(value);
+                    // Only update input and original unit when user types
+                    if (originalSpacingUnit === spacingUnit) {
+                      setSpacingInput(value);
+                    } else {
+                      // Convert back to original unit for storage
+                      const convertedBack = convertDisplayValue(value, spacingUnit, originalSpacingUnit);
+                      setSpacingInput(convertedBack);
+                    }
+                  }}
+                  onBlur={() => setTouched(prev => ({ ...prev, spacing: true }))}
+                  className={`flex-1 rounded-l-md border ${
+                    errors.spacing ? 'border-red-500' : 'border-gray-300'
+                  } px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                />
+                <select
+                  value={spacingUnit}
+                  onChange={e => handleSpacingUnitChange(e.target.value)}
+                  className="rounded-r-md border border-l-0 border-gray-300 px-3 py-2 bg-gray-50 focus:outline-none w-[140px]"
+                >
+                  {lengthUnits.map(unit => (
+                    <option key={unit.value} value={unit.value}>
+                      {unit.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {errors.spacing && (
+                <p className="mt-1 text-sm text-red-500">{errors.spacing}</p>
+              )}
             </div>
           </div>
-          <p className="mt-2 text-[11px] text-gray-500 tracking-wide">© Concrete Calculator</p>
-        </div>
 
-        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-          <FieldGroup label="Outer diameter" icon={RulerIcon} menu error={diameterError}>
-            <div className="flex">
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                value={outerDiameter}
-                onChange={(e) => setOuterDiameter(e.target.value)}
-                className={`${inputBase} ${diameterError ? "border-red-500" : ""}`}
-                aria-label="Outer diameter value"
-                min="0"
-                step="any"
-              />
-              <select
-                value={outerDiameterUnit}
-                onChange={(e) => handleOuterDiameterUnitChange(e.target.value)}
-                className={`${unitSelectBase} ${diameterError ? "border-red-500" : ""}`}
-                aria-label="Outer diameter unit"
-              >
-                {lengthOptions}
-              </select>
-            </div>
-          </FieldGroup>
-
-          <FieldGroup label="Inner diameter (optional)" icon={RulerIcon} menu error={diameterError}>
-            <div className="flex">
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                value={innerDiameter}
-                onChange={(e) => setInnerDiameter(e.target.value)}
-                className={`${inputBase} ${diameterError ? "border-red-500" : ""}`}
-                aria-label="Inner diameter value"
-                min="0"
-                step="any"
-              />
-              <select
-                value={innerDiameterUnit}
-                onChange={(e) => handleInnerDiameterUnitChange(e.target.value)}
-                className={`${unitSelectBase} ${diameterError ? "border-red-500" : ""}`}
-                aria-label="Inner diameter unit"
-              >
-                {lengthOptions}
-              </select>
-            </div>
-          </FieldGroup>
-
-          <FieldGroup label="Height" icon={RulerIcon} menu>
-            <div className="flex">
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                value={height}
-                onChange={(e) => setHeight(e.target.value)}
-                className={inputBase}
-                aria-label="Height value"
-                min="0"
-                step="any"
-              />
-              <select
-                value={heightUnit}
-                onChange={(e) => handleHeightUnitChange(e.target.value)}
-                className={unitSelectBase}
-                aria-label="Height unit"
-              >
-                {heightOnlyUnits.map((u) => (
-                  <option key={u.value} value={u.value}>
-                    {u.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </FieldGroup>
-
-          <FieldGroup label="Quantity" menu>
-            <div className="flex">
-              <input
-                type="number"
-                min={1}
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className={inputBase}
-                aria-label="Quantity"
-              />
-              <div className={trailingStatic}>pieces</div>
-            </div>
-          </FieldGroup>
-
-          <FieldGroup label="Volume" menu>
-            <div className="flex">
-              <input
-                type="text"
-                readOnly
-                value={volumeDisplay}
-                className={readonlyInputBase}
-                aria-label="Computed volume"
-              />
-              <select
-                value={volumeUnit}
-                onChange={(e) => setVolumeUnit(e.target.value)}
-                className={unitSelectBase + " bg-gray-50"}
-                aria-label="Volume unit"
-              >
-                {volumeUnits.map((u) => (
-                  <option key={u.value} value={u.value}>
-                    {u.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </FieldGroup>
-        </form>
-      </div>
-
-      {/* Card 2: Pre-mixed concrete */}
-      <div className="border border-gray-300 rounded-lg bg-white shadow-sm px-4 pb-5 pt-4">
-        <h2 className="text-lg font-semibold text-gray-800 mb-2">Pre-mixed concrete</h2>
-
-        <div>
-          <FieldGroup label="Concrete density" menu>
-            <div className="flex">
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                value={densityDisplay}
-                onChange={(e) => setDensityDisplay(e.target.value)}
-                className={inputBase}
-                aria-label="Concrete density"
-                min="0"
-                step="any"
-              />
-              <select
-                value={densityUnit}
-                onChange={(e) => handleDensityUnitChange(e.target.value)}
-                className={unitSelectBase}
-                aria-label="Density unit"
-              >
-                {densityUnits.map((unit) => (
-                  <option key={unit.value} value={unit.value}>
-                    {unit.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </FieldGroup>
-
-          <FieldGroup label="Weight" menu>
-            <div className="flex">
-              <input
-                type="text"
-                readOnly
-                value={massDisplay}
-                placeholder=""
-                className={readonlyInputBase}
-                aria-label="Total mass"
-              />
-              <select
-                value={massUnit}
-                onChange={(e) => setMassUnit(e.target.value)}
-                className={unitSelectBase + " bg-gray-50"}
-                aria-label="Mass unit"
-              >
-                {massUnits.map((unit) => (
-                  <option key={unit.value} value={unit.value}>
-                    {unit.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </FieldGroup>
-
-          <FieldGroup label="Bag size" menu icon={RulerIcon}>
-            <div className="flex">
-              <input
-                type="number"
-                inputMode="decimal"
-                value={bagSizeDisplay}
-                onChange={(e) => setBagSizeDisplay(e.target.value)}
-                className={inputBase}
-                aria-label="Bag size"
-                min="0"
-                step="any"
-              />
-              <select
-                value={bagSizeUnit}
-                onChange={(e) => handleBagSizeUnitChange(e.target.value)}
-                className={unitSelectBase}
-                aria-label="Bag size unit"
-              >
-                {bagSizeUnits.map((unit) => (
-                  <option key={unit.value} value={unit.value}>
-                    {unit.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </FieldGroup>
-
-          <FieldGroup label="Waste" info menu>
-            <div className="flex">
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                value={wastePercent}
-                onChange={(e) => setWastePercent(e.target.value)}
-                className={inputBase}
-                aria-label="Waste percent"
-                min="0"
-                step="any"
-              />
-              <div className={trailingStatic}>%</div>
-            </div>
-          </FieldGroup>
-
-          <FieldGroup label="Bags needed" menu>
-            <div className="flex">
-              <input type="text" readOnly value={bagsNeeded} className={readonlyInputBase} aria-label="Bags needed" />
-              <div className={trailingStatic}>bags</div>
-            </div>
-          </FieldGroup>
-        </div>
-      </div>
-
-      {/* Card 3: Costs */}
-      <div className="border border-gray-300 rounded-lg bg-white shadow-sm px-4 pb-5 pt-4">
-        <h2 className="text-lg font-semibold text-gray-800 mb-2">Costs</h2>
-
-        <FieldGroup label="Price of concrete per bag" icon={RulerIcon} menu>
-          <div className="flex items-center">
-            <div className={trailingStatic}>PKR</div>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={pricePerBag}
-              onChange={(e) => setPricePerBag(e.target.value)}
-              className={inputBase}
-              aria-label="Price per bag"
-              placeholder="0"
-              min="0"
-              step="any"
-            />
-            <div className={trailingStatic}>/bag</div>
-          </div>
-        </FieldGroup>
-
-        <FieldGroup label="Price of concrete per unit volume" icon={RulerIcon} menu>
-          <div className="flex items-center">
-            <div className={trailingStatic}>PKR</div>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={pricePerUnitVolume}
-              onChange={(e) => setPricePerUnitVolume(e.target.value)}
-              className={inputBase}
-              aria-label="Price per volume"
-              placeholder="0"
-              min="0"
-              step="any"
-            />
-            <select
-              value={pricePerUnitVolumeBasis}
-              onChange={(e) => handlePricePerUnitVolumeBasisChange(e.target.value)}
-              className={trailingSelect}
-              aria-label="Per volume basis"
-            >
-              {perVolumeCostUnits.map((unit) => (
-                <option key={unit.value} value={unit.value}>
-                  {unit.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </FieldGroup>
-
-        <FieldGroup label="Price of concrete tube per piece" icon={RulerIcon} menu>
-          <div className="flex items-center">
-            <div className={trailingStatic}>PKR</div>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={pricePerTube}
-              onChange={(e) => setPricePerTube(e.target.value)}
-              className={inputBase}
-              aria-label="Price per tube"
-              placeholder="0"
-              min="0"
-              step="any"
-            />
-            <div className={trailingStatic}>/tube</div>
-          </div>
-        </FieldGroup>
-
-        <FieldGroup label="Total cost" menu>
-          <div className="flex items-center">
-            <div className={trailingStatic}>PKR</div>
+          {/* Studs Needed Section */}
+          <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Studs needed
+            </label>
             <input
               type="text"
+              value={studsNeeded}
               readOnly
-              value={totalCost}
-              className={readonlyInputBase}
-              aria-label="Total cost"
-              placeholder="0"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-50"
             />
           </div>
-        </FieldGroup>
-      </div>      
-    </div>
-  )
-}
 
-export default ConcreteEstimatorTubePage
+          {/* Stud Cost Section */}
+          <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Stud cost</h2>
+            
+            {/* Price per stud */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Price per stud
+              </label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                  PKR
+                </span>
+                <input
+                  type="number"
+                  value={pricePerStud}
+                  onChange={(e) => setPricePerStud(e.target.value)}
+                  onBlur={() => setTouched(prev => ({ ...prev, pricePerStud: true }))}
+                  className={`flex-1 rounded-r-md border ${
+                    errors.pricePerStud ? 'border-red-500' : 'border-gray-300'
+                  } px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                  placeholder="0"
+                />
+              </div>
+              {errors.pricePerStud && (
+                <p className="mt-1 text-sm text-red-500">{errors.pricePerStud}</p>
+              )}
+            </div>
+
+            {/* Estimated waste */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estimated waste
+              </label>
+              <div className="flex">
+                <input
+                  type="number"
+                  value={waste}
+                  onChange={(e) => setWaste(e.target.value)}
+                  onBlur={() => setTouched(prev => ({ ...prev, waste: true }))}
+                  className={`flex-1 rounded-l-md border ${
+                    errors.waste ? 'border-red-500' : 'border-gray-300'
+                  } px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                />
+                <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                  %
+                </span>
+              </div>
+              {errors.waste && (
+                <p className="mt-1 text-sm text-red-500">{errors.waste}</p>
+              )}
+            </div>
+
+            {/* Total cost */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Total cost
+              </label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                  PKR
+                </span>
+                <input
+                  type="text"
+                  value={totalCost}
+                  readOnly
+                  className="flex-1 rounded-r-md border border-gray-300 px-3 py-2 bg-gray-50"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Clear button - moved outside main container */}
+      <div className="flex justify-center mt-6">
+        <button
+          onClick={clearAll}
+          className="px-8 py-3 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg border border-blue-300 font-semibold transition-all duration-200 hover:shadow-md active:transform active:scale-95"
+        >
+          Clear All
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default FramingCalculator;

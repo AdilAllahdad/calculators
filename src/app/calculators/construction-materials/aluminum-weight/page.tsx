@@ -917,7 +917,7 @@ const page = () => {
           <div className="flex items-center mb-3">
             <span className="font-semibold text-gray-900">Result</span>
             <span className="ml-2 text-gray-400 text-xl">...</span>
-          </div>cement
+          </div>
           <div className="mb-3">
             <label className="block text-gray-700 font-medium mb-1">Total weight</label>
             <div className="flex gap-2">
