@@ -135,6 +135,8 @@ export default function BowlSegmentCalculator() {
             <span className="text-blue-600 mr-2">📐</span>
             <h3 className="text-lg font-semibold text-slate-800">Segment parameters</h3>
           </div>
+          {/* Bowl image inside segment parameters */}
+          <img src="/bowl.png" alt="Bowl" className="w-40 h-40 object-contain mb-4 mx-auto" />
           <div className="flex flex-col gap-4">
             {/* Number of segments */}
             <div className="mb-2">
@@ -535,6 +537,8 @@ export default function BowlSegmentCalculator() {
           {/* Results Section */}
           <div className="mt-8">
             <h2 className="text-xl font-semibold mb-4 text-slate-800">Segment Details</h2>
+            {/* Detail image for segment details */}
+            <img src="/detail.png" alt="Segment Detail" className="w-40 h-40 object-contain mb-4 mx-auto" />
             <div className="flex flex-col gap-4">
               {/* Segment thickness */}
               <div>
