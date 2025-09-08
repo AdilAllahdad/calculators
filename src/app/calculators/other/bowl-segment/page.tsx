@@ -313,6 +313,17 @@ export default function BowlSegmentCalculator() {
                       return;
                     }
                     setInnerRadius(value);
+                    // Set outer radius to inner radius + 12 (in the same unit)
+                    if (value !== "") {
+                      const inner = parseFloat(value);
+                      if (!isNaN(inner)) {
+                        const outer = inner + 12;
+                        setOuterRadius(outer.toString());
+                        setOuterRadiusUnit(innerRadiusUnit); // keep units in sync
+                      }
+                    } else {
+                      setOuterRadius("");
+                    }
                   }}
                   className={`w-full px-3 py-2 border ${errors.innerRadius ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                   placeholder="0"
