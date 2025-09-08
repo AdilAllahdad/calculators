@@ -47,7 +47,7 @@ export default function GroutCalculator() {
   // State for calculated results
   const [totalArea, setTotalArea] = useState<number>(0);
   const [groutVolume, setGroutVolume] = useState<number>(0);
-  const [groutVolumeUnit, setGroutVolumeUnit] = useState<string>('m³');
+  const [groutVolumeUnit, setGroutVolumeUnit] = useState<string>('cm³');
   const [groutWeight, setGroutWeight] = useState<number>(0);
   const [groutWeightUnit, setGroutWeightUnit] = useState<string>('kg');
   const [dryMaterialWeight, setDryMaterialWeight] = useState<number>(0);
