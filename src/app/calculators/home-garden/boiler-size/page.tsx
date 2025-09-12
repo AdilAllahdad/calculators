@@ -46,7 +46,7 @@ export default function App() {
         'pre 1900 (poorly insulated)': { heating: 8, lpm: {min: 9, max: 12}, size: {min: 24, max: 26} },
         '1920-1930s (some insulated)': { heating: 8, lpm: {min: 9, max: 12}, size: {min: 24, max: 26} },
         '1950-1980s (moderately insulated)': { heating: 7, lpm: {min: 9, max: 12}, size: {min: 20, max: 22} },
-        '1990s (reasonably insulated)': { heating: 7, lpm: {min: 9, max: 12}, size: {min: 20, max: 22} },
+        '1990s (reasonably insulated)': { heating: 6, lpm: {min: 9, max: 12}, size: {min: 18, max: 19} },
         '2000 onwards (well insulated)': { heating: 6, lpm: {min: 9, max: 12}, size: {min: 18, max: 19} },
       },
       '2 bedrooms + 2 bathrooms': {
@@ -60,7 +60,7 @@ export default function App() {
         'pre 1900 (poorly insulated)': { heating: 9, lpm: {min: 9, max: 12}, size: {min: 24, max: 26} },
         '1920-1930s (some insulated)': { heating: 9, lpm: {min: 9, max: 12}, size: {min: 24, max: 26} },
         '1950-1980s (moderately insulated)': { heating: 8, lpm: {min: 9, max: 12}, size: {min: 24, max: 26} },
-        '1990s (reasonably insulated)': { heating: 8, lpm: {min: 9, max: 12}, size: {min: 24, max: 26} },
+        '1990s (reasonably insulated)': { heating: 7, lpm: {min: 9, max: 12}, size: {min: 20, max: 22} },
         '2000 onwards (well insulated)': { heating: 7, lpm: {min: 9, max: 12}, size: {min: 20, max: 22} },
       },
       '3 bedrooms + 2 bathrooms': {
@@ -86,10 +86,10 @@ export default function App() {
       },
       '5 bedrooms + 2 bathrooms': {
         'pre 1900 (poorly insulated)': { heating: 14, lpm: {min: 12, max: 16}, size: {min: 35, max: 40} },
-        '1920-1930s (some insulated)': { heating: 14, lpm: {min: 12, max: 16}, size: {min: 35, max: 40} },
-        '1950-1980s (moderately insulated)': { heating: 12, lpm: {min: 12, max: 16}, size: {min: 30, max: 34} },
-        '1990s (reasonably insulated)': { heating: 12, lpm: {min: 12, max: 16}, size: {min: 30, max: 34} },
-        '2000 onwards (well insulated)': { heating: 10, lpm: {min: 12, max: 16}, size: {min: 24, max: 26} },
+        '1920-1930s (some insulated)': { heating: 12, lpm: {min: 12, max: 16}, size: {min: 30, max: 34} },
+        '1950-1980s (moderately insulated)': { heating: 10, lpm: {min: 12, max: 16}, size: {min: 24, max: 26} },
+        '1990s (reasonably insulated)': { heating: 10, lpm: {min: 12, max: 16}, size: {min: 24, max: 26} },
+        '2000 onwards (well insulated)': { heating: 9, lpm: {min: 12, max: 16}, size: {min: 24, max: 26} },
       },
       '5+ bedrooms + 2+ bathrooms': {
         'pre 100 (poorly insulated)': { heating: 16, lpm: {min: 12, max: 16}, size: {min: 35, max: 40} },
