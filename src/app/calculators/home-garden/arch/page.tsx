@@ -14,10 +14,10 @@ const isLengthUnit = (unit: string): unit is LengthUnitType => {
 };
 
 // Define the unit values needed for each dropdown
-const archHeightUnitValues: LengthUnitType[] = ['m', 'mm', 'ft', 'in', 'cm'];
-const archLengthUnitValues: LengthUnitType[] = ['m', 'mm', 'ft', 'in', 'cm'];
-const f1UnitValues: LengthUnitType[] = ['m', 'mm', 'ft', 'in', 'cm'];
-const f2UnitValues: LengthUnitType[] = ['m', 'mm', 'ft', 'in', 'cm'];
+const archHeightUnitValues: LengthUnitType[] = ['ft', 'm', 'in', 'cm', 'mm'];
+const archLengthUnitValues: LengthUnitType[] = ['ft', 'm', 'in', 'cm', 'mm'];
+const f1UnitValues: LengthUnitType[] = ['ft', 'm', 'in', 'cm', 'mm'];
+const f2UnitValues: LengthUnitType[] = ['ft', 'm', 'in', 'cm', 'mm'];
 
 // Conversion map (all to meters as base unit)
 const lengthConversions: ConversionMap<LengthUnitType> = {
@@ -51,14 +51,14 @@ const formatNumber = (value: number, decimals: number = 2): string => {
 
 export default function ArchCalculator() {
     const [archHeight, setArchHeight] = useState<string>('');
-    const [archHeightUnit, setArchHeightUnit] = useState<LengthUnitType>('m');
+    const [archHeightUnit, setArchHeightUnit] = useState<LengthUnitType>('ft');
     const [archLength, setArchLength] = useState<string>('');
-    const [archLengthUnit, setArchLengthUnit] = useState<LengthUnitType>('m');
+    const [archLengthUnit, setArchLengthUnit] = useState<LengthUnitType>('ft');
     const [showFocus, setShowFocus] = useState<boolean>(false);
     const [f1, setF1] = useState<number>(0);
-    const [f1Unit, setF1Unit] = useState<LengthUnitType>('m');
+    const [f1Unit, setF1Unit] = useState<LengthUnitType>('ft');
     const [f2, setF2] = useState<number>(0);
-    const [f2Unit, setF2Unit] = useState<LengthUnitType>('m');
+    const [f2Unit, setF2Unit] = useState<LengthUnitType>('ft');
     const [error, setError] = useState<string>('');
 
     // Unit change handlers with type safety
@@ -149,7 +149,7 @@ export default function ArchCalculator() {
         const b = archHeightInM;      // rise/height
 
         // Calculate the value under the square root: a² - b²
-        const underSqrt = Math.pow(b, 2) - Math.pow(a, 2);  
+        const underSqrt = Math.pow(a, 2) - Math.pow(b, 2);  
 
         // Calculate focal distance (always positive)
         let focalDistance;
@@ -240,7 +240,11 @@ export default function ArchCalculator() {
 
     useEffect(() => {
         calculateFoci();
-    }, [archHeight, archHeightUnit, archLength, archLengthUnit, f1Unit, f2Unit]);
+        // Auto-show focus section when valid inputs are provided
+        if (parseFloat(archHeight) > 0 && parseFloat(archLength) > 0 && !error) {
+            setShowFocus(true);
+        }
+    }, [archHeight, archHeightUnit, archLength, archLengthUnit, f1Unit, f2Unit, error]);
 
     return (
         <div className="flex justify-center">    
@@ -309,16 +313,16 @@ export default function ArchCalculator() {
                 </div>
                 <div className='bg-white rounded-xl p-6 shadow-lg border border-slate-200 w-full max-w-lg'>
                     <div className="flex items-center justify-between mb-6">
-              <h2 className='text-xl font-semibold text-slate-800'>Focus</h2>
-              <a onClick={() => setShowFocus(!showFocus)}>
-                {showFocus ? (
-                  <ChevronUp className="text-blue-500 hover:scale-110 transition-transform duration-200" />
-                ) : (
-                  <ChevronDown className="text-blue-500 hover:scale-110 transition-transform duration-200" />
-                )}
-              </a>
-            </div>
-            {showFocus && (
+                        <h2 className='text-xl font-semibold text-slate-800'>Focus</h2>
+                        <a onClick={() => setShowFocus(!showFocus)} style={{ cursor: 'pointer' }}>
+                            {showFocus ? (
+                                <ChevronUp className="text-blue-500 hover:scale-110 transition-transform duration-200" />
+                            ) : (
+                                <ChevronDown className="text-blue-500 hover:scale-110 transition-transform duration-200" />
+                            )}
+                        </a>
+                    </div>
+                    {showFocus && (
                 <div>
                     {shouldShowFocusSections && (  
                             <div>
@@ -373,15 +377,9 @@ export default function ArchCalculator() {
              </div>
             )}
              <div className='bg-white p-6 w-full max-w-lg'>
-                <div className="grid grid-cols-1 gap-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <button
-                            onClick={shareResult}
-                            className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                        >
-                            <span className="text-white">🔗</span>
-                            Share result
-                        </button>
+                <div className="gap-4">
+                    <div className="grid  gap-4">
+                    
                         <button
                             onClick={reloadCalculator}
                             className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
@@ -389,12 +387,7 @@ export default function ArchCalculator() {
                             Reload calculator
                         </button>
                     </div>
-                    <button
-                        onClick={clearAll}
-                        className="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
-                    >
-                        Clear all changes
-                    </button>
+                
                 </div>
              </div>
             </div>
