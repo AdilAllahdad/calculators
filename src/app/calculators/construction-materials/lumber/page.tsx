@@ -250,15 +250,31 @@ export default function LumberCalculator() {
   // Handle total length unit conversion
   const handleTotalLengthUnitChange = (newUnit: string) => {
     if (totalLengthUnit === newUnit) return;
-    
-    if (totalLength > 0) {
-      try {
-        const convertedLength = convertLength(totalLength, totalLengthUnit, newUnit);
-        setTotalLength(convertedLength);
-      } catch (error) {
-        console.error('Length conversion error:', error);
+
+    try {
+      if (totalLength > 0) {
+        // If switching TO composite m/cm, store numeric value in meters for consistent display
+        if (newUnit === 'm/cm') {
+          const valueInMeters = totalLengthUnit === 'm/cm'
+            ? totalLength // already in meters when using m/cm mode
+            : convertLength(totalLength, totalLengthUnit, 'm');
+          setTotalLength(valueInMeters);
+        }
+        // If switching FROM composite m/cm to a single unit, treat stored value as meters
+        else if (totalLengthUnit === 'm/cm') {
+          const converted = convertLength(totalLength, 'm', newUnit);
+          setTotalLength(converted);
+        }
+        // Single unit to single unit
+        else {
+          const convertedLength = convertLength(totalLength, totalLengthUnit, newUnit);
+          setTotalLength(convertedLength);
+        }
       }
+    } catch (error) {
+      console.error('Length conversion error:', error);
     }
+
     setTotalLengthUnit(newUnit);
   };
 
@@ -308,8 +324,13 @@ export default function LumberCalculator() {
 
       // Calculate total length
       const totalLengthInMeters = lengthInMeters * quantityValue;
-      const totalLengthInDesiredUnit = convertLength(totalLengthInMeters, 'm', totalLengthUnit);
-      setTotalLength(totalLengthInDesiredUnit);
+      if (totalLengthUnit === 'm/cm') {
+        // Keep stored numeric as meters in composite mode
+        setTotalLength(totalLengthInMeters);
+      } else {
+        const totalLengthInDesiredUnit = convertLength(totalLengthInMeters, 'm', totalLengthUnit);
+        setTotalLength(totalLengthInDesiredUnit);
+      }
     } else {
       setTotalVolume(0);
       setTotalLength(0);
@@ -545,30 +566,86 @@ export default function LumberCalculator() {
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Total length of your lumber
               </label>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={totalLength > 0 ? formatNumber(totalLength, { maximumFractionDigits: 4 }) : ''}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
-                    placeholder="Total length will be calculated"
-                    readOnly
-                    style={{ color: '#1e293b', backgroundColor: '#f9fafb' }}
-                  />
+              {totalLengthUnit === 'm/cm' ? (
+                // Split, read-only composite display for meters/centimeters
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={(function () {
+                        if (!(totalLength > 0)) return '';
+                        try {
+                          const comp = convertToComposite(totalLength, 'm', 'm / cm');
+                          return Math.floor(comp.whole).toString();
+                        } catch {
+                          return '';
+                        }
+                      })()}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
+                      placeholder="meters"
+                      readOnly
+                      style={{ color: '#1e293b', backgroundColor: '#f9fafb' }}
+                    />
+                    <div className="text-xs text-slate-500 mt-1 text-center">meters</div>
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={(function () {
+                        if (!(totalLength > 0)) return '';
+                        try {
+                          const comp = convertToComposite(totalLength, 'm', 'm / cm');
+                          return formatNumber(comp.fraction, { maximumFractionDigits: 2, useCommas: false });
+                        } catch {
+                          return '';
+                        }
+                      })()}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
+                      placeholder="centimeters"
+                      readOnly
+                      style={{ color: '#1e293b', backgroundColor: '#f9fafb' }}
+                    />
+                    <div className="text-xs text-slate-500 mt-1 text-center">centimeters</div>
+                  </div>
+                  <select
+                    value={totalLengthUnit}
+                    onChange={(e) => handleTotalLengthUnitChange(e.target.value)}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                    style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                  >
+                    {lengthUnitOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <select
-                  value={totalLengthUnit}
-                  onChange={(e) => handleTotalLengthUnitChange(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
-                  style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
-                >
-                  {lengthUnitOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              ) : (
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={totalLength > 0 ? formatNumber(totalLength, { maximumFractionDigits: 4 }) : ''}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-gray-50"
+                      placeholder="Total length will be calculated"
+                      readOnly
+                      style={{ color: '#1e293b', backgroundColor: '#f9fafb' }}
+                    />
+                  </div>
+                  <select
+                    value={totalLengthUnit}
+                    onChange={(e) => handleTotalLengthUnitChange(e.target.value)}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                    style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
+                  >
+                    {lengthUnitOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -641,7 +718,19 @@ export default function LumberCalculator() {
                 <div className="text-center">
                   <p className="text-blue-600 font-medium">Total Length</p>
                   <p className="text-xl font-bold text-blue-800">
-                    {formatNumber(totalLength, { maximumFractionDigits: 4 })} {totalLengthUnit}
+                    {(function () {
+                      if (totalLengthUnit === 'm/cm') {
+                        try {
+                          const comp = convertToComposite(totalLength, 'm', 'm / cm');
+                          const m = Math.floor(comp.whole);
+                          const cm = formatNumber(comp.fraction, { maximumFractionDigits: 2, useCommas: false });
+                          return `${m} m ${cm} cm`;
+                        } catch {
+                          return '';
+                        }
+                      }
+                      return `${formatNumber(totalLength, { maximumFractionDigits: 4 })} ${totalLengthUnit}`;
+                    })()}
                   </p>
                 </div>
               )}
