@@ -208,6 +208,16 @@ const Page = () => {
   else if (fittingAngle === "90") imageSrc = "/four.png";
   // For custom/default, use one.png
 
+  // Validation for custom angle
+  let customAngleError = "";
+  if (fittingAngle === "custom" && customAngle) {
+    const num = parseFloat(customAngle);
+    const angleInDeg = angleUnit === "deg" ? num : convertAngle(num, "rad", "deg");
+    if (isNaN(angleInDeg) || angleInDeg < 0 || angleInDeg > 90) {
+      customAngleError = "Angle must be between 0° and 90°.";
+    }
+  }
+
   return (
     <div className="max-w-md mx-auto mt-8 bg-white rounded-lg shadow p-6 border">
       <div className="flex flex-col items-center mb-4">
@@ -325,23 +335,27 @@ const Page = () => {
               <input
                 type="number"
                 min="0"
-                max="180"
+                max="90"
                 step="0.01"
                 value={customAngle}
                 onChange={e => {
-                  // Always store as the selected unit, but keep both deg/rad in sync for display
                   setCustomAngle(e.target.value);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md ${customAngleError ? 'border-red-500' : ''}`}
                 placeholder="Enter angle"
               />
+              {customAngleError && (
+                <div className="text-red-500 text-xs mt-1 flex items-center">
+                  <span className="mr-1">⚠️</span>
+                  {customAngleError}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs text-gray-600 mb-1 invisible">unit</label>
               <select
                 value={angleUnit}
                 onChange={e => {
-                  // Convert the value to the new unit for display
                   const prevUnit = angleUnit;
                   const newUnit = e.target.value;
                   setAngleUnit(newUnit);
