@@ -1,5 +1,9 @@
 "use client";
 
+// ...existing code...
+
+
+
 import React, { useState, useEffect } from 'react';
 import { LengthInput } from '@/components/LengthInput';
 import Image from 'next/image';
@@ -30,6 +34,8 @@ export default function BoltCircleCalculator() {
   const [offsetX, setOffsetX] = useState<number>(0);
   const [offsetY, setOffsetY] = useState<number>(0);
   const [radius, setRadius] = useState<number>(0);
+  // Error state for number of holes
+  const [numberOfHolesError, setNumberOfHolesError] = useState<string>('');
   
   // State for units
   const [angleUnit, setAngleUnit] = useState<AngleUnitType>('deg');
@@ -61,8 +67,15 @@ export default function BoltCircleCalculator() {
     const holes = parseInt(numberOfHoles);
     const angle = parseFloat(firstHoleAngle);
 
+    // Validation for number of holes
+    if (!isNaN(holes) && holes > 100) {
+      setNumberOfHolesError('Number of holes must be 100 or less.');
+    } else {
+      setNumberOfHolesError('');
+    }
+
     const isValid = 
-      !isNaN(holes) && holes >= 1 &&
+      !isNaN(holes) && holes >= 1 && holes <= 100 &&
       !isNaN(angle) &&
       radius > 0;
 
@@ -96,6 +109,18 @@ export default function BoltCircleCalculator() {
       setHoleCoordinates([]);
     }
   }, [numberOfHoles, firstHoleAngle, offsetX, offsetY, radius, angleUnit, offsetXUnit, offsetYUnit, radiusUnit]);
+// Add reloadCalculator function to reset all calculator state
+function reloadCalculator() {
+  // TODO: Reset all relevant state variables to their initial values
+  // Example:
+  // setRadius('');
+  // setDiameter('');
+  // setBoltCount('');
+  // setResult('');
+  // setError('');
+  // Add more as needed for your calculator fields
+  window.location.reload(); // fallback: reloads the page to reset state
+}
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -113,12 +138,16 @@ export default function BoltCircleCalculator() {
               <input
                 type="number"
                 min="1"
+                max="100"
                 value={numberOfHoles}
                 onChange={(e) => setNumberOfHoles(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={`w-full px-3 py-2 border ${numberOfHolesError ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500`}
                 required
                 placeholder="Enter number of holes "
               />
+              {numberOfHolesError && (
+                <p className="text-red-500 text-xs mt-1">{numberOfHolesError}</p>
+              )}
             </div>
 
             {/* First hole angle */}
@@ -212,6 +241,15 @@ export default function BoltCircleCalculator() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            {/* Reload Calculator Button - placed after table and outside tbody */}
+            <div className="grid grid-cols-1 gap-4 mt-6">
+              <button
+                onClick={reloadCalculator}
+                className="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                Reload Calculator
+              </button>
             </div>
           </div>
         </div>
