@@ -56,12 +56,12 @@ export default function ConstructionMaterialsPage() {
       icon: "🔨",
       href: "/calculators/construction-materials/framing-calculator",
     },
-    {
-      name: "French Drain Calculator",
-      description: "Calculate materials for a French drain system",
-      icon: "💧",
-      href: "/calculators/construction-materials/french-drain",
-    },
+    // {
+    //   name: "French Drain Calculator",
+    //   description: "Calculate materials for a French drain system",
+    //   icon: "💧",
+    //   href: "/calculators/construction-materials/french-drain",
+    // },
 
      {
       name: "Rip Rap Calculator",
@@ -69,18 +69,18 @@ export default function ConstructionMaterialsPage() {
       icon: "🪨",
       href: "/calculators/construction-materials/rip-rap",
     },
-    {
-      name: "Glass Weight Calculator",
-      description: "Calculate the weight of glass based on dimensions",
-      icon: "🪟",
-      href: "/calculators/construction-materials/glass-weight",
-    },
-    {
-      name: "Gravel Calculator",
-      description: "Calculate gravel needed for your project",
-      icon: "🪨",
-      href: "/calculators/construction-materials/gravel",
-    },
+    // {
+    //   name: "Glass Weight Calculator",
+    //   description: "Calculate the weight of glass based on dimensions",
+    //   icon: "🪟",
+    //   href: "/calculators/construction-materials/glass-weight",
+    // },
+    // {
+    //   name: "Gravel Calculator",
+    //   description: "Calculate gravel needed for your project",
+    //   icon: "🪨",
+    //   href: "/calculators/construction-materials/gravel",
+    // },
     {
       name: "Limestone Calculator",
       description: "Calculate limestone needed for your project",
@@ -99,30 +99,30 @@ export default function ConstructionMaterialsPage() {
       icon: "🪵",
       href: "/calculators/construction-materials/lumber",
     },
-    {
-      name: "Metal Weight Calculator",
-      description: "Calculate weight of metal based on dimensions",
-      icon: "🔩",
-      href: "/calculators/construction-materials/metal-weight",
-    },
-    {
-      name: "Pipe Weight Calculator",
-      description: "Calculate pipe weight based on specifications",
-      icon: "🧪",
-      href: "/calculators/construction-materials/pipe-weight",
-    },
-    {
-      name: "Plate Weight Calculator",
-      description: "Calculate weight of plates based on dimensions",
-      icon: "⚖️",
-      href: "/calculators/construction-materials/plate-weight",
-    },
-    {
-      name: "Rebar Calculator",
-      description: "Calculate rebar requirements for concrete",
-      icon: "🏗️",
-      href: "/calculators/construction-materials/rebar-calculator",
-    },
+    // {
+    //   name: "Metal Weight Calculator",
+    //   description: "Calculate weight of metal based on dimensions",
+    //   icon: "🔩",
+    //   href: "/calculators/construction-materials/metal-weight",
+    // },
+    // {
+    //   name: "Pipe Weight Calculator",
+    //   description: "Calculate pipe weight based on specifications",
+    //   icon: "🧪",
+    //   href: "/calculators/construction-materials/pipe-weight",
+    // },
+    // {
+    //   name: "Plate Weight Calculator",
+    //   description: "Calculate weight of plates based on dimensions",
+    //   icon: "⚖️",
+    //   href: "/calculators/construction-materials/plate-weight",
+    // },
+    // {
+    //   name: "Rebar Calculator",
+    //   description: "Calculate rebar requirements for concrete",
+    //   icon: "🏗️",
+    //   href: "/calculators/construction-materials/rebar-calculator",
+    // },
     {
       name: "Retaining Wall Calculator",
       description: "Calculate materials for retaining wall construction",
@@ -165,18 +165,18 @@ export default function ConstructionMaterialsPage() {
       icon: "🧴",
       href: "/calculators/construction-materials/sealant",
     },
-    {
-      name: "Sonotube Calculator",
-      description: "Calculate concrete needed for sonotubes",
-      icon: "⭕",
-      href: "/calculators/construction-materials/sonotube",
-    },
-    {
-      name: "Spindle Spacing Calculator",
-      description: "Calculate spindle spacing for railings",
-      icon: "🔢",
-      href: "/calculators/construction-materials/spindle-spacing",
-    },
+    // {
+    //   name: "Sonotube Calculator",
+    //   description: "Calculate concrete needed for sonotubes",
+    //   icon: "⭕",
+    //   href: "/calculators/construction-materials/sonotube",
+    // },
+    // {
+    //   name: "Spindle Spacing Calculator",
+    //   description: "Calculate spindle spacing for railings",
+    //   icon: "🔢",
+    //   href: "/calculators/construction-materials/spindle-spacing",
+    // },
     {
       name: "Spiral Staircase Calculator",
       description: "Calculate dimensions for spiral staircases",
@@ -189,12 +189,12 @@ export default function ConstructionMaterialsPage() {
       icon: "⚖️",
       href: "/calculators/construction-materials/steel-plate-weight",
     },
-    {
-      name: "Steel Weight Calculator",
-      description: "Calculate weight of steel based on dimensions",
-      icon: "⚖️",
-      href: "/calculators/construction-materials/steel-weight",
-    },
+    // {
+    //   name: "Steel Weight Calculator",
+    //   description: "Calculate weight of steel based on dimensions",
+    //   icon: "⚖️",
+    //   href: "/calculators/construction-materials/steel-weight",
+    // },
     {
       name: "Stone Weight Calculator",
       description: "Calculate stone weight based on dimensions",
@@ -213,18 +213,18 @@ export default function ConstructionMaterialsPage() {
       icon: "⚖️",
       href: "/calculators/construction-materials/toonage-cal",
     },
-    {
-      name: "Vinyl Fence Calculator",
-      description: "Calculate materials for vinyl fence installation",
-      icon: "🏠",
-      href: "/calculators/construction-materials/vinyl-fence",
-    },
-    {
-      name: "Vinyl Siding Calculator",
-      description: "Calculate vinyl siding for your project",
-      icon: "🏠",
-      href: "/calculators/construction-materials/vinyl-siding",
-    },
+    // {
+    //   name: "Vinyl Fence Calculator",
+    //   description: "Calculate materials for vinyl fence installation",
+    //   icon: "🏠",
+    //   href: "/calculators/construction-materials/vinyl-fence",
+    // },
+    // {
+    //   name: "Vinyl Siding Calculator",
+    //   description: "Calculate vinyl siding for your project",
+    //   icon: "🏠",
+    //   href: "/calculators/construction-materials/vinyl-siding",
+    // },
     {
       name: "Wall Square Footage Calculator",
       description: "Calculate square footage of walls",
