@@ -2,12 +2,12 @@ import Link from "next/link";
 
 export default function RoofingPage() {
   const calculators = [
-    {
-      name: "Birdsmouth Cut Calculator",
-      description: "Calculate precise birdsmouth cuts for roof rafters",
-      icon: "🔪",
-      href: "/calculators/roofing/birdsmouth-cut",
-    },
+    // {
+    //   name: "Birdsmouth Cut Calculator",
+    //   description: "Calculate precise birdsmouth cuts for roof rafters",
+    //   icon: "🔪",
+    //   href: "/calculators/roofing/birdsmouth-cut",
+    // },
     {
       name: "Gambrel Roof Calculator",
       description: "Calculate measurements for gambrel roof construction",
@@ -20,12 +20,12 @@ export default function RoofingPage() {
       icon: "💰",
       href: "/calculators/roofing/metal-roof-cost",
     },
-    {
-      name: "Rafter Length Calculator",
-      description: "Calculate rafter lengths for roof construction",
-      icon: "📏",
-      href: "/calculators/roofing/rafter-length",
-    },
+    // {
+    //   name: "Rafter Length Calculator",
+    //   description: "Calculate rafter lengths for roof construction",
+    //   icon: "📏",
+    //   href: "/calculators/roofing/rafter-length",
+    // },
     {
       name: "Roofing Calculator",
       description: "Calculate materials needed for your roofing project",
@@ -50,12 +50,12 @@ export default function RoofingPage() {
       icon: "🔨",
       href: "/calculators/roofing/roof-truss",
     },
-    {
-      name: "Snow Load Calculator",
-      description: "Calculate snow load capacity for your roof",
-      icon: "❄️",
-      href: "/calculators/roofing/snow-load",
-    },
+    // {
+    //   name: "Snow Load Calculator",
+    //   description: "Calculate snow load capacity for your roof",
+    //   icon: "❄️",
+    //   href: "/calculators/roofing/snow-load",
+    // },
   ];
 
   return (
