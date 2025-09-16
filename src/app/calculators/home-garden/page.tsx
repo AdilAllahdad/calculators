@@ -116,60 +116,60 @@ export default function HomeGardenPage() {
       icon:"梯",
       href:"/calculators/home-garden/ladder-angle-calculator"
     },
-    {
-      name: "Paint Calculator",
-      description: "Calculate paint quantities and costs",
-      icon: "🎨",
-      href: "/calculators/home-garden/paint"
-    },
-    {
-      name: "Paver Calculator",
-      description: "Calculate paver quantities and costs",
-      icon: " paving",
-      href: "/calculators/home-garden/paver"
-    },
-    {
-      name: "Paver Sand Calculator",
-      description: "Calculate paver sand quantities and costs",
-      icon: " paving",
-      href: "/calculators/home-garden/paver-sand"
-    },
-    {
-      name: "Plywood Calculator",
-      description: "Calculate plywood quantities and costs",
-      icon: " plywood",
-      href: "/calculators/home-garden/plywood"
-    },
-    {
-      name: "Ramp Calculator",
-      description: "Calculate ramp dimensions and materials",
-      icon: " ramp",
-      href: "/calculators/home-garden/ramp"
-    },
-    {
-      name: "Shiplap Calculator",
-      description: "Calculate shiplap quantities and costs",
-      icon: " shiplap",
-      href: "/calculators/home-garden/shiplap"
-    },
-    {
-      name: "Siding Calculator",
-      description: "Calculate siding quantities and costs",
-      icon: " siding",
-      href: "/calculators/home-garden/siding"
-    },
-    {
-      name: "Square Yard Calculator",
-      description: "Calculate square yards for materials",
-      icon: " 📏",
-      href: "/calculators/home-garden/square-yard"
-    },
-    {
-      name: "Stair Carper Calculator",
-      description: "Calculate the amount needed for the stair carpet",
-      icon: " stair",
-      href: "/calculators/home-garden/stair-carpet"
-    },
+    // {
+    //   name: "Paint Calculator",
+    //   description: "Calculate paint quantities and costs",
+    //   icon: "🎨",
+    //   href: "/calculators/home-garden/paint"
+    // },
+    // {
+    //   name: "Paver Calculator",
+    //   description: "Calculate paver quantities and costs",
+    //   icon: " paving",
+    //   href: "/calculators/home-garden/paver"
+    // },
+    // {
+    //   name: "Paver Sand Calculator",
+    //   description: "Calculate paver sand quantities and costs",
+    //   icon: " paving",
+    //   href: "/calculators/home-garden/paver-sand"
+    // },
+    // {
+    //   name: "Plywood Calculator",
+    //   description: "Calculate plywood quantities and costs",
+    //   icon: " plywood",
+    //   href: "/calculators/home-garden/plywood"
+    // },
+    // {
+    //   name: "Ramp Calculator",
+    //   description: "Calculate ramp dimensions and materials",
+    //   icon: " ramp",
+    //   href: "/calculators/home-garden/ramp"
+    // },
+    // {
+    //   name: "Shiplap Calculator",
+    //   description: "Calculate shiplap quantities and costs",
+    //   icon: " shiplap",
+    //   href: "/calculators/home-garden/shiplap"
+    // },
+    // {
+    //   name: "Siding Calculator",
+    //   description: "Calculate siding quantities and costs",
+    //   icon: " siding",
+    //   href: "/calculators/home-garden/siding"
+    // },
+    // {
+    //   name: "Square Yard Calculator",
+    //   description: "Calculate square yards for materials",
+    //   icon: " 📏",
+    //   href: "/calculators/home-garden/square-yard"
+    // },
+    // {
+    //   name: "Stair Carper Calculator",
+    //   description: "Calculate the amount needed for the stair carpet",
+    //   icon: " stair",
+    //   href: "/calculators/home-garden/stair-carpet"
+    // },
     {
       name: "Stair Calculator",
       description: "Calculate stair dimensions and materials",
@@ -181,13 +181,13 @@ export default function HomeGardenPage() {
       description: "Calculate wainscoting quantities and costs",
       icon: " wainscoting",
       href: "/calculators/home-garden/wainscoting-calculator"
-    },
-    {
-      name: "Wallpaper Calculator",
-      description: "Calculate wallpaper quantities and costs",
-      icon: " wallpaper",
-      href: "/calculators/home-garden/wallpaper"
     }
+    // {
+    //   name: "Wallpaper Calculator",
+    //   description: "Calculate wallpaper quantities and costs",
+    //   icon: " wallpaper",
+    //   href: "/calculators/home-garden/wallpaper"
+    // }
   ];
   return (
     <div>

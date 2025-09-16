@@ -165,7 +165,10 @@ export default function FlooringCalculator() {
         const newUnit = newUnitValue;
 
         if (!area || area === '') {
+            setArea('0');
             setAreaUnit(newUnit);
+            // Also recalculate material area to ensure it never becomes empty
+            calculateMaterialArea();
             return;
         }
 
@@ -176,6 +179,10 @@ export default function FlooringCalculator() {
             setArea(result.toFixed(4));
         }
         setAreaUnit(newUnit);
+        // Always recalculate material area after area unit change
+        setTimeout(() => {
+            calculateMaterialArea();
+        }, 0);
     };
 
     const handleMaterialAreaUnitChange = (newUnitValue: string) => {
@@ -183,6 +190,7 @@ export default function FlooringCalculator() {
         const newUnit = newUnitValue;
 
         if (!materialArea || materialArea === '') {
+            setMaterialArea('0');
             setMaterialAreaUnit(newUnit);
             return;
         }
@@ -552,8 +560,12 @@ export default function FlooringCalculator() {
                                 <UnitDropdown
                                     value={areaUnit}
                                     onChange={(e) => handleAreaUnitChange(e.target.value)}
-                                    unitType="area"
-                                    className="w-32 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                    options={[
+                                        { value: 'm2', label: 'square meters (m²)' },
+                                        { value: 'ft2', label: 'square feet (ft²)' },
+                                        { value: 'yd2', label: 'square yards (yd²)' }
+                                    ]}
+                                    className="w-48 min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm font-mono"
                                 />
                             </div>
                         </div>

@@ -48,8 +48,8 @@ export function LengthInput({
     <div className={`flex ${className}`}>
       <input
         type="number"
-        value={value}
-        onChange={(e) => onValueChange(parseFloat(e.target.value) || 0)}
+        value={value === 0 ? '' : value}
+        onChange={(e) => onValueChange(e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
         className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
         placeholder={placeholder}
         required={required}

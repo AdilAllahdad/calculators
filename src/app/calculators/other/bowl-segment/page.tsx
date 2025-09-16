@@ -16,6 +16,8 @@ export default function BowlSegmentCalculator() {
   const [showOtherParams, setShowOtherParams] = useState<boolean>(false);
   // Error states for negative values
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  // Track if user has manually set inner radius
+  const [innerRadiusManuallySet, setInnerRadiusManuallySet] = useState<boolean>(false);
 
   // Unit states
   const [outerRadiusUnit, setOuterRadiusUnit] = useState<'mm'|'cm'|'in'>("cm");
@@ -61,6 +63,24 @@ export default function BowlSegmentCalculator() {
   const [segmentThickness, setSegmentThickness] = useState<number>(0);
   const [outerCircumference, setOuterCircumference] = useState<number>(0);
   const [innerCircumference, setInnerCircumference] = useState<number>(0);
+
+  // Auto-populate inner radius if not manually set
+  useEffect(() => {
+    if (!innerRadiusManuallySet) {
+      // Only auto-populate if both outerRadius and ringThickness are valid
+      const oRadius = outerRadius !== '' ? parseFloat(outerRadius) : NaN;
+      const rThickness = ringThickness !== '' ? parseFloat(ringThickness) : NaN;
+      if (!isNaN(oRadius) && !isNaN(rThickness)) {
+        // Convert both to current innerRadiusUnit for display
+        const oRadiusInUnit = convertLength(oRadius, outerRadiusUnit, innerRadiusUnit);
+        const rThicknessInUnit = convertLength(rThickness, ringThicknessUnit, innerRadiusUnit);
+        const autoInner = oRadiusInUnit - rThicknessInUnit;
+        setInnerRadius(autoInner.toFixed(3).replace(/\.0+$/, ""));
+      } else {
+        setInnerRadius("");
+      }
+    }
+  }, [outerRadius, ringThickness, outerRadiusUnit, ringThicknessUnit, innerRadiusUnit, innerRadiusManuallySet]);
 
   useEffect(() => {
     // Always convert all input values to cm for calculation
@@ -305,12 +325,18 @@ export default function BowlSegmentCalculator() {
                   value={innerRadius}
                   onChange={e => {
                     const value = e.target.value;
-                    setErrors(prev => ({ ...prev, innerRadius: '' }));
-                    if (value !== '' && parseFloat(value) < 0) {
-                      setErrors(prev => ({ ...prev, innerRadius: 'Negative values are not allowed' }));
-                      return;
+                    let errorMsg = '';
+                    if (value !== '') {
+                      const num = parseFloat(value);
+                      if (num < 0) {
+                        errorMsg = 'Inner radius must be greater than zero.';
+                      } else if (num === 0) {
+                        errorMsg = 'Inner radius must be greater than zero.';
+                      }
                     }
+                    setErrors(prev => ({ ...prev, innerRadius: errorMsg }));
                     setInnerRadius(value);
+                    setInnerRadiusManuallySet(value !== "");
                   }}
                   className={`w-full px-3 py-2 border ${errors.innerRadius ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                   placeholder="0"
