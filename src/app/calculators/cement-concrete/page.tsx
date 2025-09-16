@@ -9,7 +9,7 @@ export default function CementConcretePage() {
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="flex flex-col gap-6">
-          <a href="cement-concrete/cement-calculator" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
+          {/* <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <Image
@@ -25,8 +25,8 @@ export default function CementConcretePage() {
                 <p className="text-black group-hover:text-gray-700">Calculate precise cement quantities for your construction projects.</p>
               </div>
             </div>
-          </a>
-          <a href="/calculators/cement-concrete/concrete-calculator" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
+          </a> */}
+          {/* <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <Image
@@ -42,7 +42,7 @@ export default function CementConcretePage() {
                 <p className="text-gray-600 group-hover:text-gray-700">Determine the exact amount of concrete needed for your project.</p>
               </div>
             </div>
-          </a>
+          </a> */}
           <a href="cement-concrete/concrete-block-calculator" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
@@ -60,7 +60,7 @@ export default function CementConcretePage() {
               </div>
             </div>
           </a>
-          <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
+          {/* <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <Image
@@ -76,8 +76,8 @@ export default function CementConcretePage() {
                 <p className="text-gray-600 group-hover:text-gray-700">Calculate grout and mortar needed for block wall fills.</p>
               </div>
             </div>
-          </a>
-          <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
+          </a> */}
+          {/* <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <Image
@@ -93,8 +93,8 @@ export default function CementConcretePage() {
                 <p className="text-gray-600 group-hover:text-gray-700">Determine materials needed for concrete columns and pillars.</p>
               </div>
             </div>
-          </a>
-          <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
+          </a> */}
+          {/* <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <Image
@@ -110,7 +110,7 @@ export default function CementConcretePage() {
                 <p className="text-gray-600 group-hover:text-gray-700">Calculate concrete needed for staircase construction.</p>
               </div>
             </div>
-          </a>
+          </a> */}
         </div>
         <div className="flex flex-col gap-6">
           <a href="cement-concrete/concrete-estimator-tube" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl ghover:border-blue-500 transition-all duration-300 bg-white">
@@ -164,7 +164,7 @@ export default function CementConcretePage() {
               </div>
             </div>
           </a>
-          <a href="cement-concrete/hole-volume" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
+          {/* <a href="cement-concrete/hole-volume" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <Image
@@ -180,7 +180,7 @@ export default function CementConcretePage() {
                 <p className="text-gray-600 group-hover:text-gray-700">Calculate the volume of holes and excavations.</p>
               </div>
             </div>
-          </a>
+          </a> */}
           <a href="/calculators/cement-concrete/mortar-cal" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
@@ -198,7 +198,7 @@ export default function CementConcretePage() {
               </div>
             </div>
           </a>
-          <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
+          {/* <a href="#" className="group block p-6 border-2 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500 transition-all duration-300 bg-white">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <Image
@@ -214,7 +214,7 @@ export default function CementConcretePage() {
                 <p className="text-gray-600 group-hover:text-gray-700">Calculate thinset mortar needed for tile installation.</p>
               </div>
             </div>
-          </a>
+          </a> */}
         </div>
       </div>
     </div>

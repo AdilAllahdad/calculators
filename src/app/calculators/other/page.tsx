@@ -1,12 +1,12 @@
 import Link from "next/link";
 export default function OtherCalculatorsPage() {
 const calculators = [
-    {
-      name: "Angle Cut Calculator",
-      description: "Calculate precise angle cuts for construction projects",
-      icon: "�",
-      href: "/calculators/other/angle-cut"
-    },
+    // {
+    //   name: "Angle Cut Calculator",
+    //   description: "Calculate precise angle cuts for construction projects",
+    //   icon: "�",
+    //   href: "/calculators/other/angle-cut"
+    // },
     {
       name: "Angle of Depression Calculator", 
       description: "Determine angles of depression in construction and surveying",
@@ -37,30 +37,30 @@ const calculators = [
       icon: "🏞️",
       href: "/calculators/other/alevation-grade"
     },
-    {
-      name: "Miter Angle Calculator",
-      description: "Calculate precise miter angles for perfect joints",
-      icon: "�",
-      href: "/calculators/other/miter-angle"
-    },
+    // {
+    //   name: "Miter Angle Calculator",
+    //   description: "Calculate precise miter angles for perfect joints",
+    //   icon: "�",
+    //   href: "/calculators/other/miter-angle"
+    // },
     {
       name: "Round Pen Calculator",
       description: "Design and calculate dimensions for round pens",
       icon: "⭕",
       href: "/calculators/other/round-pen"
     },
-    {
-      name: "Trump's Wall Calculator",
-      description: "Calculate materials and specifications for large wall projects",
-      icon: "🧱",
-      href: "/calculators/other/trumps-wall"
-    },
-    {
-      name: "Vertical Curve Calculator",
-      description: "Calculate vertical curves for road and path design",
-      icon: "↕️",
-      href: "/calculators/other/vertical-curve"
-    }
+    // {
+    //   name: "Trump's Wall Calculator",
+    //   description: "Calculate materials and specifications for large wall projects",
+    //   icon: "🧱",
+    //   href: "/calculators/other/trumps-wall"
+    // },
+    // {
+    //   name: "Vertical Curve Calculator",
+    //   description: "Calculate vertical curves for road and path design",
+    //   icon: "↕️",
+    //   href: "/calculators/other/vertical-curve"
+    // }
   ];
 
   return (
