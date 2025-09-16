@@ -76,8 +76,15 @@ export default function BowlSegmentCalculator() {
         const rThicknessInUnit = convertLength(rThickness, ringThicknessUnit, innerRadiusUnit);
         const autoInner = oRadiusInUnit - rThicknessInUnit;
         setInnerRadius(autoInner.toFixed(3).replace(/\.0+$/, ""));
+        // Validation for auto-populated value
+        let errorMsg = '';
+        if (autoInner <= 0) {
+          errorMsg = 'Inner ring radius (Ri) must be greater than zero.';
+        }
+        setErrors(prev => ({ ...prev, innerRadius: errorMsg }));
       } else {
         setInnerRadius("");
+        setErrors(prev => ({ ...prev, innerRadius: '' }));
       }
     }
   }, [outerRadius, ringThickness, outerRadiusUnit, ringThicknessUnit, innerRadiusUnit, innerRadiusManuallySet]);
@@ -328,10 +335,8 @@ export default function BowlSegmentCalculator() {
                     let errorMsg = '';
                     if (value !== '') {
                       const num = parseFloat(value);
-                      if (num < 0) {
-                        errorMsg = 'Inner radius must be greater than zero.';
-                      } else if (num === 0) {
-                        errorMsg = 'Inner radius must be greater than zero.';
+                      if (num <= 0) {
+                        errorMsg = 'Inner ring radius (Ri) must be greater than zero.';
                       }
                     }
                     setErrors(prev => ({ ...prev, innerRadius: errorMsg }));
