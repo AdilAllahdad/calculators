@@ -13,8 +13,6 @@ const lengthUnits = [
   { value: "in", label: "inches (in)" },
   { value: "ft", label: "feet (ft)" },
   { value: "yd", label: "yards (yd)" },
-  { value: "ft/in", label: "feet / inches (ft / in)" },
-  { value: "m/cm", label: "meters / centimeters (m / cm)" },
 ];
 
 const areaUnits = [
@@ -41,21 +39,6 @@ const gapUnits = [
   { label: "inches (in)", value: "in" }
 ];
 
-const tileAreaUnits = [
-  { label: "square millimeters (mm²)", value: "mm²" },
-  { label: "square centimeters (cm²)", value: "cm²" },
-  { label: "square meters (m²)", value: "m²" },
-  { label: "square kilometers (km²)", value: "km²" },
-  { label: "square inches (in²)", value: "in²" },
-  { label: "square feet (ft²)", value: "ft²" },
-  { label: "square yards (yd²)", value: "yd²" },
-  { label: "square miles (mi²)", value: "mi²" },
-  { label: "ares (a)", value: "a" },
-  { label: "hectares (ha)", value: "ha" },
-  { label: "acres (ac)", value: "ac" }
-];
-
-// Add this just above your component
 const tileAreaUnitsShort = [
   { label: "square millimeters (mm²)", value: "mm²" },
   { label: "square centimeters (cm²)", value: "cm²" },
@@ -65,71 +48,60 @@ const tileAreaUnitsShort = [
   { label: "square yards (yd²)", value: "yd²" }
 ];
 
-const page = () => {
+// Standard area unit conversion factors (to m²)
+const areaToM2: Record<string, number> = {
+  "mm²": 1e-6,
+  "cm²": 1e-4,
+  "m²": 1,
+  "km²": 1e6,
+  "in²": 0.00064516,
+  "ft²": 0.09290304,
+  "yd²": 0.83612736,
+  "mi²": 2.59e6,
+  "a": 100,
+  "ha": 10000,
+  "ac": 4046.8564224,
+};
+
+// Standard area unit conversion factors (from m²)
+const m2ToArea: Record<string, number> = {
+  "mm²": 1e6,
+  "cm²": 1e4,
+  "m²": 1,
+  "km²": 1e-6,
+  "in²": 1550.0031,
+  "ft²": 10.76391041671,
+  "yd²": 1.1959900463,
+  "mi²": 3.861021585e-7,
+  "a": 0.01,
+  "ha": 0.0001,
+  "ac": 0.000247105,
+};
+
+// Gap conversion factors
+const gapToMeters: Record<string, number> = {
+  mm: 0.001,
+  cm: 0.01,
+  m: 1,
+  in: 0.0254,
+  mil: 0.0000254,
+};
+
+const metersToGap: Record<string, number> = {
+  mm: 1000,
+  cm: 100,
+  m: 1,
+  in: 39.37007874,
+  mil: 39370.07874,
+};
+
+const Page = () => {
   const [lengthValue, setLengthValue] = useState("");
   const [lengthUnit, setLengthUnit] = useState("in");
   const [lengthFt, setLengthFt] = useState("");
   const [lengthIn, setLengthIn] = useState("");
   const [lengthM, setLengthM] = useState("");
-  const [lengthCm, setLengthCm] = useState("");const lengthUnits = [
-  { value: "cm", label: "centimeters (cm)" },
-  { value: "m", label: "meters (m)" },
-  { value: "in", label: "inches (in)" },
-  { value: "ft", label: "feet (ft)" },
-  { value: "yd", label: "yards (yd)" },
-  { value: "ft/in", label: "feet / inches (ft / in)" },
-  { value: "m/cm", label: "meters / centimeters (m / cm)" },
-];
-
-const areaUnits = [
-  { value: "cm²", label: "square centimeters (cm²)" },
-  { value: "m²", label: "square meters (m²)" },
-  { value: "in²", label: "square inches (in²)" },
-  { value: "ft²", label: "square feet (ft²)" },
-  { value: "yd²", label: "square yards (yd²)" },
-];
-
-const tileLengthUnits = [
-  { value: "mm", label: "millimeter (mm)" },
-  { value: "cm", label: "centimeter (cm)" },
-  { value: "m", label: "meter (m)" },
-  { value: "in", label: "inch (in)" },
-  { value: "ft", label: "foot (ft)" },
-];
-
-const gapUnits = [
-  { label: "millimeters (mm)", value: "mm" },
-  { label: "centimeters (cm)", value: "cm" },
-  { label: "meters (m)", value: "m" },
-  { label: "thou, thousandth of an inch (mil)", value: "mil" },
-  { label: "inches (in)", value: "in" }
-];
-
-
-
-const tileAreaUnits = [
-  { label: "square millimeters (mm²)", value: "mm²" },
-  { label: "square centimeters (cm²)", value: "cm²" },
-  { label: "square meters (m²)", value: "m²" },
-  { label: "square kilometers (km²)", value: "km²" },
-  { label: "square inches (in²)", value: "in²" },
-  { label: "square feet (ft²)", value: "ft²" },
-  { label: "square yards (yd²)", value: "yd²" },
-  { label: "square miles (mi²)", value: "mi²" },
-  { label: "ares (a)", value: "a" },
-  { label: "hectares (ha)", value: "ha" },
-  { label: "acres (ac)", value: "ac" }
-];
-
-// Add this just above your component
-const tileAreaUnitsShort = [
-  { label: "square millimeters (mm²)", value: "mm²" },
-  { label: "square centimeters (cm²)", value: "cm²" },
-  { label: "square meters (m²)", value: "m²" },
-  { label: "square inches (in²)", value: "in²" },
-  { label: "square feet (ft²)", value: "ft²" },
-  { label: "square yards (yd²)", value: "yd²" }
-];
+  const [lengthCm, setLengthCm] = useState("");
 
   const [widthValue, setWidthValue] = useState("");
   const [widthUnit, setWidthUnit] = useState("m");
@@ -141,18 +113,18 @@ const tileAreaUnitsShort = [
   const [areaValue, setAreaValue] = useState("");
   const [areaUnit, setAreaUnit] = useState("m²");
 
-  // --- Your tiles section state ---
+  // Tile section state
   const [tileLength, setTileLength] = useState("");
   const [tileLengthUnit, setTileLengthUnit] = useState("m");
   const [tileWidth, setTileWidth] = useState("");
   const [tileWidthUnit, setTileWidthUnit] = useState("in");
   const [tileArea, setTileArea] = useState("");
-  const [tileAreaUnit, setTileAreaUnit] = useState("ft²");
+  const [tileAreaUnit, setTileAreaUnit] = useState("cm²");
   const [gapSize, setGapSize] = useState("0");
   const [gapUnit, setGapUnit] = useState("mm");
   const [showTileAreaWithGap, setShowTileAreaWithGap] = useState(false);
   const [tileAreaWithGap, setTileAreaWithGap] = useState("");
-  const [tileAreaWithGapUnit, setTileAreaWithGapUnit] = useState("ft²");
+  const [tileAreaWithGapUnit, setTileAreaWithGapUnit] = useState("cm²");
   const [wasteFactor, setWasteFactor] = useState("10");
 
   const [boxSize, setBoxSize] = useState("");
@@ -161,6 +133,10 @@ const tileAreaUnitsShort = [
   const [tilesWithWaste, setTilesWithWaste] = useState("");
   const [boxesNeeded, setBoxesNeeded] = useState("");
   const [totalCost, setTotalCost] = useState("");
+
+  // Internal state for calculations
+  const [internalTileArea, setInternalTileArea] = useState(0);
+  const [internalTileAreaWithGap, setInternalTileAreaWithGap] = useState(0);
 
   // Helper: get value in meters from all input types
   const getLengthInMeters = () => {
@@ -227,7 +203,6 @@ const tileAreaUnitsShort = [
 
   // Handle unit changes for composite units
   const handleLengthUnitChange = (unit: string) => {
-    // Convert current value to meters
     let meters = getLengthInMeters();
     if (unit === "ft/in") {
       const { whole, fraction } = convertToComposite(meters, "m", "ft / in");
@@ -244,7 +219,6 @@ const tileAreaUnitsShort = [
       setLengthFt("");
       setLengthIn("");
     } else {
-      // Convert meters to new unit
       setLengthValue(
         meters ? formatNumber(convertLength(meters, "m", unit), { maximumFractionDigits: 4 }) : ""
       );
@@ -284,11 +258,10 @@ const tileAreaUnitsShort = [
     setWidthUnit(unit);
   };
 
-  // --- Make tile length/width inputs and dropdowns independent ---
+  // Tile Length/Width handlers
   const handleTileLengthChange = (val: string) => setTileLength(val);
   const handleTileWidthChange = (val: string) => setTileWidth(val);
 
-  // --- Tile Length/Width Unit Conversion Handlers ---
   const handleTileLengthUnitChange = (newUnit: string) => {
     if (tileLength && !isNaN(Number(tileLength))) {
       const valueNum = parseFloat(tileLength);
@@ -307,99 +280,108 @@ const tileAreaUnitsShort = [
     setTileWidthUnit(newUnit);
   };
 
-  // --- Gap Unit Conversion Handler (with mil support) ---
-  const gapToMeters: Record<string, number> = {
-    mm: 0.001,
-    cm: 0.01,
-    m: 1,
-    in: 0.0254,
-    mil: 0.0000254, // 1 mil = 0.001 in = 0.0000254 m
-  };
-
-  const metersToGap: Record<string, number> = {
-    mm: 1000,
-    cm: 100,
-    m: 1,
-    in: 39.37007874,
-    mil: 39370.07874,
-  };
-
+  // Gap Unit Conversion Handler
   const handleGapUnitChange = (newUnit: string) => {
     if (gapSize && !isNaN(Number(gapSize))) {
       const valueNum = parseFloat(gapSize);
-      // Convert current value to meters
       const meters = valueNum * (gapToMeters[gapUnit] || 1);
-      // Convert meters to new unit
       const converted = meters * (metersToGap[newUnit] || 1);
       setGapSize(formatNumber(converted, { maximumFractionDigits: 6, useCommas: false }));
     }
     setGapUnit(newUnit);
   };
 
-  // --- Tile Area Unit Conversion Handler (with all area units, fixes NaN) ---
+  // Tile Area Unit Conversion Handler
   const handleTileAreaUnitChange = (newUnit: string) => {
     if (tileArea && !isNaN(Number(tileArea))) {
       const valueNum = parseFloat(tileArea);
-      // Convert current value to m²
       const m2 = valueNum * (areaToM2[tileAreaUnit] || 1);
-      // Convert m² to new unit
       const converted = m2 * (m2ToArea[newUnit] || 1);
       setTileArea(isNaN(converted) ? "" : formatNumber(converted, { maximumFractionDigits: 6, useCommas: false }));
     }
     setTileAreaUnit(newUnit);
   };
 
+  // Tile Area With Gap handlers
+  const handleTileAreaWithGapChange = (value: string) => {
+    setTileAreaWithGap(value);
+    if (value && !isNaN(Number(value))) {
+      const valueNum = parseFloat(value);
+      const m2 = valueNum * (areaToM2[tileAreaWithGapUnit] || 1);
+      setInternalTileAreaWithGap(m2);
+    } else {
+      setInternalTileAreaWithGap(0);
+    }
+  };
+
   const handleTileAreaWithGapUnitChange = (newUnit: string) => {
     if (tileAreaWithGap && !isNaN(Number(tileAreaWithGap))) {
       const valueNum = parseFloat(tileAreaWithGap);
-      // Convert current value to m²
       const m2 = valueNum * (areaToM2[tileAreaWithGapUnit] || 1);
-      // Convert m² to new unit
       const converted = m2 * (m2ToArea[newUnit] || 1);
-      setTileAreaWithGap(isNaN(converted) ? "" : formatNumber(converted, { maximumFractionDigits: 6, useCommas: false }));
+      setTileAreaWithGap(formatNumber(converted, { maximumFractionDigits: 4 }));
     }
     setTileAreaWithGapUnit(newUnit);
   };
 
-  // --- Calculate tile area automatically (but allow manual override for with gap) ---
+  // Calculate tile area automatically
   useEffect(() => {
     if (tileLength && tileWidth && !isNaN(Number(tileLength)) && !isNaN(Number(tileWidth))) {
       const l = parseFloat(tileLength);
       const w = parseFloat(tileWidth);
       const lMeters = convertLength(l, tileLengthUnit, "m");
       const wMeters = convertLength(w, tileWidthUnit, "m");
-      let area = lMeters * wMeters;
+      const area = lMeters * wMeters;
+      
+      setInternalTileArea(area);
+
+      const areaInCm2 = area * 10000;
       let display = "";
       if (tileAreaUnit === "m²") display = formatNumber(area, { maximumFractionDigits: 4 });
       else if (tileAreaUnit === "ft²") display = formatNumber(area * 10.76391041671, { maximumFractionDigits: 4 });
       else if (tileAreaUnit === "yd²") display = formatNumber(area * 1.1959900463, { maximumFractionDigits: 4 });
-      else if (tileAreaUnit === "cm²") display = formatNumber(area * 10000, { maximumFractionDigits: 2 });
+      else if (tileAreaUnit === "cm²") display = formatNumber(areaInCm2, { maximumFractionDigits: 2 });
       else if (tileAreaUnit === "in²") display = formatNumber(area * 1550.0031, { maximumFractionDigits: 2 });
       else if (tileAreaUnit === "mm²") display = formatNumber(area * 1e6, { maximumFractionDigits: 2 });
       else display = formatNumber(area, { maximumFractionDigits: 4 });
       setTileArea(display);
-
-      // If showTileAreaWithGap is checked and user hasn't manually entered, auto-calculate
-      if (showTileAreaWithGap && tileAreaWithGap === "") {
-        let gap = parseFloat(gapSize) || 0;
-        const gapMeters = convertLength(gap, gapUnit, "m");
-        let areaWithGap = (lMeters + gapMeters) * (wMeters + gapMeters);
-        let displayGap = "";
-        if (tileAreaWithGapUnit === "m²") displayGap = formatNumber(areaWithGap, { maximumFractionDigits: 4 });
-        else if (tileAreaWithGapUnit === "ft²") displayGap = formatNumber(areaWithGap * 10.76391041671, { maximumFractionDigits: 4 });
-        else if (tileAreaWithGapUnit === "yd²") displayGap = formatNumber(areaWithGap * 1.1959900463, { maximumFractionDigits: 4 });
-        else if (tileAreaWithGapUnit === "cm²") displayGap = formatNumber(areaWithGap * 10000, { maximumFractionDigits: 2 });
-        else if (tileAreaWithGapUnit === "in²") displayGap = formatNumber(areaWithGap * 1550.0031, { maximumFractionDigits: 2 });
-        else if (tileAreaWithGapUnit === "mm²") displayGap = formatNumber(areaWithGap * 1e6, { maximumFractionDigits: 2 });
-        else displayGap = formatNumber(areaWithGap, { maximumFractionDigits: 4 });
-        setTileAreaWithGap(displayGap);
-      }
     } else {
       setTileArea("");
-      if (showTileAreaWithGap && tileAreaWithGap === "") setTileAreaWithGap("");
+      setInternalTileArea(0);
     }
-    // eslint-disable-next-line
-  }, [tileLength, tileLengthUnit, tileWidth, tileWidthUnit, tileAreaUnit, gapSize, gapUnit, showTileAreaWithGap, tileAreaWithGapUnit]);
+  }, [tileLength, tileLengthUnit, tileWidth, tileWidthUnit, tileAreaUnit]);
+
+  // Calculate tile area with gap
+  useEffect(() => {
+    if (showTileAreaWithGap && tileLength && tileWidth && !isNaN(Number(tileLength)) && !isNaN(Number(tileWidth))) {
+      const l = parseFloat(tileLength);
+      const w = parseFloat(tileWidth);
+      const lMeters = convertLength(l, tileLengthUnit, "m");
+      const wMeters = convertLength(w, tileWidthUnit, "m");
+      const gap = parseFloat(gapSize) || 0;
+      const gapMeters = convertLength(gap, gapUnit, "m");
+      
+      const areaWithGap = (lMeters + gapMeters) * (wMeters + gapMeters);
+      setInternalTileAreaWithGap(areaWithGap);
+
+      const areaInCm2 = areaWithGap * 10000;
+      let displayGap = "";
+      if (tileAreaWithGapUnit === "m²") displayGap = formatNumber(areaWithGap, { maximumFractionDigits: 4 });
+      else if (tileAreaWithGapUnit === "ft²") displayGap = formatNumber(areaWithGap * 10.76391041671, { maximumFractionDigits: 4 });
+      else if (tileAreaWithGapUnit === "yd²") displayGap = formatNumber(areaWithGap * 1.1959900463, { maximumFractionDigits: 4 });
+      else if (tileAreaWithGapUnit === "cm²") displayGap = formatNumber(areaInCm2, { maximumFractionDigits: 2 });
+      else if (tileAreaWithGapUnit === "in²") displayGap = formatNumber(areaWithGap * 1550.0031, { maximumFractionDigits: 2 });
+      else if (tileAreaWithGapUnit === "mm²") displayGap = formatNumber(areaWithGap * 1e6, { maximumFractionDigits: 2 });
+      else displayGap = formatNumber(areaWithGap, { maximumFractionDigits: 4 });
+      
+      setTileAreaWithGap(displayGap);
+    }
+  }, [tileLength, tileLengthUnit, tileWidth, tileWidthUnit, gapSize, gapUnit, showTileAreaWithGap, tileAreaWithGapUnit]);
+
+  // Handle gap size change
+  const handleGapSizeChange = (val: string) => {
+    setGapSize(val);
+  };
 
   // Clear all fields
   const handleClear = () => {
@@ -422,12 +404,12 @@ const tileAreaUnitsShort = [
     setTileWidth("");
     setTileWidthUnit("in");
     setTileArea("");
-    setTileAreaUnit("ft²");
+    setTileAreaUnit("cm²");
     setGapSize("0");
     setGapUnit("mm");
     setShowTileAreaWithGap(false);
     setTileAreaWithGap("");
-    setTileAreaWithGapUnit("ft²");
+    setTileAreaWithGapUnit("cm²");
     setWasteFactor("10");
     setBoxSize("");
     setCostPerBox("");
@@ -435,9 +417,11 @@ const tileAreaUnitsShort = [
     setTilesWithWaste("");
     setBoxesNeeded("");
     setTotalCost("");
+    setInternalTileArea(0);
+    setInternalTileAreaWithGap(0);
   };
 
-  // Add this useEffect to calculate totalTiles, tilesWithWaste, boxesNeeded, and totalCost
+  // Calculate total tiles, tiles with waste, boxes needed, and total cost
   useEffect(() => {
     // Calculate area to tile in m²
     let areaToTileM2 = 0;
@@ -445,19 +429,18 @@ const tileAreaUnitsShort = [
       areaToTileM2 = Number(areaValue) * (areaToM2[areaUnit] || 1);
     }
 
-    // Calculate tile area in m² (prefer tileAreaWithGap if shown and filled, else tileArea)
-    let tileAreaM2 = 0;
-    if (showTileAreaWithGap && tileAreaWithGap && !isNaN(Number(tileAreaWithGap))) {
-      tileAreaM2 = Number(tileAreaWithGap) * (areaToM2[tileAreaWithGapUnit] || 1);
-    } else if (tileArea && !isNaN(Number(tileArea))) {
-      tileAreaM2 = Number(tileArea) * (areaToM2[tileAreaUnit] || 1);
+    // Determine which tile area to use (with or without gap)
+    let tileAreaM2 = internalTileArea;
+    if (showTileAreaWithGap && internalTileAreaWithGap > 0) {
+      tileAreaM2 = internalTileAreaWithGap;
     }
 
-    // number of tiles = area to tile / area of one tile
+    // Calculate number of tiles
     let tiles = 0;
     if (tileAreaM2 > 0 && areaToTileM2 > 0) {
       tiles = areaToTileM2 / tileAreaM2;
     }
+    
     const tilesNeeded = tiles > 0 ? Math.ceil(tiles) : 0;
     setTotalTiles(tilesNeeded ? tilesNeeded.toString() : "");
 
@@ -483,41 +466,12 @@ const tileAreaUnitsShort = [
     if (boxes > 0 && costBox > 0) {
       totalCostVal = boxes * costBox;
     }
-    setTotalCost(totalCostVal > 0 ? "PKR" + formatNumber(totalCostVal, { maximumFractionDigits: 2 }) : "");
+    setTotalCost(totalCostVal > 0 ? "PKR " + formatNumber(totalCostVal, { maximumFractionDigits: 2 }) : "");
   }, [
     areaValue, areaUnit,
-    tileArea, tileAreaUnit,
-    tileAreaWithGap, tileAreaWithGapUnit, showTileAreaWithGap,
+    internalTileArea, internalTileAreaWithGap, showTileAreaWithGap,
     wasteFactor, boxSize, costPerBox
   ]);
-
-  // --- Add this handler for tileAreaWithGap auto-update on gap change ---
-  const handleGapSizeChange = (val: string) => {
-    setGapSize(val);
-    // Only auto-update tileAreaWithGap if showTileAreaWithGap is checked
-    if (showTileAreaWithGap) {
-      if (tileLength && tileWidth && !isNaN(Number(tileLength)) && !isNaN(Number(tileWidth))) {
-        const l = parseFloat(tileLength);
-        const w = parseFloat(tileWidth);
-        const lMeters = convertLength(l, tileLengthUnit, "m");
-        const wMeters = convertLength(w, tileWidthUnit, "m");
-        const gap = parseFloat(val) || 0;
-        const gapMeters = convertLength(gap, gapUnit, "m");
-        let areaWithGap = (lMeters + gapMeters) * (wMeters + gapMeters);
-        let displayGap = "";
-        if (tileAreaWithGapUnit === "m²") displayGap = formatNumber(areaWithGap, { maximumFractionDigits: 4 });
-        else if (tileAreaWithGapUnit === "ft²") displayGap = formatNumber(areaWithGap * 10.76391041671, { maximumFractionDigits: 4 });
-        else if (tileAreaWithGapUnit === "yd²") displayGap = formatNumber(areaWithGap * 1.1959900463, { maximumFractionDigits: 4 });
-        else if (tileAreaWithGapUnit === "cm²") displayGap = formatNumber(areaWithGap * 10000, { maximumFractionDigits: 2 });
-        else if (tileAreaWithGapUnit === "in²") displayGap = formatNumber(areaWithGap * 1550.0031, { maximumFractionDigits: 2 });
-        else if (tileAreaWithGapUnit === "mm²") displayGap = formatNumber(areaWithGap * 1e6, { maximumFractionDigits: 2 });
-        else displayGap = formatNumber(areaWithGap, { maximumFractionDigits: 4 });
-        setTileAreaWithGap(displayGap);
-      } else {
-        setTileAreaWithGap("");
-      }
-    }
-  };
 
   return (
     <>
@@ -687,7 +641,7 @@ const tileAreaUnitsShort = [
       </div>
     </div>
 
-    {/* Your tiles section (screenshot) */}
+    {/* Your tiles section */}
     <div className="max-w-md mx-auto mt-10 bg-white rounded-lg shadow p-6 border">
       <div className="mb-4 flex items-center justify-between">
         <span className="font-semibold text-base">Your tiles</span>
@@ -801,26 +755,26 @@ const tileAreaUnitsShort = [
       {/* Tile area (including gap) - editable if checked */}
       {showTileAreaWithGap && (
         <div className="mb-4">
-          <label className="block text-sm text-gray-600 mb-1 flex items-center">
+          <label className="block text-sm text-gray-600 mb-1">
             Tile area (including gap)
-            <span className="ml-1 text-gray-400 cursor-pointer" title="Area of one tile including the gap">i</span>
-            <span className="ml-auto text-gray-400 text-xl">...</span>
           </label>
           <div className="flex items-center gap-2">
             <input
               type="text"
               value={tileAreaWithGap}
-              onChange={e => handleTileAreaWithGapChange(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white"
+              onChange={(e) => handleTileAreaWithGapChange(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
             />
-            <div className="relative w-20">
+            <div className="relative min-w-[120px]">
               <select
                 value={tileAreaWithGapUnit}
-                onChange={e => handleTileAreaWithGapUnitChange(e.target.value)}
-                className="w-full px-2 py-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none"
+                onChange={(e) => handleTileAreaWithGapUnitChange(e.target.value)}
+                className="w-full px-2 py-2 border border-gray-300 rounded-md bg-white text-gray-700 text-xs"
               >
-                {tileAreaUnits.map(u => (
-                  <option key={u.value} value={u.value}>{u.label}</option>
+                {tileAreaUnitsShort.map((u) => (
+                  <option key={u.value} value={u.value}>
+                    {u.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -866,7 +820,7 @@ const tileAreaUnitsShort = [
       </div>
       {/* Cost per box */}
       <div className="mb-2">
-        <label className="block text-sm text-gray-600 mb-1 flex ite12.2936ms-center">
+        <label className="block text-sm text-gray-600 mb-1 flex items-center">
           Cost per box
           <span className="ml-1 text-gray-400 cursor-pointer" title="How much does one box cost?">...</span>
         </label>
@@ -912,43 +866,11 @@ const tileAreaUnitsShort = [
         This means you will get <b>{boxesNeeded && boxSize ? Number(boxesNeeded) * Number(boxSize) : 0} tiles</b> in the end.
       </div>
       <div className="text-gray-700">
-        The total cost of all {boxesNeeded || 0} boxes is <b>{totalCost || "PKR0.00"}</b>.
+        The total cost of all {boxesNeeded || 0} boxes is <b>{totalCost || "PKR 0.00"}</b>.
       </div>
     </div>
     </>
   );
 };
 
-// Standard area unit conversion factors (to m²)number of tiles = area to tile / area of one tile
-
-
-const areaToM2: Record<string, number> = {
-  "mm²": 1e-6,
-  "cm²": 1e-4,
-  "m²": 1,
-  "km²": 1e6,
-  "in²": 0.00064516,
-  "ft²": 0.09290304,
-  "yd²": 0.83612736,
-  "mi²": 2.59e6,
-  "a": 100,
-  "ha": 10000,
-  "ac": 4046.8564224,
-};
-
-// Standard area unit conversion factors (from m²)
-const m2ToArea: Record<string, number> = {
-  "mm²": 1e6,
-  "cm²": 1e4,
-  "m²": 1,
-  "km²": 1e-6,
-  "in²": 1550.0031,
-  "ft²": 10.76391041671,
-  "yd²": 1.1959900463,
-  "mi²": 3.861021585e-7,
-  "a": 0.01,
-  "ha": 0.0001,
-  "ac": 0.000247105,
-};
-
-export default page;
+export default Page;
